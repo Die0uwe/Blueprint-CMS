@@ -14,7 +14,7 @@ GPL-3.0-or-later
 [![PHP](https://img.shields.io/badge/PHP-8.3%2B-777BB4?style=flat-square&logo=php)](https://php.net)
 [![MariaDB](https://img.shields.io/badge/MariaDB-10.11%2B-003545?style=flat-square&logo=mariadb)](https://mariadb.org)
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.11.0-brightgreen?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-1.12.0-brightgreen?style=flat-square)](CHANGELOG.md)
 [![CI](https://img.shields.io/github/actions/workflow/status/Die0uwe/bluprint-cms/ci.yml?branch=main&style=flat-square&label=CI)](.github/workflows/ci.yml)
 
 *Geïnspireerd door PHP-Fusion · Down Under Fusion · ImpressCMS*
@@ -175,17 +175,33 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 
 ---
 
-## ⚠️ Bekende beperkingen (stand v1.11.0)
+## ⚠️ Bekende beperkingen (stand v1.12.0)
 
 Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben opgelost — zie
 `docs/wave-0-gap-analysis.md` en `CHANGELOG.md` voor de volledige context per punt.
 
-> **v1.11.0 vond en fixte een kritieke bug die niet in deze lijst stond omdat niemand hem kende:**
-> `Connection::execute()` bond alle parameters als string, waardoor élke `LIMIT ? OFFSET ?`-query
-> in de hele applicatie faalde tegen een echte MySQL/MariaDB-server (tien bestanden, van News/Pages
-> tot de REST API). Dit was er al sinds Sprint 1 en werd pas ontdekt toen Wave 2 voor het eerst
-> code tegen een echte, lokaal geïnstalleerde database draaide i.p.v. alleen `php -l` en gemockte
-> smoke-tests. Zie CHANGELOG v1.11.0 — dit is precies het soort gat waar deze lijst voor bedoeld is.
+> **v1.12.0: de allereerste échte end-to-end boot van dit project — en die vond meteen 2 fatale
+> bugs die géén enkele eerdere verificatiemethode kon vinden.** Tot v1.12.0 was `public/index.php`
+> nog nooit écht gestart: `composer install` kan in geen enkele sandbox waarin dit project tot nu
+> toe gebouwd is slagen (`packagist.org` is netwerk-geblokkeerd), dus `vendor/autoload.php`
+> bestond nooit. v1.12.0 reconstrueerde die autoloader eenmalig met échte, van GitHub gecloonde
+> broncode om een keer écht te kunnen booten — en vond zo (1) dat `psr/container` compleet
+> ontbrak in `composer.json` terwijl `Container` het implementeert, wat een schone
+> `composer install` altijd fataal had doen crashen op de allereerste regel van elke request, en
+> (2) dat alle vier CLI-commando's (`queue:work`, `cache:clear`, `migrate`, `module:install`) al
+> sinds Sprint 1 onbereikbaar waren omdat `cli/commands/` nergens in de autoload-map stond. Beide
+> zijn gefixt en live geverifieerd (echte login, echte News-CRUD via HTTP, alle 4 CLI-commando's
+> daadwerkelijk uitgevoerd). Zie CHANGELOG v1.12.0 voor de volledige verificatie.
+>
+> **Nog steeds niet opgelost: er is geen `composer.lock` en dus geen bewijs dat een écht
+> `composer install` op een normale server exact dezelfde versies pakt** als de handmatig
+> gecloonde broncode hier. De code-fixes zelf zijn onafhankelijk daarvan correct (het zijn PSR-4-
+> en dependency-declaratiefouten in `composer.json`, geen aannames over een specifieke versie).
+>
+> v1.11.0 vond en fixte eerder al een aanverwante kritieke bug: `Connection::execute()` bond alle
+> parameters als string, waardoor élke `LIMIT ? OFFSET ?`-query faalde tegen een echte
+> MySQL/MariaDB-server (tien bestanden, van News/Pages tot de REST API) — ontdekt doordat Wave 2
+> voor het eerst tegen een echte, lokaal geïnstalleerde database draaide. Zie CHANGELOG v1.11.0.
 
 - ~~`/admin`-routes zijn niet permissie-gated~~ — **opgelost in v1.10.0.** Zie CHANGELOG:
   `PermissionMiddleware` + `admin.access`/`settings.edit`/`blocks.manage`/`marketplace.*`.
@@ -212,11 +228,14 @@ Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben o
 - **Geen `composer.lock`.** `packagist.org` was niet bereikbaar in de sandbox waarin dit werk
   is gedaan — PHPUnit/PHPStan/PHPCS zijn dus nooit lokaal gedraaid. Verificatie liep via
   `php -l` op elk bestand, handmatige smoke-test scripts tegen de echte klassen (`JWTManager`,
-  `HookManager`, `CsrfProtection`, `UploadManager`), en sinds v1.11.0 ook tegen een echte,
-  apt-geïnstalleerde lokale MariaDB-server (geen PHPUnit-suite, maar wél een echte database —
-  zie CHANGELOG v1.11.0, waar dat precies een bug vond die geen enkele eerdere gemockte test
-  kon vinden). CI draait de echte suite (zie hierboven) zodra de eerste `composer install` het
-  lockfile committed.
+  `HookManager`, `CsrfProtection`, `UploadManager`), sinds v1.11.0 ook tegen een echte,
+  apt-geïnstalleerde lokale MariaDB-server, en sinds **v1.12.0 ook tegen de échte
+  `public/index.php`/`cli/console.php` entry points zelf**, via een eenmalig met de hand
+  samengestelde `vendor/` van ongewijzigde, van GitHub gecloonde broncode (niet gecommit — zie
+  CHANGELOG v1.12.0). Dat vond meteen twee fatale `composer.json`-fouten die zelfs de MariaDB-
+  test niet kon zien. CI draait de echte suite (zie hierboven) zodra de eerste `composer install`
+  het lockfile committed — op een server met normale internettoegang zou dat nu moeten werken,
+  maar dat is in geen enkele sandbox tot nu toe zelf getest kunnen worden.
 
 ---
 

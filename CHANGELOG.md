@@ -18,6 +18,81 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ---
 
+## [1.12.0] — 2026-09-28 — Eerste échte end-to-end boot: 2 fatale bugs die géén enkele eerdere test kon vinden
+
+### Context
+
+Tot vandaag was elke verificatie in dit project — `php -l`, de handgeschreven smoke-tests, zelfs de
+v1.11.0-verificatie tegen een echte lokale MariaDB — uitgevoerd via Reflection-injectie of losse
+scripts die de klassen rechtstreeks aanriepen. **`public/index.php` en `cli/console.php` zijn nog
+nooit echt gestart**, omdat `vendor/autoload.php` nooit bestond: `composer.json` vereist o.a.
+`twig/twig`, `vlucas/phpdotenv` en `league/route`, maar `packagist.org` is in elke sandbox waarin dit
+project tot nu toe is gebouwd geblokkeerd door het netwerkbeleid (bevestigd via de proxy-statuspagina:
+`connect_rejected` / HTTP 403 op `repo.packagist.org`).
+
+Om de vraag "werkt dit ook echt?" voor het eerst goed te kunnen beantwoorden is er dit keer wél een
+werkende boot opgezet: de daadwerkelijk-gebruikte dependencies (`twig/twig` + zijn eigen runtime-deps,
+en de PSR-interface-pakketten `psr/simple-cache` + `psr/container`) zijn via `git clone` van hun
+officiële GitHub-repo's opgehaald — **echte, ongewijzigde upstream-broncode**, alleen het
+autoload-mechanisme zelf (normaal door Composer gegenereerd) is met de hand als PSR-4-correcte
+`spl_autoload_register` geschreven. Dat maakte een echte `php -S ... index.php` en een echte
+`php cli/console.php <commando>` voor het eerst mogelijk. Deze workaround-`vendor/` is **niet**
+gecommit (staat al in `.gitignore`) — op een server met normale internettoegang doet een gewone
+`composer install` precies hetzelfde, alleen dan met een door Composer gegenereerde autoloader.
+
+Die eerste échte boot vond meteen twee fatale bugs die vóór vandaag onmogelijk te ontdekken waren
+zonder een werkende autoloader:
+
+### Fixed
+
+- **KRITIEK — `Psr\Container\ContainerInterface` ontbrak volledig in `composer.json`.**
+  `src/Core/Container.php` regel 26: `final class Container implements ContainerInterface` met
+  `use Psr\Container\ContainerInterface;` — maar `psr/container` stond nergens in `require`. Onder een
+  échte `composer install` was dit pakket dus nooit geïnstalleerd, en zou `new Container()` — de
+  allereerste regel van `Application::__construct()`, aangeroepen op **elke** HTTP-request én **elk**
+  CLI-commando zonder uitzondering — meteen fataal falen met "Interface not found". Dit betekent dat
+  de applicatie sinds Sprint 1 nog nooit vanaf een schone `composer install` had kunnen opstarten.
+  Fix: `"psr/container": "^2.0"` toegevoegd aan `composer.json` → `require`.
+- **KRITIEK — alle vier CLI-commando's waren onbereikbaar.** `cli/commands/QueueWorkerCommand.php`,
+  `CacheClearCommand.php`, `MigrateCommand.php` en `ModuleInstallCommand.php` declareren stuk voor stuk
+  `namespace CommunityFusion\Cli\Commands;`, maar `composer.json` → `autoload.psr-4` mapte alleen
+  `CommunityFusion\` → `src/` (en de module-namespaces) — `cli/commands/` stond nergens in de
+  autoload-map. Resultaat: `php cli/console.php migrate` (en elk ander commando, inclusief de twee die
+  in v1.11.0 "getest tegen een echte MariaDB" heetten — die test liep via een handgeschreven harness
+  die de klasse direct `require`de, niet via de echte autoloader) faalde altijd met
+  `Class "CommunityFusion\Cli\Commands\MigrateCommand" not found`. Dit gold al sinds Sprint 1 voor
+  `queue:work` en `cache:clear`, niet alleen voor de twee nieuwe commando's uit v1.11.0. Fix:
+  `"CommunityFusion\\Cli\\Commands\\": "cli/commands/"` toegevoegd aan `composer.json` → `autoload.psr-4`.
+
+### Getest (echte HTTP-boot + echte CLI-boot, ditmaal via de daadwerkelijke entry points)
+
+Met een reconstructed `vendor/` (zie Context) en een verse lokale MariaDB-database, volledig via
+`installer/InstallerCore.php`'s eigen `importSchema()`/`writeConfig()`-logica opgezet:
+
+- `php -S 127.0.0.1:8199 index.php` (het échte `public/index.php`) → `GET /` → HTTP 200, thema
+  gerenderd via een echte `Twig\Environment` (niet gemockt).
+- `GET /admin` zonder sessie → permissie-gate werkt (v1.10.0's `PermissionMiddleware` bevestigd live).
+- Echte login-flow: `GET /login` → CSRF-token uit de live pagina → `POST /login` met de door de
+  installer aangemaakte admin (`password_hash`/Argon2id, `cf_user_roles`) → sessie-cookie → `GET /admin`
+  toont nu echt "Dashboard"/"Uitloggen".
+- Volledige News admin-CRUD via HTTP: `POST /admin/news` (nieuw artikel, CSRF-beveiligd) → verschijnt
+  in `GET /admin/news` (met paginering — bevestigt de v1.11.0 LIMIT/OFFSET-fix ook live) én op de
+  publieke `GET /news`.
+- Contact-formulier: `POST /contact` (CSRF-beveiligd) → 302, geen 500 — Mailer-pad crasht niet.
+- Alle vier CLI-commando's via het echte `cli/console.php`: `migrate` (idempotent, 21 tabellen),
+  `cache:clear` (4 bestanden gewist), `module:install discord` (bereikt de echte
+  catalogus-fallbacklogica, faalt netjes met een duidelijke melding i.p.v. een crash), `queue:work`
+  (start zonder fatale fout).
+- `GET /dit-bestaat-niet` → HTTP 404 (geen catch-all-lek).
+
+Dit is de eerste keer in de geschiedenis van dit project dat de applicatie via haar eigen, echte entry
+points (`public/index.php` en `cli/console.php`) end-to-end is geverifieerd, in plaats van via
+Reflection-geïnjecteerde smoke-tests. Test-artefacten (het reconstructed `vendor/`, het testinstallatie-
+`config/config.php`, de tijdelijke database) zijn na afloop weer opgeruimd — alleen de twee echte
+bronbestand-fixes (`composer.json`) zijn gecommit.
+
+---
+
 ## [1.11.0] — 2026-09-28 — Wave 2 vervolg: CLI-commando's + een écht kritieke LIMIT/OFFSET-bug
 
 > Task 13 uit Wave 2 (`migrate`/`module:install` CLI-commando's bouwen) legde een kritieke,

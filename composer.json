@@ -11,6 +11,7 @@
         "league/event": "^3.0",
         "league/route": "^5.0",
         "psr/simple-cache": "^3.0",
+        "psr/container": "^2.0",
         "monolog/monolog": "^3.0",
         "vlucas/phpdotenv": "^5.0",
         "ramsey/uuid": "^4.0"
@@ -23,6 +24,7 @@
     "autoload": {
         "psr-4": {
             "CommunityFusion\\": "src/",
+            "CommunityFusion\\Cli\\Commands\\": "cli/commands/",
             "CommunityFusion\\Modules\\Discord\\": "modules/discord/src/",
             "CommunityFusion\\Modules\\Twitch\\": "modules/twitch/src/",
             "CommunityFusion\\Modules\\Warcraft\\": "modules/warcraft/src/",
