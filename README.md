@@ -14,7 +14,7 @@ GPL-3.0-or-later
 [![PHP](https://img.shields.io/badge/PHP-8.3%2B-777BB4?style=flat-square&logo=php)](https://php.net)
 [![MariaDB](https://img.shields.io/badge/MariaDB-10.11%2B-003545?style=flat-square&logo=mariadb)](https://mariadb.org)
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.15.0-brightgreen?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-1.16.0-brightgreen?style=flat-square)](CHANGELOG.md)
 [![CI](https://img.shields.io/github/actions/workflow/status/Die0uwe/bluprint-cms/ci.yml?branch=main&style=flat-square&label=CI)](.github/workflows/ci.yml)
 
 *Geïnspireerd door PHP-Fusion · Down Under Fusion · ImpressCMS*
@@ -152,7 +152,7 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 | **S9** | ⚠️ v1.8.0 | ~~WoW Module v2 — Guild Roster + Character Armory~~ — **ingetrokken in v1.9.0**: bleek WordPress-code, nooit geladen. Zie CHANGELOG v1.9.0. |
 | **S9-audit** | ✅ v1.9.0 | Wave 0 gap-analyse tegen de echte repo, WP-code verwijderd, CI/tests toegevoegd, JWT/APP_KEY gescheiden, Discord-registratie, upload-handler, Forum/Blog/Downloads/Contact core-modules, installer Step5 dynamisch |
 | **S9-audit²** | ✅ v1.10.0–v1.11.0 | Wave 2: `/admin` permissie-gating, echte Mailer, News/Pages admin-CRUD, `migrate`/`module:install` CLI-commando's — en een kritieke `LIMIT`/`OFFSET`-bug gevonden door voor het eerst tegen een echte MariaDB-server te testen (zie CHANGELOG v1.11.0) |
-| **S9-audit³** | ✅ v1.12.0–v1.15.0 | Wave 3–5: eerste échte end-to-end boot (2 fatale autoload-bugs gevonden), `/admin/users`, Forum live-verificatie + bordbeheer, en de laatste 5 placeholder-schermen (Roles/Menus/Logs/Themes/Media) — **alle 6 oorspronkelijke placeholder-schermen uit v1.10.0 zijn hiermee vervangen**. Zie CHANGELOG v1.12.0–v1.15.0. |
+| **S9-audit³** | ✅ v1.12.0–v1.16.0 | Wave 3–6: eerste échte end-to-end boot (2 fatale autoload-bugs gevonden), `/admin/users`, Forum live-verificatie + bordbeheer, de laatste 5 placeholder-schermen (Roles/Menus/Logs/Themes/Media — **alle 6 oorspronkelijke placeholder-schermen uit v1.10.0 zijn hiermee vervangen**), en het Blokkensysteem (Kernprincipe #3), dat sinds Sprint 1 nog nooit had gewerkt. Zie CHANGELOG v1.12.0–v1.16.0. |
 | **S10** | 📋 Gepland | YouTube + Kick integratie |
 | **S11** | 📋 Gepland | Media-galerij (los van de generieke upload-handler) |
 | **S12** | 📋 Gepland | Premium ecosysteem + licenties + betalingen |
@@ -176,7 +176,7 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 
 ---
 
-## ⚠️ Bekende beperkingen (stand v1.15.0)
+## ⚠️ Bekende beperkingen (stand v1.16.0)
 
 Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben opgelost — zie
 `docs/wave-0-gap-analysis.md` en `CHANGELOG.md` voor de volledige context per punt.
@@ -223,6 +223,20 @@ Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben o
 > uitgeschakelde permissiematrix voor niet-`super_admin`-rollen, en een SQL-importbug in
 > de installer die crashte op een letterlijke puntkomma in een `--`-commentaarregel. Zie
 > CHANGELOG v1.15.0 voor de volledige lijst en het live-testrapport per scherm.
+>
+> **v1.16.0: het hele drag&drop-Blokkensysteem — Kernprincipe #3 van dit project, aanwezig
+> sinds Sprint 1 — bleek nog nooit één keer gewerkt te hebben.** Drie samenhangende bugs
+> zorgden ervoor dat een blok plaatsen via `/admin/blocks` altijd faalde of, zelfs als het
+> in de database belandde, nooit op de site verscheen: (1) de admin-pagina's eigen
+> "toevoegen"-knop kon nooit een geldig CSRF-token versturen (zocht een `<meta>`-tag die
+> nergens bestond), (2) `BlockRegistry::syncTypesToDatabase()` — al sinds Sprint 1
+> aanwezig — werd nérgens aangeroepen, dus `cf_block_types` bleef altijd leeg voor élk
+> block-type, ingebouwd én modulair, en (3) de belangrijkste: de Twig-global `zones` stond
+> hardcoded op een lege array en werd nooit met échte data gevuld, dus zelfs een correct
+> geplaatst blok kon nooit renderen. Alle drie gefixt en live bewezen: een blok toegevoegd
+> via de echte admin-UI staat nu daadwerkelijk op de homepage. Bijvangst, eerlijk
+> gedocumenteerd: van de 6 layout-zones zijn er nu 2 (linker/rechter sidebar) écht
+> drag&drop-baar — header/topmenu/footer zijn nog vaste HTML. Zie CHANGELOG v1.16.0.
 
 - ~~`/admin`-routes zijn niet permissie-gated~~ — **opgelost in v1.10.0.** Zie CHANGELOG:
   `PermissionMiddleware` + `admin.access`/`settings.edit`/`blocks.manage`/`marketplace.*`.
@@ -246,6 +260,16 @@ Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben o
   Nog wel een bekend gat: themawissel wisselt de Twig-templates, niet (nog) een
   kleurenschema (`theme.json`'s `colors`-blok wordt nergens toegepast — zie CHANGELOG
   v1.15.0), en er is nog geen beheerscherm voor News-categorieën (zie v1.14.0).
+- ~~Het Blokkensysteem (drag & drop) werkte niet~~ — **opgelost in v1.16.0.** Drie
+  samenhangende bugs (ontbrekend CSRF-token op `/admin/blocks`, `cf_block_types` nooit
+  gesynchroniseerd, de Twig-global `zones` hardcoded leeg) zorgden ervoor dat een geplaatst
+  blok nog nooit op de site was verschenen — zie CHANGELOG v1.16.0 voor het volledige
+  verhaal. **Nog wel een bekend gat**: van de 6 layout-zones uit de blueprint (Header, Top
+  Menu, Linker Sidebar, Content, Rechter Sidebar, Footer) zijn alleen de linker en rechter
+  sidebar daadwerkelijk dynamische block-zones in `themes/*/templates/layout.twig` — header/
+  topmenu/footer zijn nog vaste HTML zonder `{% for block in zones.X %}`. Ook filtert
+  `BlockRegistry::getZoneBlocks()` nog niet op `cf_blocks.visibility_roles` — elk geplaatst
+  blok is voor iedereen zichtbaar.
 - ~~Contact verstuurt geen e-mail~~ — **opgelost in v1.10.0** (`Mailer`, raw-socket SMTP + `mail()`-
   fallback). Wel nog geen instelbaar "meldingen naar"-adres via de admin-UI — de mail gaat naar het
   geconfigureerde afzenderadres zelf. SMTP zelf heeft ook nog geen installer-veld; vul `MAIL_HOST`

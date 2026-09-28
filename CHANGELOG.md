@@ -18,6 +18,84 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ---
 
+## [1.16.0] — 2026-09-29 — Wave 6: het Blokkensysteem (Kernprincipe #3) bleek nog nooit te werken — 3 samenhangende bugs gefixt
+
+Aanleiding: "ga verder" op de standing "maak alles af"-opdracht. Met alle 6 placeholder-
+schermen klaar (v1.15.0) leek `/admin/blocks` de volgende logische stap. Bij het live testen
+ervan (dezelfde methode als elke eerdere wave: echte HTTP-boot + echte MariaDB, een block
+daadwerkelijk plaatsen en op de site proberen terug te zien) bleek het **hele
+drag&drop-blokkensysteem — Kernprincipe #3 uit de projectblueprint, aanwezig sinds
+Sprint 1 — nog nooit één keer gewerkt te hebben**, door drie los van elkaar ontdekte,
+samenwerkende bugs.
+
+### Gevonden en gefixte bugs
+
+1. **`/admin/blocks`'s eigen "blok toevoegen"-knop kon nooit een geldig CSRF-token
+   versturen.** De pagina's JavaScript las
+   `document.querySelector('meta[name="csrf"]')?.content`, maar nergens op de pagina
+   staat een `<meta name="csrf">`-tag — die bestond simpelweg niet. `CSRF` was daardoor
+   altijd een lege string en elke fetch()-actie (blok toevoegen/verwijderen/herordenen)
+   werd afgewezen door `CsrfProtection::validateRequest()`. Vóór de CSRF-403-bugfix uit
+   v1.15.0 kwam dit als een verwarrende generieke 500 naar buiten; ná die fix als een
+   (nog steeds onterechte) 403 — in beide gevallen zonder dat de knop ooit iets deed.
+   Gefixt door hetzelfde, wél werkende patroon over te nemen dat
+   `Marketplace/views/index.php` al gebruikt: een verborgen `_csrf_token`-input
+   (`CsrfProtection::field()`) en een JS-selector die daarnaar zoekt.
+2. **`BlockRegistry::syncTypesToDatabase()` bestond al sinds Sprint 1, maar werd
+   nérgens aangeroepen.** `cf_block_types` — de tabel die `/admin/blocks` nodig heeft om
+   een blok-type-slug naar een database-ID te vertalen — bleef daardoor na een verse
+   installatie permanent leeg, voor zowel de 6 ingebouwde blocks (Text/Html/News/Login/
+   Stats/Ad) als elk block van een module (Discord, Twitch, ...). Zelfs mét een geldig
+   CSRF-token faalde `BlockController::store()` dus alsnog, met "Block type niet in DB
+   geregistreerd." (eveneens als generieke 500 vóór de v1.15.0-fix). Gefixt: een nieuwe
+   kernmodule `blocks` (schema.sql) is nu eigenaar van de 6 ingebouwde block-types, en
+   `Application::boot()` roept `syncTypesToDatabase()` nu aan — éénmaal voor de core
+   blocks, en opnieuw na het boot()en van elke module (idempotent per slug: `ON DUPLICATE
+   KEY UPDATE` raakt `module_id` niet aan, dus herhaald aanroepen over de gedeelde
+   registry is veilig).
+3. **De ergste van de drie: `ThemeManager::setBlockRegistry()` zette de Twig-global
+   `zones` hard op een lege array — en niets overschreef dat ooit.** `layout.twig`'s
+   `{% if zones.sidebar_left is defined and zones.sidebar_left %}` was hierdoor
+   permanent `false`. Zelfs ná het fixen van bug 1 en 2 — dus met een succesvol in
+   `cf_blocks` geplaatst blok — verscheen er nog steeds niets op de site: `zones` was
+   simpelweg nooit gevuld met échte data uit `BlockRegistry::getZoneBlocks()`. Dit is
+   dezelfde categorie bug als de al gedocumenteerde `auth`/`settings`/`menu_pages`-fix
+   (zie `ThemeManager::addGlobal()`'s docblock) — Twig faalt niet hard op een undefined
+   of leeg global, dus dit bleef stil. Gefixt door `Application::boot()` de 6
+   layout-zones (`header`, `topmenu`, `sidebar_left`, `content`, `sidebar_right`,
+   `footer`) nu ook echt te vullen via `BlockRegistry::getZoneBlocks()`, in dezelfde
+   plek waar `auth`/`settings`/`menu_pages` al gewired worden.
+
+### Getest (live HTTP + database + daadwerkelijke pagina-inspectie)
+
+- Verse installatie → `cf_block_types` bevat na de eerste request meteen alle 6 core
+  blocks, elk gekoppeld aan de nieuwe `blocks`-kernmodule.
+- Ingelogd als BigBoss, blok "Tekst" toegevoegd aan `sidebar_right` via de echte
+  `/admin/blocks`-pagina-flow (CSRF-token uit de nu wél aanwezige hidden input) → 302,
+  rij in `cf_blocks`.
+- **Homepage-HTML na cache-clear bevat daadwerkelijk `<aside id="cf-sidebar-right">`
+  met het geplaatste blok erin** — het allereerste bewijs ooit dat een via de admin-UI
+  geplaatst blok ook echt op de site verschijnt.
+- Blok verwijderd via de admin-route (niet rechtstreeks SQL) → cache correct
+  geïnvalideerd, blok direct weg van de homepage.
+- **Bijvangst, eerlijk gedocumenteerd i.p.v. verzwegen**: van de 6 zones uit de
+  projectblueprint zijn in de huidige `layout.twig` alleen `sidebar_left` en
+  `sidebar_right` daadwerkelijk dynamische block-zones — `header`, `topmenu` en
+  `footer` zijn vaste HTML (logo, hoofdmenu, footer-links) zonder een
+  `{% for block in zones.X %}`-lus. Een blok in `header`/`topmenu`/`footer` plaatsen
+  slaagt in de database maar verschijnt nergens; dit is geen bug in de drie fixes
+  hierboven, maar een aparte, nog openstaande scope-stap om ook die drie zones echt
+  drag&drop-baar te maken. Zie README "Bekende beperkingen".
+
+### Nog open
+
+Alle 6 layout-zones uit de blueprint drag&drop-baar maken (nu 2/6: sidebar_left/right).
+`visibility_roles` op `cf_blocks` wordt door `BlockRegistry::getZoneBlocks()` nog niet
+gefilterd — elk geplaatst blok is voor iedereen zichtbaar, ongeacht de kolom.
+`composer.lock` blijft onmogelijk te genereren in deze sandbox (geen internettoegang).
+
+---
+
 ## [1.15.0] — 2026-09-29 — Wave 5: laatste 5 placeholder-schermen gebouwd (Roles, Menus, Logs, Themes, Media)
 
 Aanleiding: "vervolg alle logische stappen die nog moeten en maak af" — de 5 resterende

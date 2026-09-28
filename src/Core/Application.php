@@ -216,6 +216,27 @@ final class Application
             new \CommunityFusion\Blocks\Types\AdBlock()
         );
 
+        // BlockRegistry::syncTypesToDatabase() bestond al sinds Sprint 1 maar werd
+        // NERGENS aangeroepen — cf_block_types bleef daardoor altijd leeg, en
+        // BlockController::store() (/admin/blocks) faalde voor ELK block type,
+        // ingebouwd én modulair, met "Block type niet in DB geregistreerd." Het
+        // hele drag&drop-blokkensysteem (Kernprincipe #3) heeft hierdoor nog nooit
+        // gewerkt. Fix: sync de 6 core blocks nu naar de 'blocks'-kernmodule
+        // (schema.sql), en sync na het boot()en van elke module opnieuw (zie
+        // loadModule() hieronder) — syncTypesToDatabase() is idempotent per slug
+        // (ON DUPLICATE KEY UPDATE raakt module_id niet aan), dus herhaald
+        // aanroepen over de hele registry is veilig.
+        try {
+            $db = $this->container->make(\CommunityFusion\Core\Database\Connection::class);
+            $blocksModule = $db->fetchOne("SELECT id FROM cf_modules WHERE slug = 'blocks'");
+            if ($blocksModule !== null) {
+                $this->container->make(\CommunityFusion\Core\Block\BlockRegistry::class)
+                    ->syncTypesToDatabase((int) $blocksModule['id']);
+            }
+        } catch (\Throwable) {
+            // DB nog niet beschikbaar (installatiefase) — negeren, zelfde patroon als loadModules()
+        }
+
         // Laad geregistreerde modules
         $this->loadModules();
 
@@ -243,6 +264,22 @@ final class Application
 
             $pageRepo = $this->container->make(\CommunityFusion\Modules\Pages\PageRepository::class);
             $theme->addGlobal('menu_pages', $pageRepo->getMenuPages());
+
+            // Zelfde categorie bug als hierboven, maar dan voor het Blokkensysteem:
+            // ThemeManager::setBlockRegistry() zette `zones` hard op [] en niets
+            // overschreef dat ooit — layout.twig's
+            // `{% if zones.sidebar_left is defined and zones.sidebar_left %}` was
+            // daardoor altijd false, dus zelfs een correct in cf_blocks geplaatst
+            // block (zie ook de syncTypesToDatabase()-fix hierboven, zonder welke
+            // een block nooit geplaatst kon wórden) verscheen nooit ergens op de
+            // site. Vul de 6 layout-zones nu echt met BlockRegistry::getZoneBlocks().
+            $registry = $this->container->make(\CommunityFusion\Core\Block\BlockRegistry::class);
+            $zoneNames = ['header', 'topmenu', 'sidebar_left', 'content', 'sidebar_right', 'footer'];
+            $zones = [];
+            foreach ($zoneNames as $zoneName) {
+                $zones[$zoneName] = $registry->getZoneBlocks($zoneName);
+            }
+            $theme->addGlobal('zones', $zones);
         } catch (\Throwable) {}
 
         $this->booted = true;
@@ -277,18 +314,18 @@ final class Application
         try {
             $db      = $this->container->make(Connection::class);
             $modules = $db->fetchAll(
-                "SELECT slug, config FROM cf_modules WHERE is_enabled = 1 ORDER BY is_core DESC"
+                "SELECT id, slug, config FROM cf_modules WHERE is_enabled = 1 ORDER BY is_core DESC"
             );
 
             foreach ($modules as $row) {
-                $this->loadModule($row['slug'], json_decode($row['config'] ?? '{}', true) ?? []);
+                $this->loadModule((int) $row['id'], $row['slug'], json_decode($row['config'] ?? '{}', true) ?? []);
             }
         } catch (\Throwable) {
             // DB nog niet beschikbaar (installatiefase) — negeren
         }
     }
 
-    private function loadModule(string $slug, array $config): void
+    private function loadModule(int $moduleId, string $slug, array $config): void
     {
         $manifestPath = CF_ROOT . "/modules/{$slug}/module.json";
         if (!file_exists($manifestPath)) return;
@@ -303,6 +340,15 @@ final class Application
         $module->boot($this);
 
         $this->container->instance("module.{$slug}", $module);
+
+        // Zie het uitgebreide commentaar bij de eerste syncTypesToDatabase()-aanroep
+        // hierboven: elke module die eigen blocks registreert in boot() moet ook
+        // hier gesynchroniseerd worden, anders blijven díe blocks ook onvindbaar
+        // voor /admin/blocks.
+        try {
+            $this->container->make(\CommunityFusion\Core\Block\BlockRegistry::class)
+                ->syncTypesToDatabase($moduleId);
+        } catch (\Throwable) {}
     }
 
     private function configureRuntime(array $config): void

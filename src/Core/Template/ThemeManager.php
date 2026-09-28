@@ -96,6 +96,11 @@ final class ThemeManager
         $this->twig->addFunction(new \Twig\TwigFunction('render_block', function(array $blockRow) use ($registry): string {
             return $registry->renderBlock($blockRow);
         }));
+        // Veilige placeholder tot Application::boot() dit meteen daarna overschrijft
+        // met de échte zone-inhoud (addGlobal('zones', [...])) — dit was tot
+        // v1.16.0 de ENIGE plek waar `zones` gezet werd, permanent leeg, waardoor
+        // geen enkel geplaatst block ooit op de site verscheen. Zie de
+        // syncTypesToDatabase()-fix + dit commentaar in Application::boot().
         $this->twig->addGlobal('zones', []);
     }
 

@@ -226,11 +226,16 @@ INSERT INTO `cf_roles` (`name`, `display_name`, `priority`, `is_default`) VALUES
 ('member',      'Member',      10,  1),
 ('guest',       'Gast',        0,   0);
 
+-- 'blocks' is de eigenaar-module voor de 6 ingebouwde block types
+-- (Text/Html/News/Login/Stats/Ad) — cf_block_types.module_id is NOT NULL
+-- met een FK naar cf_modules, dus zelfs core blocks hebben een module nodig
+-- om aan te hangen. Zie Application.php voor de sync-aanroep (v1.16.0-fix).
 INSERT INTO `cf_modules` (`slug`, `name`, `version`, `is_core`, `is_enabled`) VALUES
 ('users',    'Gebruikersbeheer', '1.0.0', 1, 1),
 ('news',     'Nieuws',           '1.0.0', 1, 1),
 ('pages',    'Pagina\'s',        '1.0.0', 1, 1),
-('settings', 'Instellingen',     '1.0.0', 1, 1);
+('settings', 'Instellingen',     '1.0.0', 1, 1),
+('blocks',   'Blokkensysteem',   '1.0.0', 1, 1);
 
 SET FOREIGN_KEY_CHECKS = 1;
 

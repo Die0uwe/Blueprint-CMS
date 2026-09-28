@@ -3,6 +3,15 @@
 // Copyright (C) 2026  DieOuwe — GPL-3.0-or-later
 // ============================================================================
 // $zones, $allTypes, $placed zijn beschikbaar vanuit BlockController::index()
+//
+// De pagina-JS haalde tot v1.16.0 een CSRF-token op via
+// `document.querySelector('meta[name="csrf"]')?.content` — een meta-tag die
+// nergens op deze pagina bestond, dus CSRF was altijd een lege string en
+// iedere fetch()-actie hier (blok toevoegen/verwijderen/herordenen) werd
+// door CsrfProtection::validateRequest() afgewezen. Gefixt met hetzelfde,
+// wél werkende patroon als Marketplace/views/index.php: een verborgen
+// `_csrf_token`-input die CsrfProtection::field() rendert.
+use CommunityFusion\Core\Security\CsrfProtection;
 ?>
 <!DOCTYPE html>
 <html lang="nl">
@@ -206,6 +215,7 @@
 </style>
 </head>
 <body>
+<?= CsrfProtection::field() ?>
 <div class="admin-wrap">
 
   <!-- Sidebar (zelfde als dashboard) -->
@@ -365,7 +375,7 @@
 <div id="toast"></div>
 
 <script>
-const CSRF = document.querySelector('meta[name="csrf"]')?.content || '';
+const CSRF = document.querySelector('input[name="_csrf_token"]')?.value || '';
 
 // ── Toast ──────────────────────────────────────────────────────────────────
 function showToast(msg, type = 'success') {
