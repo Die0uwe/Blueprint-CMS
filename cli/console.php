@@ -29,27 +29,17 @@ if (file_exists(CF_ROOT . '/.env')) {
 
 $command = $argv[1] ?? 'help';
 
-// `migrate` en `module:install` staan al sinds v1.0.0 in de help-tekst en de
-// docblock hierboven, maar CommunityFusion\Cli\Commands\MigrateCommand en
-// ModuleInstallCommand bestaan niet — cli/commands/ bevat alleen
-// QueueWorkerCommand.php en CacheClearCommand.php. Zonder deze check gaf dit
-// een kale "Class not found"-fatal error i.p.v. een bruikbare melding.
-// Schema importeren kan tot die commando's gebouwd zijn via de installer
-// (stap 5) of handmatig: `mysql db < src/Core/Database/schema.sql`.
-// Module-activatie kan via de installer (stap 5) of /admin/marketplace.
-$notImplemented = [
-    'migrate'        => 'mysql <db> < src/Core/Database/schema.sql',
-    'module:install' => '/admin/marketplace (of de installer, stap 5)',
-];
-
+// `migrate` en `module:install` stonden al sinds v1.0.0 in de help-tekst en
+// de docblock hierboven, maar CommunityFusion\Cli\Commands\MigrateCommand en
+// ModuleInstallCommand bestonden niet — cli/commands/ bevatte tot Wave 2
+// alleen QueueWorkerCommand.php en CacheClearCommand.php (zie CHANGELOG
+// v1.9.0 voor de eerdere fallback-melding i.p.v. een kale fatal error).
+// Beide zijn nu gebouwd — zie hun eigen docblocks voor details.
 match (true) {
-    $command === 'queue:work'  => (new CommunityFusion\Cli\Commands\QueueWorkerCommand())->handle($argv),
-    $command === 'cache:clear' => (new CommunityFusion\Cli\Commands\CacheClearCommand())->handle($argv),
-    isset($notImplemented[$command]) => printf(
-        "'%s' is nog niet gebouwd (staat gepland, zie CHANGELOG). Gebruik ondertussen: %s\n",
-        $command,
-        $notImplemented[$command]
-    ),
+    $command === 'queue:work'      => (new CommunityFusion\Cli\Commands\QueueWorkerCommand())->handle($argv),
+    $command === 'cache:clear'     => (new CommunityFusion\Cli\Commands\CacheClearCommand())->handle($argv),
+    $command === 'migrate'         => (new CommunityFusion\Cli\Commands\MigrateCommand())->handle($argv),
+    $command === 'module:install'  => (new CommunityFusion\Cli\Commands\ModuleInstallCommand())->handle($argv),
     default => printHelp(),
 };
 

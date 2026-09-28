@@ -14,7 +14,7 @@ GPL-3.0-or-later
 [![PHP](https://img.shields.io/badge/PHP-8.3%2B-777BB4?style=flat-square&logo=php)](https://php.net)
 [![MariaDB](https://img.shields.io/badge/MariaDB-10.11%2B-003545?style=flat-square&logo=mariadb)](https://mariadb.org)
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.9.0-brightgreen?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-1.11.0-brightgreen?style=flat-square)](CHANGELOG.md)
 [![CI](https://img.shields.io/github/actions/workflow/status/Die0uwe/bluprint-cms/ci.yml?branch=main&style=flat-square&label=CI)](.github/workflows/ci.yml)
 
 *Geïnspireerd door PHP-Fusion · Down Under Fusion · ImpressCMS*
@@ -151,6 +151,7 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 | **S8** | ✅ v1.7.0 | Debug & fixes — 15 bugs opgelost, composer PSR-4 |
 | **S9** | ⚠️ v1.8.0 | ~~WoW Module v2 — Guild Roster + Character Armory~~ — **ingetrokken in v1.9.0**: bleek WordPress-code, nooit geladen. Zie CHANGELOG v1.9.0. |
 | **S9-audit** | ✅ v1.9.0 | Wave 0 gap-analyse tegen de echte repo, WP-code verwijderd, CI/tests toegevoegd, JWT/APP_KEY gescheiden, Discord-registratie, upload-handler, Forum/Blog/Downloads/Contact core-modules, installer Step5 dynamisch |
+| **S9-audit²** | ✅ v1.10.0–v1.11.0 | Wave 2: `/admin` permissie-gating, echte Mailer, News/Pages admin-CRUD, `migrate`/`module:install` CLI-commando's — en een kritieke `LIMIT`/`OFFSET`-bug gevonden door voor het eerst tegen een echte MariaDB-server te testen (zie CHANGELOG v1.11.0) |
 | **S10** | 📋 Gepland | YouTube + Kick integratie |
 | **S11** | 📋 Gepland | Media-galerij (los van de generieke upload-handler) |
 | **S12** | 📋 Gepland | Premium ecosysteem + licenties + betalingen |
@@ -174,10 +175,17 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 
 ---
 
-## ⚠️ Bekende beperkingen (stand v1.10.0)
+## ⚠️ Bekende beperkingen (stand v1.11.0)
 
 Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben opgelost — zie
 `docs/wave-0-gap-analysis.md` en `CHANGELOG.md` voor de volledige context per punt.
+
+> **v1.11.0 vond en fixte een kritieke bug die niet in deze lijst stond omdat niemand hem kende:**
+> `Connection::execute()` bond alle parameters als string, waardoor élke `LIMIT ? OFFSET ?`-query
+> in de hele applicatie faalde tegen een echte MySQL/MariaDB-server (tien bestanden, van News/Pages
+> tot de REST API). Dit was er al sinds Sprint 1 en werd pas ontdekt toen Wave 2 voor het eerst
+> code tegen een echte, lokaal geïnstalleerde database draaide i.p.v. alleen `php -l` en gemockte
+> smoke-tests. Zie CHANGELOG v1.11.0 — dit is precies het soort gat waar deze lijst voor bedoeld is.
 
 - ~~`/admin`-routes zijn niet permissie-gated~~ — **opgelost in v1.10.0.** Zie CHANGELOG:
   `PermissionMiddleware` + `admin.access`/`settings.edit`/`blocks.manage`/`marketplace.*`.
@@ -193,33 +201,40 @@ Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben o
   fallback). Wel nog geen instelbaar "meldingen naar"-adres via de admin-UI — de mail gaat naar het
   geconfigureerde afzenderadres zelf. SMTP zelf heeft ook nog geen installer-veld; vul `MAIL_HOST`
   e.a. in `.env` in vóór je de installer draait (zie `.env.example`).
-- **`migrate`/`module:install` CLI-commando's ontbreken.** Stonden al sinds v1.0.0 in de
-  help-tekst; sinds v1.9.0 geeft `console.php` een duidelijke melding i.p.v. een fatal error.
+- ~~`migrate`/`module:install` CLI-commando's ontbreken~~ — **opgelost in v1.11.0.** Beide
+  gebouwd en écht getest tegen een lokale MariaDB-server (zie CHANGELOG). Bijvangst: dit legde
+  ook bloot dat `queue:work` al sinds Sprint 1 stuk was (`Application::boot()` was `private`,
+  nu `public`) — ook gefixt.
 - **Module-specifieke extra tabellen** (bv. `cf_discord_role_mapping`) worden niet direct
   aangemaakt wanneer je een module in installer-stap 5 selecteert — de installer laadt bewust
   geen framework-klassen. Ze ontstaan zodra een beheerder de module later via
   `/admin/marketplace` (opnieuw) activeert.
 - **Geen `composer.lock`.** `packagist.org` was niet bereikbaar in de sandbox waarin dit werk
   is gedaan — PHPUnit/PHPStan/PHPCS zijn dus nooit lokaal gedraaid. Verificatie liep via
-  `php -l` op elk bestand plus handmatige smoke-test scripts tegen de echte klassen
-  (`JWTManager`, `HookManager`, `CsrfProtection`, `UploadManager`). CI draait dit wél echt
-  (zie hierboven) zodra de eerste `composer install` het lockfile committed.
+  `php -l` op elk bestand, handmatige smoke-test scripts tegen de echte klassen (`JWTManager`,
+  `HookManager`, `CsrfProtection`, `UploadManager`), en sinds v1.11.0 ook tegen een echte,
+  apt-geïnstalleerde lokale MariaDB-server (geen PHPUnit-suite, maar wél een echte database —
+  zie CHANGELOG v1.11.0, waar dat precies een bug vond die geen enkele eerdere gemockte test
+  kon vinden). CI draait de echte suite (zie hierboven) zodra de eerste `composer install` het
+  lockfile committed.
 
 ---
 
 ## 🖥️ CLI Tools
 
 ```bash
-php cli/console.php queue:work     # Queue worker starten
-php cli/console.php cache:clear    # Cache wissen
+php cli/console.php queue:work                      # Queue worker starten
+php cli/console.php cache:clear                      # Cache wissen
+php cli/console.php migrate                           # DB-schema (opnieuw) importeren
+php cli/console.php module:install <slug> [--url=…]  # Module installeren zonder /admin
 ```
 
-> `migrate` en `module:install` staan al sinds v1.0.0 in de `console.php`-help, maar
-> `MigrateCommand`/`ModuleInstallCommand` zijn nooit gebouwd (`cli/commands/` bevat alleen
-> `QueueWorkerCommand` en `CacheClearCommand`) — sinds v1.9.0 geeft `console.php` hiervoor een
-> duidelijke melding i.p.v. een kale fatal error. Schema importeren kan ondertussen via
-> `mysql <db> < src/Core/Database/schema.sql` (of de installer); modules activeren via
-> `/admin/marketplace` of installer-stap 5.
+> `migrate` en `module:install` stonden al sinds v1.0.0 in de `console.php`-help maar waren
+> nooit gebouwd — sinds **v1.11.0** bestaan beide en zijn ze getest tegen een echte lokale
+> MariaDB-server (zie CHANGELOG v1.11.0). `migrate` is idempotent: opnieuw draaien tegen een
+> al gevulde database slaat bestaande tabellen én seed-rijen netjes over. `module:install`
+> hergebruikt dezelfde `PackageManager`-service als `/admin/marketplace`, zonder de
+> HTTP-only RBAC-check (shell-toegang tot de server is hier de vertrouwensgrens).
 
 ---
 

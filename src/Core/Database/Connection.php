@@ -82,7 +82,34 @@ final class Connection
         $start = microtime(true);
 
         $stmt = $this->pdo->prepare($sql);
-        $stmt->execute($bindings);
+
+        // Wave 2 gap-fix: `$stmt->execute($bindings)` bindt ELK element als
+        // PDO::PARAM_STR, ongeacht het echte PHP-type. Met
+        // PDO::ATTR_EMULATE_PREPARES => false hierboven (bewust aan — echte
+        // server-side prepared statements) accepteert MySQL/MariaDB geen
+        // string-getypeerde parameter op een LIMIT/OFFSET-positie: elke query
+        // met `LIMIT ? OFFSET ?` (tien bestanden in deze codebase, van
+        // NewsRepository tot de REST API) faalde hierdoor altijd met
+        // "You have an error in your SQL syntax ... near ''N' OFFSET 'M''"
+        // zodra hij tegen een echte database draaide — nooit gezien tijdens
+        // eerdere waves omdat er nooit een echte MySQL/MariaDB-server
+        // beschikbaar was om tegen te testen (zie CHANGELOG v1.10.0: dit
+        // kwam pas aan het licht doordat de CLI-commando's van deze wave voor
+        // het eerst wél tegen een echte, lokaal geïnstalleerde MariaDB
+        // getest zijn). Losse `bindValue()`-aanroepen met het juiste
+        // PDO::PARAM_*-type lossen dit op voor ALLE aanroepers van deze ene
+        // methode in één keer, zonder dat elk van de tien call-sites apart
+        // aangepast hoeft te worden.
+        foreach (array_values($bindings) as $i => $value) {
+            $type = match (true) {
+                is_int($value)  => \PDO::PARAM_INT,
+                is_bool($value) => \PDO::PARAM_BOOL,
+                $value === null => \PDO::PARAM_NULL,
+                default          => \PDO::PARAM_STR,
+            };
+            $stmt->bindValue($i + 1, $value, $type);
+        }
+        $stmt->execute();
 
         $this->queryCount++;
         $this->queryLog[] = [

@@ -195,8 +195,24 @@ PHP;
             try {
                 $pdo->exec($sql);
             } catch (\PDOException $e) {
-                // Negeer "table already exists" fouten
-                if ($e->getCode() !== '42S01') throw $e;
+                // Negeer "table already exists" (42S01) én "duplicate entry"
+                // bij het opnieuw inserten van de seed-rijen (MySQL-errorcode
+                // 1062, SQLSTATE 23000) — beide horen bij een idempotente
+                // her-import (bv. `php cli/console.php migrate` een tweede
+                // keer draaien, Wave 2), niet bij een echte fout. Wave 2
+                // ontdekte dit gat: alleen 42S01 negeren volstond voor de
+                // installer zelf (die maar één keer draait), maar migrate
+                // faalde op de tweede run met "Duplicate entry 'super_admin'
+                // for key 'uq_name'" — de CREATE TABLE-statements werden wel
+                // overgeslagen, de RBAC/settings-seed-INSERT's niet. SQLSTATE
+                // 23000 dekt ook FK-violations; daarom expliciet op de
+                // MySQL-errorcode (1062) checken i.p.v. alleen de bredere
+                // SQLSTATE-klasse, zodat een échte integriteitsfout elders
+                // niet per ongeluk stil wordt geslikt.
+                $mysqlErrorCode = $e->errorInfo[1] ?? null;
+                if ($e->getCode() !== '42S01' && $mysqlErrorCode !== 1062) {
+                    throw $e;
+                }
             }
         }
     }

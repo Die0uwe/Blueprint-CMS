@@ -18,6 +18,89 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ---
 
+## [1.11.0] — 2026-09-28 — Wave 2 vervolg: CLI-commando's + een écht kritieke LIMIT/OFFSET-bug
+
+> Task 13 uit Wave 2 (`migrate`/`module:install` CLI-commando's bouwen) legde een kritieke,
+> tot dan toe onopgemerkte bug bloot in de kern-`Connection`-klasse — zie hieronder. Dit is de
+> eerste keer in dit hele project dat code daadwerkelijk tegen een echte, lokaal geïnstalleerde
+> MariaDB-server is gedraaid in plaats van tegen `php -l` en gemockte/sqlite-gebaseerde
+> smoke-tests; die verandering in testmethode is precies wat dit aan het licht bracht.
+
+### Opgelost — kritiek
+
+**`LIMIT ?`/`OFFSET ?` faalde op ELKE query tegen een echte database**
+- `Connection::execute()` gaf de bindings-array ongewijzigd door aan `PDOStatement::execute()`.
+  Met `PDO::ATTR_EMULATE_PREPARES => false` (al sinds Sprint 1 bewust aan gezet, voor echte
+  server-side prepared statements) bindt PDO dan **elke** parameter als `PDO::PARAM_STR`,
+  ongeacht het PHP-type. MySQL/MariaDB accepteert geen string-getypeerde parameter op een
+  `LIMIT`/`OFFSET`-positie — elke query met `LIMIT ? OFFSET ?` gooide daardoor altijd
+  `SQLSTATE[42000]: ... near ''1' OFFSET '0''`, zodra hij tegen een echte database draaide.
+  **Dit trof zonder uitzondering alle tien bestanden in de codebase die dit patroon gebruiken**:
+  `NewsRepository`, `PageRepository`, `BlogRepository`, `ForumRepository`,
+  `DownloadsRepository`, `ContactRepository`, `PackageManager` (marketplace-catalogus),
+  `NewsBlock`, en de REST API (`Api\V1\ContentController`, `Api\V1\UsersController`) — dus
+  elk paginated overzicht in de hele applicatie, inclusief de News/Pages admin-CRUD van
+  eerder in deze wave (v1.10.0). Nooit eerder gezien omdat elke voorgaande verificatie in dit
+  project via `php -l` en gemockte `Connection`-objecten liep, nooit tegen een echte
+  MySQL/MariaDB-instantie.
+- **Fix**: `Connection::execute()` bindt nu elke parameter los via `bindValue()` met het
+  juiste `PDO::PARAM_*`-type (`PARAM_INT` voor `int`, `PARAM_BOOL` voor `bool`, `PARAM_NULL`
+  voor `null`, anders `PARAM_STR`) i.p.v. de hele array in één keer aan `execute()` te geven.
+  Eén fix op één plek — `insert()`/`update()`/`delete()`/`fetchAll()`/`fetchOne()` routeren
+  allemaal via deze ene methode, dus alle tien getroffen bestanden zijn hiermee gerepareerd
+  zonder dat er per call-site iets hoefde te veranderen.
+- **Echt geverifieerd**, niet alleen ge-lint: een lokale MariaDB 10.11-server geïnstalleerd
+  in de sandbox (`apt-get install mariadb-server`) en gestart (`service mariadb start`), een
+  echte database + gebruiker aangemaakt, en zowel `NewsRepository::getAll($limit, $offset)`
+  (paginering, twee pagina's, juiste rijen per pagina) als de volledige `migrate`-flow
+  (hieronder) er live tegenaan gedraaid — vóór de fix faalde dit hard, erna niet meer.
+
+**`InstallerCore::importSchema()` was in de praktijk niet idempotent**
+- Ontdekt door `migrate` een tweede keer te draaien tegen dezelfde (nu al gevulde) database:
+  de `CREATE TABLE`-statements werden terecht overgeslagen (bestaande `42S01`-check), maar de
+  RBAC/settings-seed-`INSERT`-statements niet — `SQLSTATE[23000]: ... Duplicate entry
+  'super_admin' for key 'uq_name'`. Dit bestond al sinds Sprint 1 in de installer zelf, maar
+  kwam nooit aan het licht omdat de installer normaal maar één keer draait.
+- **Fix**: naast SQLSTATE `42S01` nu ook MySQL-errorcode `1062` (duplicate entry) negeren —
+  bewust op de specifieke errorcode gecheckt, niet op de bredere `23000`-SQLSTATE-klasse (die
+  ook FK-violations omvat), zodat een échte integriteitsfout elders niet stilzwijgend wordt
+  geslikt. **Geverifieerd**: `migrate` drie keer achter elkaar gedraaid tegen dezelfde
+  database — derde keer nog steeds 5 rollen / 18 permissies, geen duplicaten, geen fout.
+
+### Toegevoegd
+
+**`migrate` en `module:install` CLI-commando's (stonden al sinds v1.0.0 in de help-tekst)**
+- `cli/commands/MigrateCommand.php` — hergebruikt `InstallerCore::importSchema()` (dezelfde
+  code als installer-stap 5) i.p.v. de SQL-split-en-uitvoer-logica te dupliceren. Geeft een
+  duidelijke melding + exit code 1 bij een ontbrekende `config/config.php` of een mislukte
+  DB-verbinding, i.p.v. een kale fatal error.
+- `cli/commands/ModuleInstallCommand.php` — hergebruikt `PackageManager` (dezelfde service
+  als `/admin/marketplace`). `--url=` optioneel; zonder die vlag wordt de download-URL uit de
+  marketplace-catalogus opgezocht, zelfde fallback als `MarketplaceController::install()`.
+  Bewust géén `AuthManager::authorize('marketplace.install')`-check — die permissie hoort bij
+  een ingelogde admin-sessie over HTTP; wie dit commando kan draaien heeft al shell-toegang
+  tot de server, en dat is hier de vertrouwensgrens.
+- `Application::boot()` was `private` — `run()` (de normale HTTP-flow) riep dit intern aan,
+  maar de bestaande `QueueWorkerCommand` (al sinds Sprint 1!) bootstrapte via `$app = require
+  .../Application.php; $app->make(Connection::class);` zonder ooit `boot()` aan te roepen.
+  Omdat niets dan de `Connection`-singleton registreerde, gooide dit altijd "Kan parameter
+  '\$config' niet resolven voor Connection" — `queue:work` was dus al sinds Sprint 1 kapot,
+  ontdekt als bijvangst tijdens het bouwen van deze twee nieuwe commando's. `boot()` is nu
+  `public`; `QueueWorkerCommand` en de twee nieuwe commando's roepen het expliciet aan vóór de
+  eerste `$app->make(...)`.
+
+### Getest
+- Volledige `php -l`-sweep, schoon.
+- **Een echte lokale MariaDB-server** (niet gemockt, niet sqlite): schema-import vanaf nul
+  (21 tabellen), drie keer opnieuw draaien zonder fouten of duplicaten, `NewsRepository`
+  create/getAll/countAll met echte paginering, en de foutafhandelingspaden van beide nieuwe
+  CLI-commando's (ontbrekende `config.php`, ontbrekende slug, onbereikbare DB, geen
+  catalogus-match) — elk pad gecontroleerd op een nette melding + exit code 1, geen fatal
+  errors. De testdatabase/-gebruiker en `config/config.php` zijn na afloop weer verwijderd
+  (dat bestand hoort niet in git — zie `.gitignore`).
+
+---
+
 ## [1.10.0] — 2026-09-28 — Wave 2: /admin permissie-gating + de resterende "Bekende beperkingen"
 
 > Vervolg op Wave 1 (v1.9.0): de expliciet als "niet opgelost" gedisclosede punten uit README's

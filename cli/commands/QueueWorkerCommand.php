@@ -24,8 +24,12 @@ final class QueueWorkerCommand
         echo "🔄 Queue Worker gestart — Queue: {$queue} | Sleep: {$sleep}s | Max tries: {$tries}\n";
         echo "   Ctrl+C om te stoppen\n\n";
 
-        // Bootstrap de applicatie
+        // Bootstrap de applicatie. boot() was private tot Wave 2 (zie
+        // Application::boot() docblock) — zonder deze aanroep registreert
+        // niets de Connection-singleton en gooide make() hieronder altijd
+        // "Kan parameter '$config' niet resolven voor Connection."
         $app = require CF_ROOT . '/src/Core/Application.php';
+        $app->boot();
         $db  = $app->make(\CommunityFusion\Core\Database\Connection::class);
 
         while (true) {

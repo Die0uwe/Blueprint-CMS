@@ -59,8 +59,19 @@ final class Application
 
     /**
      * Registreer alle core services in de DI container.
+     *
+     * Was private (Wave 2 gap-fix). `run()` roept dit intern aan voor een
+     * normale HTTP-request, maar de bestaande CLI-commando's (o.a.
+     * QueueWorkerCommand, al sinds Sprint 1) bootstrappen zo: `$app = require
+     * .../Application.php; $app->make(Connection::class);` — zonder ooit
+     * boot() aan te roepen. Omdat boot() private was, registreerde niets de
+     * Connection-singleton, en Container::autoResolve() kan Connection niet
+     * automatisch bouwen (de constructor neemt `array $config`, een builtin
+     * type zonder default — dat gooit altijd "Kan parameter niet resolven").
+     * Elke bestaande en nieuwe CLI-command die de container gebruikt roept nu
+     * expliciet `$app->boot()` aan vóór de eerste `$app->make(...)`.
      */
-    private function boot(): void
+    public function boot(): void
     {
         if ($this->booted) return;
 
