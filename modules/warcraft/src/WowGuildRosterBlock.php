@@ -46,14 +46,22 @@ final class WowGuildRosterBlock extends AbstractBlock
         $members = array_filter($roster['members'], fn($m) => ($m['rank'] ?? 99) <= $minRank);
         $members = array_slice(array_values($members), 0, $limit);
 
-        $guildSafe = htmlspecialchars($guild);
+        $guildSafe   = htmlspecialchars($guild);
+        // NB: heredocs do NOT execute short-echo tags — that's literal text there,
+        // and this block used it as if it were a plain PHP file. Worse, the quoted
+        // array key inside it (`$roster['members']`) is invalid in heredoc
+        // simple-interpolation syntax (quotes aren't allowed around a bareword
+        // key there), so this was a hard PHP parse error: the entire request
+        // crashed with a white screen the instant this block was rendered.
+        // Fixed by precomputing the count and interpolating the plain variable.
+        $memberCount = count($roster['members']);
         $html = <<<HTML
         <div class="cf-wow-roster">
             <div class="cf-wow-header">
                 <img src="/assets/img/wow-icon.png" class="cf-wow-logo" alt="WoW" onerror="this.style.display='none'">
                 <div>
                     <div class="cf-wow-guild-name">{$guildSafe}</div>
-                    <div class="cf-wow-member-count"><?= count($roster['members']) ?> leden</div>
+                    <div class="cf-wow-member-count">{$memberCount} leden</div>
                 </div>
             </div>
             <div class="cf-wow-member-list">

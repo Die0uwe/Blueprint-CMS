@@ -17,9 +17,17 @@ use CommunityFusion\Core\Cache\CacheManager;
  * Discord OAuth Controller
  *
  * Routes:
- *   GET  /auth/discord              → redirect naar Discord
- *   GET  /auth/discord/callback     → verwerk callback
+ *   GET  /auth/discord              → redirect naar Discord (koppelen aan ingelogd account)
+ *   GET  /auth/discord/login        → redirect naar Discord (inloggen/registreren, geen account nodig)
+ *   GET  /auth/discord/callback     → verwerk callback (beide flows)
  *   POST /auth/discord/disconnect   → ontkoppel Discord account
+ *
+ * "Inloggen met Discord" (/auth/discord/login) is bewust een aparte entrypoint
+ * van "Discord koppelen" (/auth/discord): een bezoeker die niet is ingelogd
+ * mag via Discord een nieuw account krijgen of op een al gekoppeld account
+ * inloggen, maar mag NOOIT per ongeluk een Discord-account aan het account van
+ * een ander koppelen. De sessie onthoudt welke van de twee intenties gestart is
+ * (`oauth_intent_discord`), zodat de callback weet wat te doen.
  */
 final class DiscordOAuthController
 {
@@ -29,13 +37,30 @@ final class DiscordOAuthController
         private readonly CacheManager $cache,
     ) {}
 
-    // ─── STAP 1: Redirect naar Discord ────────────────────────────────────
+    // ─── STAP 1a: Redirect naar Discord — koppelen aan bestaand account ───
 
     public function redirect(Request $request): Response
     {
         if (!$this->auth->check()) {
             return Response::redirect('/login?redirect=/auth/discord');
         }
+
+        $_SESSION['oauth_intent_discord'] = 'link';
+
+        $oauth = $this->makeOAuthClient();
+        return Response::redirect($oauth->buildRedirectUrl());
+    }
+
+    // ─── STAP 1b: Redirect naar Discord — inloggen/registreren ─────────────
+
+    public function loginRedirect(Request $request): Response
+    {
+        if ($this->auth->check()) {
+            // Al ingelogd: "inloggen met Discord" wordt dan gewoon koppelen.
+            return $this->redirect($request);
+        }
+
+        $_SESSION['oauth_intent_discord'] = 'login';
 
         $oauth = $this->makeOAuthClient();
         return Response::redirect($oauth->buildRedirectUrl());
@@ -45,15 +70,20 @@ final class DiscordOAuthController
 
     public function callback(Request $request): Response
     {
-        if (!$this->auth->check()) {
-            return Response::redirect('/login');
-        }
-
-        $code  = $request->query('code', '');
-        $state = $request->query('state', '');
+        $code   = $request->query('code', '');
+        $state  = $request->query('state', '');
+        $intent = $_SESSION['oauth_intent_discord'] ?? 'link';
+        unset($_SESSION['oauth_intent_discord']);
 
         if (empty($code)) {
             return Response::redirect('/?error=discord_cancelled');
+        }
+
+        // "link" vereist een ingelogd account; als de sessie ondertussen
+        // verlopen is, valt dit netjes terug op de login-pagina i.p.v. een
+        // OAuth-koppeling zonder eigenaar te maken.
+        if ($intent === 'link' && !$this->auth->check()) {
+            return Response::redirect('/login');
         }
 
         try {
@@ -62,9 +92,29 @@ final class DiscordOAuthController
 
             $discordUser = $result['user'];
             $tokens      = $result['tokens'];
-            $userId      = (int) $this->auth->id();
 
-            // Sla OAuth koppeling op
+            if ($intent === 'login') {
+                // Nieuwe of bestaande CMS-gebruiker vinden/aanmaken puur op
+                // basis van de Discord-koppeling — geen wachtwoord nodig.
+                $cmsUser = $this->auth->findOrCreateFromOAuth(
+                    provider: 'discord',
+                    providerUserId: (string) $discordUser['id'],
+                    profile: [
+                        'username'       => $discordUser['username'] ?? ('discord_' . $discordUser['id']),
+                        'email'          => $discordUser['email'] ?? null,
+                        'email_verified' => (bool) ($discordUser['verified'] ?? false),
+                        'avatar_url'     => isset($discordUser['avatar']) ? DiscordOAuth::avatarUrl($discordUser) : null,
+                    ],
+                );
+                $this->auth->login($cmsUser);
+                $userId = (int) $cmsUser['id'];
+                $this->logSync($userId, 'registered_or_login', "Discord user: {$discordUser['username']}");
+            } else {
+                $userId = (int) $this->auth->id();
+                $this->logSync($userId, 'connected', "Discord user: {$discordUser['username']}");
+            }
+
+            // Sla OAuth koppeling op (idempotent: ON DUPLICATE KEY UPDATE)
             $oauth->saveConnection($userId, $discordUser, $tokens);
 
             // Update CMS user met Discord avatar als er nog geen is
@@ -76,9 +126,6 @@ final class DiscordOAuthController
                     [$avatarUrl, $userId]
                 );
             }
-
-            // Log de verbinding
-            $this->logSync($userId, 'connected', "Discord user: {$discordUser['username']}");
 
             // Sync Discord rollen
             $this->syncRoles($userId, $tokens['access_token'], $discordUser['id']);

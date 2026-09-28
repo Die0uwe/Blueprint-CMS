@@ -144,7 +144,7 @@ final class AuthManager
     }
 
     /**
-     * Registreer een nieuwe gebruiker.
+     * Registreer een nieuwe gebruiker met wachtwoord.
      */
     public function register(array $data): int|string
     {
@@ -154,7 +154,7 @@ final class AuthManager
             'threads'     => 3,
         ]);
 
-        return $this->db->insert('users', [
+        $userId = $this->db->insert('users', [
             'username'      => $data['username'],
             'email'         => $data['email'],
             'password_hash' => $hash,
@@ -162,6 +162,116 @@ final class AuthManager
             'locale'        => $data['locale'] ?? 'nl',
             'timezone'      => $data['timezone'] ?? 'Europe/Amsterdam',
         ]);
+
+        $this->assignDefaultRole((int) $userId);
+
+        return $userId;
+    }
+
+    /**
+     * Zoek een CMS-gebruiker die al aan dit OAuth-account (bv. Discord) is
+     * gekoppeld, of maak er automatisch één aan — voor "inloggen/registreren
+     * met Discord" zonder dat er eerst een wachtwoord-account moet bestaan.
+     *
+     * @param string $provider        bv. 'discord'
+     * @param string $providerUserId  het externe user-ID bij die provider
+     * @param array  $profile         ruwe profieldata van de provider, met
+     *                                minimaal 'username' en optioneel 'email',
+     *                                'avatar_url', 'email_verified' (bool)
+     * @return array                  de cf_users-rij (bestaand of nieuw)
+     */
+    public function findOrCreateFromOAuth(string $provider, string $providerUserId, array $profile): array
+    {
+        $linked = $this->db->fetchOne(
+            "SELECT u.* FROM cf_user_oauth o
+             JOIN cf_users u ON u.id = o.user_id
+             WHERE o.provider = ? AND o.provider_user_id = ?
+             AND u.is_active = 1 AND u.deleted_at IS NULL",
+            [$provider, $providerUserId]
+        );
+
+        if ($linked !== null) {
+            return $linked;
+        }
+
+        $username = $this->uniqueUsernameFrom($profile['username'] ?? ($provider . '_' . $providerUserId));
+        $email    = $this->uniqueEmailFrom($profile['email'] ?? null, $provider, $providerUserId);
+
+        // OAuth-only account: wachtwoord is onbruikbaar-willekeurig — de
+        // gebruiker logt altijd via de provider in. Argon2id zodat een
+        // eventuele latere "wachtwoord instellen"-flow er gewoon overheen kan.
+        $randomHash = password_hash(bin2hex(random_bytes(32)), PASSWORD_ARGON2ID, [
+            'memory_cost' => 65536,
+            'time_cost'   => 4,
+            'threads'     => 3,
+        ]);
+
+        $userId = $this->db->insert('users', [
+            'username'          => $username,
+            'email'             => $email,
+            'password_hash'     => $randomHash,
+            'display_name'      => $profile['username'] ?? $username,
+            'avatar_url'        => $profile['avatar_url'] ?? null,
+            'is_verified'       => !empty($profile['email_verified']) ? 1 : 0,
+            'email_verified_at' => !empty($profile['email_verified']) ? date('Y-m-d H:i:s') : null,
+            'locale'            => 'nl',
+            'timezone'          => 'Europe/Amsterdam',
+        ]);
+
+        $this->assignDefaultRole((int) $userId);
+
+        return $this->findUserById((int) $userId) ?? throw new \RuntimeException(
+            "Nieuw aangemaakte OAuth-gebruiker (id {$userId}) kon niet worden teruggelezen."
+        );
+    }
+
+    private function uniqueUsernameFrom(string $base): string
+    {
+        $base = preg_replace('/[^a-zA-Z0-9_.-]/', '', $base) ?: 'lid';
+        $base = substr($base, 0, 40) ?: 'lid';
+
+        $candidate = $base;
+        $attempt   = 0;
+        while ($this->db->fetchOne("SELECT id FROM cf_users WHERE username = ?", [$candidate]) !== null) {
+            $attempt++;
+            $candidate = substr($base, 0, 40 - 5) . '_' . bin2hex(random_bytes(2));
+            if ($attempt > 10) {
+                throw new \RuntimeException('Kon geen unieke gebruikersnaam genereren.');
+            }
+        }
+
+        return $candidate;
+    }
+
+    private function uniqueEmailFrom(?string $email, string $provider, string $providerUserId): string
+    {
+        // Geen (geverifieerd) e-mailadres van de provider ontvangen — cf_users.email
+        // is UNIQUE NOT NULL, dus we genereren een placeholder op een non-routable
+        // domein. De gebruiker kan dit later via het profiel aanvullen.
+        if (empty($email)) {
+            return "{$provider}-{$providerUserId}@users.noreply.invalid";
+        }
+
+        $existing = $this->db->fetchOne("SELECT id FROM cf_users WHERE email = ?", [$email]);
+        if ($existing === null) {
+            return $email;
+        }
+
+        // E-mailadres is al in gebruik door een ander account: nooit stilzwijgend
+        // accounts samenvoegen — genereer een placeholder zodat de nieuwe OAuth-
+        // registratie niet faalt op de UNIQUE-constraint.
+        return "{$provider}-{$providerUserId}@users.noreply.invalid";
+    }
+
+    private function assignDefaultRole(int $userId): void
+    {
+        $defaultRole = $this->db->fetchOne("SELECT id FROM cf_roles WHERE is_default = 1 LIMIT 1");
+        if ($defaultRole === null) return;
+
+        $this->db->execute(
+            "INSERT IGNORE INTO cf_user_roles (user_id, role_id) VALUES (?, ?)",
+            [$userId, $defaultRole['id']]
+        );
     }
 
     private function findUserById(int $id): ?array

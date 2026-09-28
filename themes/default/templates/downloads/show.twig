@@ -1,0 +1,31 @@
+{% extends 'layout.twig' %}
+{% block title %}{{ download.title }}{% endblock %}
+{% block content %}
+<div class="cf-page-header">
+  <div class="cf-breadcrumb"><a href="/">Home</a> → <a href="/downloads">Downloads</a> → {{ download.title }}</div>
+  <h1>{% if not download.is_published %}<span class="cf-badge cf-badge-purple">Verborgen</span>{% endif %} {{ download.title }}</h1>
+  <div class="cf-news-meta" style="margin-top:.5rem;">
+    <span>✍️ {{ download.display_name|default(download.username) }}</span>
+    <span>📅 {{ download.created_at|date('d M Y') }}</span>
+    <span>⬇️ {{ download.download_count }} downloads</span>
+    <span>💾 {{ (download.file_size / 1024 / 1024)|number_format(1) }} MB</span>
+  </div>
+</div>
+
+{% if download.description %}
+<div class="cf-article-content" style="white-space:pre-wrap;">{{ download.description }}</div>
+{% endif %}
+
+<div style="margin:1.5rem 0;display:flex;gap:.5rem;flex-wrap:wrap;">
+  <a href="/downloads/{{ download.slug }}/bestand" class="cf-btn">⬇️ Download {{ download.original_filename }}</a>
+  {% if can_manage %}
+    <a href="/downloads/{{ download.slug }}/bewerk" class="cf-btn-ghost cf-btn">✏️ Bewerken</a>
+    <form method="post" action="/downloads/{{ download.slug }}/verwijder" onsubmit="return confirm('Download definitief verwijderen?');">
+      {{ csrf_field()|raw }}
+      <button type="submit" class="cf-btn cf-btn-ghost">🗑️ Verwijderen</button>
+    </form>
+  {% endif %}
+</div>
+
+<a href="/downloads" class="cf-btn cf-btn-ghost">← Terug naar downloads</a>
+{% endblock %}

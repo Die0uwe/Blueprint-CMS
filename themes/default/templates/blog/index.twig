@@ -1,0 +1,25 @@
+{% extends 'layout.twig' %}
+{% block content %}
+<div class="cf-page-header">
+  <div class="cf-breadcrumb"><a href="/">Home</a> → Blog</div>
+  <h1>✍️ Blog</h1>
+</div>
+
+<div class="cf-news-grid">
+  {% for post in posts %}
+  <article class="cf-news-item">
+    <div class="cf-news-body">
+      <h2 class="cf-news-title"><a href="/blog/{{ post.username }}/{{ post.slug }}">{{ post.title }}</a></h2>
+      {% if post.summary %}<p class="cf-news-summary">{{ post.summary|slice(0,140) }}…</p>{% endif %}
+      <div class="cf-news-meta">
+        <span>✍️ <a href="/blog/{{ post.username }}">{{ post.display_name|default(post.username) }}</a></span>
+        <span>📅 {{ post.published_at|date('d M Y') }}</span>
+        <span>👁️ {{ post.views }}</span>
+      </div>
+    </div>
+  </article>
+  {% else %}
+  <p style="color:var(--muted);">Nog geen blogposts gepubliceerd.</p>
+  {% endfor %}
+</div>
+{% endblock %}

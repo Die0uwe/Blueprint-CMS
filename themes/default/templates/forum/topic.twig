@@ -1,0 +1,86 @@
+{% extends 'layout.twig' %}
+{% block title %}{{ topic.title }}{% endblock %}
+{% block content %}
+<div class="cf-page-header">
+  <div class="cf-breadcrumb">
+    <a href="/">Home</a> → <a href="/forum">Forum</a> → <a href="/forum/{{ board.slug }}">{{ board.name }}</a> → {{ topic.title }}
+  </div>
+  <h1>
+    {% if topic.is_pinned %}<span class="cf-badge cf-badge-gold">📌 Vastgezet</span>{% endif %}
+    {% if topic.is_locked %}<span class="cf-badge cf-badge-purple">🔒 Gesloten</span>{% endif %}
+    {{ topic.title }}
+  </h1>
+</div>
+
+{% if can_moderate %}
+<div style="display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap;">
+  <form method="post" action="/forum/{{ board.slug }}/{{ topic.slug }}/pin">
+    {{ csrf_field()|raw }}
+    <button type="submit" class="cf-btn-sm cf-btn-ghost">{{ topic.is_pinned ? '📌 Losmaken' : '📌 Vastzetten' }}</button>
+  </form>
+  <form method="post" action="/forum/{{ board.slug }}/{{ topic.slug }}/lock">
+    {{ csrf_field()|raw }}
+    <button type="submit" class="cf-btn-sm cf-btn-ghost">{{ topic.is_locked ? '🔓 Heropenen' : '🔒 Sluiten' }}</button>
+  </form>
+  <form method="post" action="/forum/{{ board.slug }}/{{ topic.slug }}/verwijder"
+        onsubmit="return confirm('Dit topic definitief verwijderen?');">
+    {{ csrf_field()|raw }}
+    <button type="submit" class="cf-btn-sm cf-btn-ghost">🗑️ Verwijderen</button>
+  </form>
+</div>
+{% endif %}
+
+<div id="reacties" class="cf-forum-posts">
+  {% for post in posts %}
+  <div class="cf-card" style="margin-bottom:.8rem;">
+    <div class="cf-card-body" style="display:flex;gap:1rem;">
+      <div style="min-width:110px;text-align:center;">
+        {% if post.avatar_url %}
+          <img src="{{ post.avatar_url }}" alt="" style="width:48px;height:48px;border-radius:50%;object-fit:cover;">
+        {% else %}
+          <div style="font-size:2rem;">👤</div>
+        {% endif %}
+        <div style="font-size:.8rem;font-weight:700;margin-top:.3rem;">{{ post.display_name|default(post.username) }}</div>
+      </div>
+      <div style="flex:1;">
+        <div style="color:var(--muted);font-size:.75rem;margin-bottom:.4rem;">
+          {{ post.created_at|date('d M Y H:i') }}
+          {% if post.is_first_post %}<span class="cf-badge cf-badge-purple">Start</span>{% endif %}
+        </div>
+        <div class="cf-article-content" style="white-space:pre-wrap;">{{ post.content }}</div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% if pagination.total > 1 %}
+<div style="display:flex;gap:.5rem;justify-content:center;margin:1.5rem 0;">
+  {% for p in 1..pagination.total %}
+    <a href="/forum/{{ board.slug }}/{{ topic.slug }}?page={{ p }}"
+       class="cf-btn-sm {{ p == pagination.current ? '' : 'cf-btn-ghost' }}">{{ p }}</a>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if can_post and not topic.is_locked %}
+<div class="cf-card">
+  <div class="cf-card-header"><strong>Reageren</strong></div>
+  <div class="cf-card-body">
+    <form method="post" action="/forum/{{ board.slug }}/{{ topic.slug }}/reageer">
+      {{ csrf_field()|raw }}
+      <div class="cf-form-group">
+        <textarea name="content" class="cf-textarea" placeholder="Schrijf je reactie…" required></textarea>
+      </div>
+      <button type="submit" class="cf-btn">Plaatsen</button>
+    </form>
+  </div>
+</div>
+{% elseif topic.is_locked %}
+  <p style="color:var(--muted);">🔒 Dit topic is gesloten — er kan niet meer op gereageerd worden.</p>
+{% elseif auth.check() %}
+  <p style="color:var(--muted);">Je hebt geen rechten om te reageren.</p>
+{% else %}
+  <p style="color:var(--muted);"><a href="/login?redirect=/forum/{{ board.slug }}/{{ topic.slug }}">Log in</a> om te reageren.</p>
+{% endif %}
+{% endblock %}

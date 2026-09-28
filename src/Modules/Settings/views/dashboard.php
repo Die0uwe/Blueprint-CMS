@@ -168,8 +168,11 @@
       <a href="/admin/roles" class="admin-nav-link">
         <span class="nav-icon">🔑</span> Rollen
       </a>
-      <a href="/admin/forum" class="admin-nav-link">
+      <a href="/forum" class="admin-nav-link">
         <span class="nav-icon">💬</span> Forum
+      </a>
+      <a href="/admin/contact" class="admin-nav-link">
+        <span class="nav-icon">✉️</span> Contact
       </a>
 
       <div class="admin-nav-section">Uiterlijk</div>

@@ -18,7 +18,205 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ---
 
+## [1.9.0] — 2026-09-28 — Wave 0 audit: WP-contaminatie verwijderd, CI, security, ontbrekende core-modules
+
+> Dit is een BigBoss Wave 0 gap-analyse tegen de echte repo (`Die0uwe/bluprint-cms` @ `6108fec3`),
+> gevolgd door de directe fixes. Volledig rapport: `docs/wave-0-gap-analysis.md`.
+
+### Ingetrokken / verwijderd
+
+- **`modules/warcraft/src/roster.php` + `armory.php` verwijderd.** Deze "Sprint 9"-bestanden
+  (CHANGELOG v1.8.0) bleken 1-op-1 gekopieerde WordPress-code (`ABSPATH`, `WP_Error`,
+  `get_transient()`, `wp_remote_get()`, `$wpdb`, `add_shortcode`) uit de Slayer Alliance Master
+  Suite-plugin — functies die in dit PSR-4 framework niet bestaan. `WarcraftModule.php` laadde ze
+  nergens (niet in `getBlocks()`), dus ze deden in productie niets; de v1.8.0-claim "Productie" was
+  onjuist. De functionaliteit (guild roster, character profiel) was al gedekt door de bestaande
+  native blocks `WowGuildRosterBlock` en `WowCharacterBlock`. Bijbehorende assets
+  (`roster.css`, `armory.css`) en `INSTALL-roster-armory.md` ook verwijderd.
+
+### Toegevoegd
+
+**CI & testing**
+- `.github/workflows/ci.yml` — PHP 8.3 + 8.4 matrix: `composer validate`, `composer install`,
+  PHP-lint van alle bronbestanden, PHPUnit, PHPStan level 8, PHPCS PSR-12, plus een aparte job
+  die `schema.sql` tegen een echte MariaDB 10.11 service-container importeert.
+- `phpunit.xml` + `tests/bootstrap.php`
+- Echte, uitvoerbare unit tests (voorheen 0): `CsrfProtectionTest`, `HookManagerTest`,
+  `JWTManagerTest` — tokengeneratie, signature-tampering, expiry, hook-prioriteit, filter-chains.
+- **Bekende beperking:** dit is geschreven en syntax-gevalideerd (`php -l`) buiten een sandbox
+  zonder toegang tot packagist.org — er kon geen `composer.lock` gegenereerd of PHPUnit lokaal
+  gedraaid worden. Eerste `composer install` (lokaal of in CI) moet het lockfile committen.
+
+**Security**
+- **Kritiek gevonden tijdens deze fix: `AuthManager`/`JWTManager` waren nooit in de DI-container
+  gebonden.** `JWTManager`'s constructor heeft een scalar `string $secret`-parameter zonder
+  default; de container's auto-resolve-via-reflection kan zo'n parameter niet vullen en gooit
+  `RuntimeException`. Omdat niets in de codebase `JWTManager` of `AuthManager` expliciet bindt of
+  handmatig `new`'t, crashte **elke route die `AuthManager` nodig heeft** (login, registreren,
+  Discord/Twitch OAuth-callback, admin panel) op een schone installatie. `Application::boot()`
+  bindt nu beide expliciet als singleton.
+- **Sleutelketen was ook onbetrouwbaar los van bovenstaande crash:** de installer genereert
+  `app.key` in `config/config.php`, maar `OAuthClient::getAppKey()` las rechtstreeks
+  `$_ENV['APP_KEY']` — dat bestaat alleen als de sitebeheerder `.env` handmatig invult.
+  `.env.example` leverde `APP_KEY=` leeg, dus zonder handmatige stap versleutelde
+  `OAuthClient::encrypt()` OAuth-tokens met een 32-byte nul-sleutel (triviaal omkeerbaar).
+  `Application::boot()` synchroniseert nu `config.php`'s `app.key`/`jwt.secret` altijd naar
+  `$_ENV` bij elke request.
+- Aparte `jwt.secret` naast `app.key` — beide door de installer met eigen willekeurige waarden
+  gegenereerd (`installer/InstallerCore.php`), zodat JWT-signing (HS256) en OAuth-token-encryptie
+  (AES-256-GCM) niet langer dezelfde sleutel delen.
+- Discord OAuth ondersteunt nu **login/registratie voor nieuwe bezoekers** — voorheen kon Discord
+  alleen aan een al ingelogd account gekoppeld worden (`redirect()`/`callback()` vereisten
+  `auth->check()`). Nieuw: `DiscordOAuthController::loginOrRegister()` maakt bij een onbekende
+  Discord-ID automatisch een `cf_users`-rij aan.
+- Upload-handler (`src/Core/Storage/UploadManager.php`): schrijft naar `storage/uploads/`
+  (buiten webroot, zoals SD v1.0 voorschrijft), MIME-whitelist via `finfo`, willekeurige
+  bestandsnamen, geserveerd via een controller-route i.p.v. directe public-toegang. Gekoppeld aan
+  `cf_news.featured_image` en `cf_users.avatar_url`. Nieuwe `ProfileController` (`GET`/`POST
+  /profiel`) — bestond nog niet, ondanks dat de Discord/Twitch-callbacks er al sinds Sprint 4 naar
+  redirecten (dode 404-link).
+- **Kritiek gevonden tijdens de Forum-bouw: `cf_permissions`/`cf_role_permissions` werden
+  nérgens geseed.** Elke `module.json` (Discord, Twitch, …) declareert al sinds Sprint 5 een
+  `"permissions"`-array, maar niets voerde die ooit in de database in — en ook de
+  `super_admin`-rol kreeg nooit de `*`-wildcard toegekend. Het gevolg: `RBACManager::userCan()`
+  gaf voor **elke** gebruiker, inclusief het door de installer aangemaakte super-admin-account,
+  altijd `false` terug. Elke `auth()->can(...)`/`auth()->authorize(...)`-check in de codebase was
+  dus dood — permissie-gates bestonden alleen op papier. `schema.sql` seedt nu een basisset
+  permissies (`users.manage`, `news.create`, `pages.manage`, `modules.manage`, `blocks.manage`,
+  `settings.edit`, `discord.admin`, `discord.sync`, `forum.post`, `forum.moderate`, plus de `*`
+  super-admin-wildcard) en kent ze toe per rol conform SD §10.1. **Nog niet meegenomen:** de
+  admin-routes zelf (`AdminController`, `BlockController`, `MarketplaceController`) roepen nog
+  geen `auth()->authorize(...)` aan — `AuthMiddleware` controleert alleen "is ingelogd", niet
+  welke rol. Elk ingelogd lid kan dus vandaag nog altijd bij `/admin` — een aparte
+  hardening-taak, hier gedocumenteerd maar niet opgelost.
+- **Ook gevonden: `auth`, `settings` en `menu_pages` waren nooit als Twig-variabelen
+  beschikbaar.** `layout.twig` — die door elke pagina wordt ge-extend — leest al sinds Sprint 3
+  `auth.check()`, `settings.site_name`/`settings.site_description` en `menu_pages`, maar geen
+  enkele controller gaf ze door en `ThemeManager` registreerde ze niet als globals. Twig faalt
+  niet hard op een undefined global (non-strict mode), dus dit bleef onopgemerkt: de header
+  toonde op elke pagina altijd "Inloggen" (nooit "Admin"/"Uitloggen", ook niet voor ingelogde
+  gebruikers), de site-titel/meta-omschrijving waren leeg, en het topmenu toonde nooit pagina's.
+  `ThemeManager::addGlobal()` toegevoegd; `Application::boot()` injecteert nu `auth`
+  (de `AuthManager`-instantie), `settings` (`SettingsRepository::getGroup('core')`) en
+  `menu_pages` (`PageRepository::getMenuPages()`) als Twig-globals voor elke request.
+
+**Ontbrekende blueprint-kernmodules**
+- **Forum** (`src/Modules/Forum/`) — `ForumRepository` + `ForumController`. Borden hergebruiken
+  de bestaande gedeelde `cf_categories`-tabel (`type = 'forum'`, exact zoals SD §3.5 al
+  voorschreef voor News+Forum) i.p.v. een nieuwe, aparte bordentabel. Topics/posts krijgen eigen
+  tabellen `cf_forum_topics` / `cf_forum_posts` met gecachte reply-count/laatste-bericht-velden.
+  Routes: `/forum`, `/forum/{board}`, `/forum/{board}/nieuw`, `/forum/{board}/{topic}`
+  (+ `/reageer`, `/pin`, `/lock`, `/verwijder`). RBAC-permissies `forum.post` (member+) en
+  `forum.moderate` (moderator+) — zie ook de RBAC-seeding-fix hieronder, zonder welke deze
+  permissies nooit iets zouden toestaan. Topic aanmaken + eerste post, en reactie + teller-update,
+  lopen elk in één `Connection::transaction()`.
+- **Blog** (`src/Modules/Blog/`) — `cf_blog_posts`. Elk lid heeft zijn eigen blog: posts zijn
+  uniek per `(author_id, slug)`, niet globaal, dus URL's zijn `/blog/{username}/{slug}`. Géén
+  aparte "mag bloggen"-permissie — ieder ingelogd lid mag zijn eigen posts schrijven/bewerken/
+  verwijderen (draft/published), `blog.moderate` is alleen nodig voor ANDERMANS posts.
+- **Downloads** (`src/Modules/Downloads/`) — `cf_downloads`, gebruikt `UploadManager`. Omdat
+  Downloads bredere bestandstypen moet toestaan dan afbeeldingen (zip/pdf/rar/7z/gz) kreeg
+  `UploadManager` een optionele MIME-whitelist-parameter + een `forDownloads()`-fabrieksmethode;
+  bestanden landen in een eigen `storage/downloads/`, los van `storage/uploads/`. Curated door
+  `downloads.manage` (admin). Download-teller + eigen `Content-Disposition`-route
+  (`/downloads/{slug}/bestand`) die de originele bestandsnaam teruggeeft ondanks het
+  gerandomiseerde opslagpad.
+- **Contact** (`src/Modules/Contact/`) — publiek formulier (`/contact`, geen login vereist,
+  CSRF + honeypot-veld tegen basic bots) + `cf_contact_messages` + een beheer-inbox
+  (`/admin/contact`) achter `contact.manage`. **Verstuurt geen e-mail** — er bestaat in deze
+  codebase geen `Mailer`-klasse, ondanks dat `config/config.php` al een volledige SMTP-sectie
+  genereert; berichten worden alleen opgeslagen en via de inbox gelezen. Bouwen van een
+  Mailer + daadwerkelijke SMTP-verzending is hiermee een nieuw gevonden, nog openstaand gat.
+
+**Installer**
+- `installer/templates/step5.php` toont nu de kernmodules (altijd actief, geen schakelaar —
+  een uitgeschakelde checkbox die toch niets deed zou een nieuwe dode UI zijn) plus een
+  **dynamisch** opgebouwde lijst optionele modules, rechtstreeks gescand uit
+  `modules/*/module.json` i.p.v. een handmatig bijgehouden array. Dat array bevatte een
+  `'guild'`-entry die niet overeenkwam met de echte map `guild-management/` (checkbox deed dus
+  niets) en een `'youtube'`-entry voor een module die helemaal niet bestaat — beide gefikst
+  doordat de lijst nu de werkelijke `modules/`-map volgt.
+- **Kritiek gevonden: `installer/steps/Step5.php` las `$_POST['modules']` al in, maar deed er
+  vervolgens helemaal niets mee** — de module-selectie in de installer-UI had nul effect, elke
+  optionele module (Discord, Twitch, …) bleef na installatie permanent uitgeschakeld ongeacht
+  wat was aangevinkt. Step5 schrijft de geselecteerde modules nu echt naar `cf_modules`
+  (`is_enabled = 1`), de tabel die `Application::loadModules()` elke request uitleest — vanaf de
+  eerste pagina na installatie worden ze dus daadwerkelijk geladen en `boot()`'d.
+- **Ook gevonden, in dezelfde hoek: `PackageManager::runModuleInstaller()` riep `install()` aan
+  zonder eerst `boot()`.** Geen enkele module-klasse heeft een eigen `__construct()`, dus
+  `$this->app` wordt uitsluitend gezet door `boot(Application $app)` — zonder die aanroep eerst
+  crasht `install()` zodra hij `$this->app` aanraakt (bv. `DiscordModule::install()` haalt er een
+  `Connection` uit), een crash die de omringende try/catch tot nu toe stil slikte. Per saldo
+  werden module-specifieke tabellen (bv. `cf_discord_role_mapping`) dus **nooit** aangemaakt via
+  de marketplace-installflow. Nu roept `runModuleInstaller()` `boot()` vóór `install()` aan.
+  **Nog een bekende beperking:** de installer zelf laadt bewust geen Composer-autoloader (zie
+  `InstallerCore.php` — de installer draait onafhankelijk van het framework), dus Step5 kan
+  `install()` niet direct aanroepen; module-specifieke extra tabellen ontstaan pas zodra een
+  beheerder de module later in de Marketplace nogmaals activeert. De module zelf degradeert
+  intussen netjes (try/catch) zolang die tabellen nog ontbreken.
+
+- **Gevonden: `cli/console.php` adverteert `migrate` en `module:install`, maar de bijbehorende
+  `MigrateCommand`/`ModuleInstallCommand`-klassen bestaan niet** (`cli/commands/` bevat alleen
+  `QueueWorkerCommand` en `CacheClearCommand`) — beide commando's eindigden in een kale
+  `Class not found`-fatal error. Geeft nu een duidelijke melding met een werkend alternatief
+  (`mysql <db> < src/Core/Database/schema.sql`, resp. `/admin/marketplace`). De commando's zelf
+  bouwen viel buiten deze doorloop — zie README "Bekende beperkingen".
+
+### Opgelost — fatale parse-fouten (gevonden bij de eindcontrole)
+
+Een volledige `php -l`-sweep over **elk** PHP-bestand in de repo (niet alleen de bestanden die in
+deze doorloop zijn aangeraakt) legde vier reeds langer bestaande, 100%-fatale parse-fouten bloot.
+Geen van deze bestanden stond in eerdere Wave 0/Wave 1-bevindingen — `php -l` was er kennelijk nog
+nooit overheen gehaald. Een parse-fout crasht de hele request zodra het bestand geladen wordt, dus
+dit waren geen randgevallen maar keiharde witte-scherm-crashes:
+
+- **`installer/templates/step2.php`, `step3.php` en `step4.php`** openden alle drie een kale,
+  nooit-gesloten `<?php`-tag op regel 1, direct gevolgd door rauwe HTML (`<form method="POST">`).
+  `layout.php` include't deze stap-templates al vanuit een geopend `<?php`-blok, dus de tweede,
+  ongesloten `<?php` liet de parser de HTML eronder als PHP-code proberen lezen — een parse-fout.
+  **Resultaat: elke installatie crashte met een wit scherm zodra stap 2 (Database) werd geopend** —
+  de installer kwam in de praktijk nooit verder dan stap 1. Gefixed naar hetzelfde patroon als het
+  (wel correcte) `step1.php`/`step5.php`: geen tweede openings-tag nodig binnen een reeds open
+  PHP-context.
+- **`src/Modules/Settings/AdminController.php`** declareerde de methode `handle()` twee keer — een
+  fatale "Cannot redeclare"-fout die betekende dat deze klasse **nooit** geladen kon worden, dus elke
+  `/admin`-route (`dashboard()`, `settings()`, `handle()` zelf) volledig kapot was. De twee versies
+  waren bovendien niet gelijkwaardig: de eerste zette `$path` ongefilterd in het include-pad (een
+  path-traversal/LFI-gat), de tweede whitelist't eerst naar `[a-z0-9/-]`. De onveilige, dubbele
+  versie is verwijderd; de gesaniteerde versie is behouden.
+- **`modules/warcraft/src/WowGuildRosterBlock.php`** gebruikte `<?= count(...) ?>` middenin een
+  heredoc-string — heredocs voeren zulke tags niet uit, ze zijn daar letterlijke tekst — én de
+  aanhalingstekens rond de array-key (`$roster['members']`) zijn ongeldig in heredoc's
+  simpele interpolatie-syntax. Resultaat: een parse-fout zodra dit blok (één van de native
+  vervangers voor de verwijderde WordPress-code, zie hierboven) werd gerenderd. Gefixed door de
+  telling vooraf in een gewone variabele te zetten en die te interpoleren.
+
+Deze vier bestanden waren stuk voor stuk **niet** aangeraakt door eerdere Wave 1-werk in deze
+doorloop — ze zijn nu voor het eerst ontdekt en gefixed, exact omdat de eindcontrole bewust een
+volledige repo-sweep deed in plaats van alleen de zelf-gewijzigde bestanden.
+
+### Gewijzigd
+- `docs/wave-0-gap-analysis.md` toegevoegd (stond al sinds Sprint 9 als link in README/CHANGELOG,
+  maar bestond nog niet in de repo zelf) — het volledige Wave 0-auditrapport, plus een nieuwe
+  "Wave 1 — status per bevinding"-tabel die bijhoudt wat sindsdien daadwerkelijk is opgelost en
+  wat bewust nog openstaat.
+- README.md — Security-sectie, module-tabel en roadmap gecorrigeerd naar de geverifieerde staat;
+  nieuwe tabel met de vier core content-modules (Forum/Blog/Downloads/Contact); nieuwe
+  "Bekende beperkingen"-sectie die alle in deze doorloop gevonden-maar-niet-opgeloste gaten
+  expliciet benoemt (admin-routes niet permissie-gated, dode admin-sidebar-links, geen Mailer,
+  ontbrekende CLI-commando's, module-tabellen bij installer-selectie).
+- `src/Modules/Settings/views/dashboard.php` — het dode `/admin/forum`-sidebarlink verwijst nu
+  naar het echte, publieke `/forum` (moderatie gebeurt daar inline via `forum.moderate`); nieuw
+  `/admin/contact`-link toegevoegd, want die pagina bestaat nu daadwerkelijk. De overige dode
+  links (`/admin/news`, `/admin/users`, `/admin/media`, …) zijn bewust ongemoeid gelaten — die
+  admin-CRUD-schermen bouwen viel buiten deze doorloop.
+
+---
+
 ## [1.8.0] — 2026-06-06 — Sprint 9: WoW Module v2 — Guild Roster & Character Armory
+
+> ⚠️ **Ingetrokken in v1.9.0** — zie hierboven. De hieronder beschreven bestanden bevatten
+> WordPress-code die in dit framework niet functioneert en zijn verwijderd.
 
 ### Toegevoegd
 

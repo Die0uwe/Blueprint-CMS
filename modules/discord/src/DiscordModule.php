@@ -40,6 +40,7 @@ final class DiscordModule implements ModuleInterface
         // Registreer OAuth routes (worden door Router opgepakt via hook)
         $hooks->addAction('router.routes', function($router) {
             $router->get('/auth/discord',          'CommunityFusion\Modules\Discord\DiscordOAuthController@redirect');
+            $router->get('/auth/discord/login',    'CommunityFusion\Modules\Discord\DiscordOAuthController@loginRedirect');
             $router->get('/auth/discord/callback', 'CommunityFusion\Modules\Discord\DiscordOAuthController@callback');
             $router->post('/auth/discord/disconnect', 'CommunityFusion\Modules\Discord\DiscordOAuthController@disconnect');
         });

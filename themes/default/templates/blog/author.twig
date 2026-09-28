@@ -1,0 +1,36 @@
+{% extends 'layout.twig' %}
+{% block content %}
+<div class="cf-page-header">
+  <div class="cf-breadcrumb"><a href="/">Home</a> → <a href="/blog">Blog</a> → {{ author.display_name|default(author.username) }}</div>
+  <h1>
+    {% if author.avatar_url %}<img src="{{ author.avatar_url }}" alt="" style="width:36px;height:36px;border-radius:50%;vertical-align:middle;margin-right:.4rem;">{% endif %}
+    Blog van {{ author.display_name|default(author.username) }}
+  </h1>
+</div>
+
+{% if is_owner %}
+<div style="margin-bottom:1rem;">
+  <a href="/blog/{{ author.username }}/nieuw" class="cf-btn">➕ Nieuwe post</a>
+</div>
+{% endif %}
+
+<div class="cf-news-grid">
+  {% for post in posts %}
+  <article class="cf-news-item">
+    <div class="cf-news-body">
+      <h2 class="cf-news-title">
+        {% if post.status == 'draft' %}<span class="cf-badge cf-badge-purple">Concept</span>{% endif %}
+        <a href="/blog/{{ author.username }}/{{ post.slug }}">{{ post.title }}</a>
+      </h2>
+      {% if post.summary %}<p class="cf-news-summary">{{ post.summary|slice(0,140) }}…</p>{% endif %}
+      <div class="cf-news-meta">
+        <span>📅 {{ post.created_at|date('d M Y') }}</span>
+        <span>👁️ {{ post.views }}</span>
+      </div>
+    </div>
+  </article>
+  {% else %}
+  <p style="color:var(--muted);">{{ is_owner ? 'Je hebt nog geen posts geschreven.' : 'Nog geen posts.' }}</p>
+  {% endfor %}
+</div>
+{% endblock %}

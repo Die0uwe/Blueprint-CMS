@@ -63,7 +63,8 @@ final class InstallerCore
     /** Schrijf de uiteindelijke config/config.php */
     public static function writeConfig(array $data): void
     {
-        $key = self::generateAppKey();
+        $key       = self::generateAppKey();
+        $jwtSecret = self::generateAppKey();
         $config = <<<PHP
 <?php
 // ============================================================================
@@ -85,6 +86,13 @@ return [
         'locale'   => {$data['locale_php']},
         'theme'    => 'default',
         'key'      => '{$key}',
+    ],
+    // Losse sleutel voor JWT (HS256) — bewust NIET dezelfde als 'app.key',
+    // die gebruikt wordt voor AES-256-GCM OAuth-tokenversleuteling.
+    // Sleutelscheiding: een lek in de ene context is niet bruikbaar in de andere.
+    'jwt' => [
+        'secret' => '{$jwtSecret}',
+        'ttl'    => 3600,
     ],
     'database' => [
         'driver'    => 'mysql',
@@ -115,6 +123,11 @@ return [
     'oauth' => [
         'discord' => ['client_id' => '', 'client_secret' => '', 'redirect_uri' => ''],
         'twitch'  => ['client_id' => '', 'client_secret' => '', 'redirect_uri' => ''],
+    ],
+    'storage' => [
+        // Buiten webroot — zie UploadManager. NIET public/uploads/.
+        'path'      => __DIR__ . '/../storage/uploads',
+        'max_bytes' => 5 * 1024 * 1024,
     ],
 ];
 PHP;

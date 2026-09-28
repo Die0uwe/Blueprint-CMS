@@ -99,6 +99,23 @@ final class ThemeManager
         $this->twig->addGlobal('zones', []);
     }
 
+    /**
+     * Registreer een globale Twig-variabele, beschikbaar in elke template
+     * zonder dat elke controller hem los hoeft mee te geven.
+     *
+     * Gebruikt door Application::boot() om `auth`, `settings` en
+     * `menu_pages` te injecteren — layout.twig verwijst hier al sinds
+     * Sprint 3 naar (`auth.check()`, `settings.site_name`, `menu_pages`),
+     * maar geen enkele controller gaf ze door: Twig faalt niet hard op een
+     * undefined global (non-strict mode), dus dit bleef onopgemerkt —
+     * de header toonde altijd "Inloggen", nooit "Admin"/"Uitloggen", en
+     * settings.* en het menu waren overal leeg.
+     */
+    public function addGlobal(string $name, mixed $value): void
+    {
+        $this->twig->addGlobal($name, $value);
+    }
+
     private function registerFunctions(): void
     {
         // {{ asset('css/style.css') }} → /assets/css/style.css

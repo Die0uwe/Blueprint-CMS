@@ -302,3 +302,171 @@ INSERT IGNORE INTO `cf_marketplace_packages` (slug, type, name, description, aut
 ('fivem',            'module', 'FiveM Server Status',       'FXServer status, spelers, ping via /info.json',                    'DieOuwe',   '1.0.0', 1, 388,  0),
 ('ollama',           'module', 'Ollama AI Integratie',      'Gratis lokale AI chat, content assistent, Open WebUI koppeling',   'DieOuwe',   '1.0.0', 1, 298,  1),
 ('default',          'theme',  'Blueprint Default',         'Gaming dark thema — het standaard Blueprint CMS thema',            'DieOuwe',   '1.0.0', 1, 2341, 1);
+
+-- ============================================================
+-- FORUM (Wave 1 gap-fix — cf_categories (type='forum') dient als
+-- bordenlijst, conform de gedeelde categorieën-tabel uit SD §3.5)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS `cf_forum_topics` (
+    `id`                INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `board_id`          SMALLINT UNSIGNED NOT NULL COMMENT 'FK naar cf_categories.id (type=forum)',
+    `author_id`         INT UNSIGNED NOT NULL,
+    `slug`              VARCHAR(220) NOT NULL,
+    `title`             VARCHAR(255) NOT NULL,
+    `is_pinned`         TINYINT(1) NOT NULL DEFAULT 0,
+    `is_locked`         TINYINT(1) NOT NULL DEFAULT 0,
+    `views`             INT UNSIGNED NOT NULL DEFAULT 0,
+    `reply_count`       INT UNSIGNED NOT NULL DEFAULT 0,
+    `last_post_id`      INT UNSIGNED NULL,
+    `last_post_at`      DATETIME NULL,
+    `last_post_user_id` INT UNSIGNED NULL,
+    `created_at`        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `deleted_at`        DATETIME NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uq_board_slug` (`board_id`, `slug`),
+    KEY `idx_board_pinned_last` (`board_id`, `is_pinned`, `last_post_at`),
+    KEY `idx_author` (`author_id`),
+    CONSTRAINT `fk_ft_board`  FOREIGN KEY (`board_id`)  REFERENCES `cf_categories`(`id`) ON DELETE CASCADE,
+    CONSTRAINT `fk_ft_author` FOREIGN KEY (`author_id`) REFERENCES `cf_users`(`id`)      ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `cf_forum_posts` (
+    `id`            INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `topic_id`      INT UNSIGNED NOT NULL,
+    `author_id`     INT UNSIGNED NOT NULL,
+    `content`       TEXT NOT NULL,
+    `is_first_post` TINYINT(1) NOT NULL DEFAULT 0,
+    `edited_at`     DATETIME NULL,
+    `edited_by`     INT UNSIGNED NULL,
+    `created_at`    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `deleted_at`    DATETIME NULL,
+    PRIMARY KEY (`id`),
+    KEY `idx_topic_created` (`topic_id`, `created_at`),
+    KEY `idx_author` (`author_id`),
+    CONSTRAINT `fk_fp_topic`  FOREIGN KEY (`topic_id`)  REFERENCES `cf_forum_topics`(`id`) ON DELETE CASCADE,
+    CONSTRAINT `fk_fp_author` FOREIGN KEY (`author_id`) REFERENCES `cf_users`(`id`)        ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Eén standaardbord zodat het forum niet leeg oogt na installatie
+INSERT IGNORE INTO `cf_categories` (`type`, `slug`, `name`, `description`, `position`) VALUES
+('forum', 'algemeen', 'Algemeen', 'Algemene discussies over de community.', 0);
+
+-- ============================================================
+-- RBAC — permissies + rol-toewijzingen (Wave 1 gap-fix)
+--
+-- cf_permissions en cf_role_permissions werden nergens geseed:
+-- module.json-bestanden (discord, twitch, ...) declareerden al een
+-- "permissions"-lijst sinds Sprint 5, maar niets voerde die ooit in.
+-- RBACManager::userCan() gaf daardoor voor ELKE gebruiker altijd false
+-- terug — inclusief super_admin, want ook de '*'-wildcard werd nooit
+-- toegekend. Elke auth()->can(...)-check in de codebase was dus dood.
+-- ============================================================
+INSERT IGNORE INTO `cf_permissions` (`name`, `group`, `description`) VALUES
+('*',              'system',   'Alle rechten (super admin wildcard)'),
+('users.manage',   'users',    'Gebruikers aanmaken, bewerken, bannen'),
+('news.create',    'news',     'Nieuwsartikelen aanmaken en bewerken'),
+('pages.manage',   'pages',    'Pagina\'s aanmaken en bewerken'),
+('modules.manage', 'system',   'Modules in-/uitschakelen'),
+('blocks.manage',  'system',   'Blokken-layout beheren'),
+('settings.edit',  'system',   'Site-instellingen bewerken'),
+('discord.admin',  'discord',  'Discord-module configureren'),
+('discord.sync',   'discord',  'Discord rollen-synchronisatie uitvoeren'),
+('forum.post',     'forum',    'Nieuwe forumtopics en reacties plaatsen'),
+('forum.moderate', 'forum',    'Topics/posts pinnen, sluiten of verwijderen');
+
+INSERT IGNORE INTO `cf_role_permissions` (`role_id`, `permission_id`)
+SELECT r.id, p.id FROM `cf_roles` r, `cf_permissions` p
+WHERE (r.name = 'super_admin' AND p.name = '*')
+   OR (r.name = 'admin' AND p.name IN (
+        'users.manage','news.create','pages.manage','modules.manage',
+        'blocks.manage','settings.edit','discord.admin','discord.sync',
+        'forum.post','forum.moderate'
+   ))
+   OR (r.name = 'moderator' AND p.name IN ('forum.moderate'))
+   OR (r.name = 'member' AND p.name IN ('forum.post'));
+
+-- ============================================================
+-- BLOG, DOWNLOADS, CONTACT (Wave 1 gap-fix)
+-- ============================================================
+
+-- Blog: elk lid schrijft in zijn eigen "blog" — vandaar uniek per
+-- (author_id, slug) i.p.v. globaal uniek, en géén "blog.create"-permissie:
+-- ieder ingelogd lid mag zijn eigen posts aanmaken/bewerken/verwijderen;
+-- `blog.moderate` is alleen nodig om ANDERMANS post te bewerken/verwijderen.
+CREATE TABLE IF NOT EXISTS `cf_blog_posts` (
+    `id`             INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `author_id`      INT UNSIGNED NOT NULL,
+    `category_id`    SMALLINT UNSIGNED NULL COMMENT 'FK naar cf_categories.id (type=blog)',
+    `slug`           VARCHAR(200) NOT NULL,
+    `title`          VARCHAR(300) NOT NULL,
+    `summary`        TEXT NULL,
+    `content`        LONGTEXT NOT NULL,
+    `featured_image` VARCHAR(500) NULL,
+    `status`         ENUM('draft','published') NOT NULL DEFAULT 'draft',
+    `views`          INT UNSIGNED NOT NULL DEFAULT 0,
+    `published_at`   DATETIME NULL,
+    `created_at`     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `deleted_at`     DATETIME NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uq_author_slug` (`author_id`, `slug`),
+    KEY `idx_status_published` (`status`, `published_at`),
+    KEY `idx_category` (`category_id`),
+    CONSTRAINT `fk_bp_author`   FOREIGN KEY (`author_id`)   REFERENCES `cf_users`(`id`)      ON DELETE CASCADE,
+    CONSTRAINT `fk_bp_category` FOREIGN KEY (`category_id`) REFERENCES `cf_categories`(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Downloads: bestandsbeheer, curated door beheer (`downloads.manage`).
+-- `file_path` is een door UploadManager gegenereerd willekeurig pad —
+-- `original_filename` bewaart de nette naam los daarvan (nooit als
+-- opslagpad gebruikt, alleen als Content-Disposition-bestandsnaam).
+CREATE TABLE IF NOT EXISTS `cf_downloads` (
+    `id`                 INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `author_id`          INT UNSIGNED NOT NULL,
+    `category_id`        SMALLINT UNSIGNED NULL COMMENT 'FK naar cf_categories.id (type=downloads)',
+    `slug`               VARCHAR(200) NOT NULL,
+    `title`              VARCHAR(255) NOT NULL,
+    `description`        TEXT NULL,
+    `file_path`          VARCHAR(500) NOT NULL COMMENT 'Relatief pad binnen storage/downloads/',
+    `original_filename`  VARCHAR(255) NOT NULL,
+    `file_size`          INT UNSIGNED NOT NULL DEFAULT 0,
+    `download_count`     INT UNSIGNED NOT NULL DEFAULT 0,
+    `is_published`       TINYINT(1) NOT NULL DEFAULT 1,
+    `created_at`         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `deleted_at`         DATETIME NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uq_slug` (`slug`),
+    KEY `idx_published` (`is_published`),
+    KEY `idx_category` (`category_id`),
+    CONSTRAINT `fk_dl_author`   FOREIGN KEY (`author_id`)   REFERENCES `cf_users`(`id`)      ON DELETE CASCADE,
+    CONSTRAINT `fk_dl_category` FOREIGN KEY (`category_id`) REFERENCES `cf_categories`(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Contact: publiek formulier, geen login vereist. `user_id` wordt alleen
+-- gevuld als de afzender toevallig ingelogd was — geen verplichting.
+CREATE TABLE IF NOT EXISTS `cf_contact_messages` (
+    `id`         INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `user_id`    INT UNSIGNED NULL,
+    `name`       VARCHAR(150) NOT NULL,
+    `email`      VARCHAR(255) NOT NULL,
+    `subject`    VARCHAR(255) NULL,
+    `message`    TEXT NOT NULL,
+    `ip_address` VARCHAR(45) NULL,
+    `is_read`    TINYINT(1) NOT NULL DEFAULT 0,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `idx_is_read` (`is_read`),
+    CONSTRAINT `fk_cm_user` FOREIGN KEY (`user_id`) REFERENCES `cf_users`(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT IGNORE INTO `cf_permissions` (`name`, `group`, `description`) VALUES
+('blog.moderate',      'blog',      'Andermans blogposts bewerken of verwijderen'),
+('downloads.manage',   'downloads', 'Downloads toevoegen, bewerken of verwijderen'),
+('contact.manage',     'contact',   'Contactformulier-inbox inzien en afhandelen');
+
+INSERT IGNORE INTO `cf_role_permissions` (`role_id`, `permission_id`)
+SELECT r.id, p.id FROM `cf_roles` r, `cf_permissions` p
+WHERE r.name = 'admin' AND p.name IN ('blog.moderate', 'downloads.manage', 'contact.manage');

@@ -439,7 +439,22 @@ final class PackageManager
             if (file_exists($moduleFile)) require_once $moduleFile;
 
             if (class_exists($class)) {
-                $instance = new $class($this->getApp());
+                $app      = $this->getApp();
+                $instance = new $class($app);
+
+                // Kritiek: geen enkele ModuleInterface-implementatie in deze
+                // codebase heeft een eigen __construct() — de $app-parameter
+                // hierboven wordt dus door PHP genegeerd (klasse zonder
+                // constructor accepteert stilzwijgend extra args). `$this->app`
+                // wordt UITSLUITEND gezet door boot(Application $app). Zonder
+                // eerst boot() aan te roepen crasht install() op een
+                // ongeïnitialiseerde typed property zodra het `$this->app`
+                // aanraakt (bv. DiscordModule::install() → Connection ophalen)
+                // — een crash die deze try/catch tot nu toe stil slikte, dus
+                // de module-specifieke tabellen (bv. cf_discord_role_mapping)
+                // werden via déze marketplace-flow nooit daadwerkelijk
+                // aangemaakt. boot() vóór install() aanroepen lost dit op.
+                $instance->boot($app);
                 $instance->install();
             }
         } catch (\Throwable $e) {

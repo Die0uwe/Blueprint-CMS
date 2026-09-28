@@ -1,4 +1,7 @@
 <?php
+// See step2.php for why this file has no bare, unclosed <?php tag anymore —
+// same fatal parse-error bug (installer white-screened on this step), same fix.
+?>
 <form method="POST">
   <div class="form-group">
     <label>Gebruikersnaam</label>

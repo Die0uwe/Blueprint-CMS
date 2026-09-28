@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: PHP ${{ matrix.php }} — tests, static analysis, code style
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.3', '8.4']
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP ${{ matrix.php }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: pdo, pdo_mysql, mbstring, curl, openssl, json
+          coverage: none
+          tools: composer:v2
+
+      - name: Validate composer.json
+        run: composer validate --strict
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Lint PHP syntax (src, modules, installer, cli, tests)
+        run: |
+          find src modules installer cli tests -name '*.php' -print0 \
+            | xargs -0 -n1 -P4 php -l
+
+      - name: PHPUnit
+        run: composer test
+
+      - name: PHPStan (level 8, src only)
+        run: composer stan
+
+      - name: PHP CodeSniffer (PSR-12, src only)
+        run: composer cs
+
+  mariadb-schema:
+    name: Import schema.sql against MariaDB
+    runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: bluprint_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Import core schema
+        run: |
+          mysql -h127.0.0.1 -uroot -proot bluprint_test < src/Core/Database/schema.sql
+
+      - name: Import module schemas (self-installing modules)
+        run: |
+          for f in modules/*/install.sql; do
+            [ -f "$f" ] && mysql -h127.0.0.1 -uroot -proot bluprint_test < "$f"
+          done || true

@@ -68,9 +68,43 @@ final class Application
         $config = require CF_ROOT . '/config/config.php';
         $this->container->singleton('config', fn() => $config);
 
+        // config/config.php is de bron van waarheid voor APP_KEY en JWT_SECRET
+        // (door de installer gegenereerd als twee losse, willekeurige sleutels).
+        // We synchroniseren ze naar $_ENV zodat code die nog rechtstreeks
+        // $_ENV leest (bv. OAuthClient::getAppKey()) altijd de echte,
+        // gegenereerde waarde ziet — nooit de lege default uit .env.example.
+        $_ENV['APP_KEY']    = $config['app']['key'] ?? ($_ENV['APP_KEY'] ?? '');
+        $_ENV['JWT_SECRET'] = $config['jwt']['secret'] ?? ($_ENV['JWT_SECRET'] ?? '');
+
         // Database
         $this->container->singleton(Connection::class, function() use ($config) {
             return new Connection($config['database']);
+        });
+
+        // JWT — eigen sleutel, los van app.key (zie config/config.php commentaar)
+        $this->container->singleton(\CommunityFusion\Core\Auth\JWTManager::class, function() use ($config) {
+            $secret = $config['jwt']['secret'] ?? $config['app']['key'] ?? '';
+            if ($secret === '') {
+                throw new \RuntimeException(
+                    'jwt.secret ontbreekt in config/config.php — installer opnieuw draaien of handmatig aanvullen.'
+                );
+            }
+            return new \CommunityFusion\Core\Auth\JWTManager(
+                secret: $secret,
+                ttl: (int) ($config['jwt']['ttl'] ?? 3600),
+            );
+        });
+
+        // AuthManager expliciet als singleton (bewaart de ingelogde gebruiker
+        // voor de duur van de request — mag nooit meerdere keren aangemaakt
+        // worden). Zonder deze binding faalt de DI auto-resolve op
+        // JWTManager's scalar $secret-parameter.
+        $this->container->singleton(\CommunityFusion\Core\Auth\AuthManager::class, function() {
+            return new \CommunityFusion\Core\Auth\AuthManager(
+                $this->container->make(Connection::class),
+                $this->container->make(\CommunityFusion\Core\Auth\RBAC\RBACManager::class),
+                $this->container->make(\CommunityFusion\Core\Auth\JWTManager::class),
+            );
         });
 
         // Hook systeem
@@ -84,6 +118,14 @@ final class Application
         // Template engine
         $this->container->singleton(ThemeManager::class, function() use ($config) {
             return new ThemeManager(CF_ROOT . '/themes', $config['app']['theme'] ?? 'default');
+        });
+
+        // Uploads — schrijft altijd buiten webroot naar storage/uploads/
+        $this->container->singleton(\CommunityFusion\Core\Storage\UploadManager::class, function() use ($config) {
+            return new \CommunityFusion\Core\Storage\UploadManager(
+                storagePath: $config['storage']['path'] ?? (CF_ROOT . '/storage/uploads'),
+                maxBytes: (int) ($config['storage']['max_bytes'] ?? 5 * 1024 * 1024),
+            );
         });
 
         // Block Registry
@@ -129,6 +171,22 @@ final class Application
             $theme    = $this->container->make(\CommunityFusion\Core\Template\ThemeManager::class);
             $registry = $this->container->make(\CommunityFusion\Core\Block\BlockRegistry::class);
             $theme->setBlockRegistry($registry);
+        } catch (\Throwable) {}
+
+        // `auth`, `settings` en `menu_pages` globaal beschikbaar maken in Twig —
+        // layout.twig (elke pagina extends deze) leest ze al sinds Sprint 3,
+        // maar zonder deze injectie waren ze overal undefined/leeg (zie
+        // ThemeManager::addGlobal() docblock). Faalt stil vóór installatie,
+        // wanneer cf_settings/cf_pages nog niet bestaan.
+        try {
+            $theme = $this->container->make(\CommunityFusion\Core\Template\ThemeManager::class);
+            $theme->addGlobal('auth', $this->container->make(\CommunityFusion\Core\Auth\AuthManager::class));
+
+            $settingsRepo = $this->container->make(\CommunityFusion\Modules\Settings\SettingsRepository::class);
+            $theme->addGlobal('settings', $settingsRepo->getGroup('core'));
+
+            $pageRepo = $this->container->make(\CommunityFusion\Modules\Pages\PageRepository::class);
+            $theme->addGlobal('menu_pages', $pageRepo->getMenuPages());
         } catch (\Throwable) {}
 
         $this->booted = true;

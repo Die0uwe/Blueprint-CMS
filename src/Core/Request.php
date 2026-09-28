@@ -67,6 +67,16 @@ final class Request
         return [...$this->query, ...$this->body];
     }
 
+    /**
+     * Geef de $_FILES-array terug (bv. `$request->files()['avatar']`).
+     * Toegevoegd voor UploadManager-consumers — was ongebruikt sinds v1.0.0
+     * ondanks dat de property al bestond.
+     */
+    public function files(): array
+    {
+        return $this->files;
+    }
+
     public function header(string $key, mixed $default = null): mixed
     {
         return $this->headers[$key] ?? $this->headers[strtolower($key)] ?? $default;

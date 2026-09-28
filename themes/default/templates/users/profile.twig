@@ -1,0 +1,59 @@
+{% extends 'layout.twig' %}
+{% block content %}
+<div style="max-width:560px;margin:3rem auto;">
+  <div class="cf-card">
+    <div class="cf-card-header">👤 Mijn profiel</div>
+    <div class="cf-card-body">
+
+      {% if discord_status == 'connected' %}
+        <div class="cf-alert cf-alert-success">Discord-account gekoppeld.</div>
+      {% endif %}
+      {% if twitch_status == 'connected' %}
+        <div class="cf-alert cf-alert-success">Twitch-account gekoppeld.</div>
+      {% endif %}
+
+      <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;">
+        {% if user.avatar_url %}
+          <img src="{{ user.avatar_url }}" alt="" style="width:64px;height:64px;border-radius:50%;object-fit:cover;">
+        {% else %}
+          <div style="width:64px;height:64px;border-radius:50%;background:var(--cf-accent,#a11692);"></div>
+        {% endif %}
+        <div>
+          <strong>{{ user.display_name ?: user.username }}</strong><br>
+          <span style="color:var(--muted);font-size:.85rem;">{{ user.email }}</span>
+        </div>
+      </div>
+
+      <form method="POST" action="/profiel/avatar" enctype="multipart/form-data">
+        {{ csrf_field()|raw }}
+        <div class="cf-form-group">
+          <label class="cf-label">Nieuwe avatar (jpg/png/gif/webp, max 5MB)</label>
+          <input class="cf-input" type="file" name="avatar" accept="image/jpeg,image/png,image/gif,image/webp" required>
+        </div>
+        <button type="submit" class="cf-btn">Avatar bijwerken</button>
+      </form>
+
+      <hr style="margin:1.5rem 0;border-color:var(--border);">
+
+      <h3 style="margin-bottom:.75rem;">Gekoppelde accounts</h3>
+      {% if connections|length == 0 %}
+        <p style="color:var(--muted);font-size:.9rem;">Nog geen externe accounts gekoppeld.</p>
+      {% endif %}
+      {% for c in connections %}
+        <div style="display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid var(--border);">
+          <span>{{ c.provider|capitalize }} — {{ c.data.username ?? c.data.login ?? '—' }}</span>
+          <form method="POST" action="/auth/{{ c.provider }}/disconnect" style="margin:0;">
+            {{ csrf_field()|raw }}
+            <button type="submit" class="cf-btn cf-btn-danger" style="padding:.25rem .75rem;font-size:.8rem;">Ontkoppelen</button>
+          </form>
+        </div>
+      {% endfor %}
+
+      {% if connections|filter(c => c.provider == 'discord')|length == 0 %}
+        <a href="/auth/discord" class="cf-btn" style="margin-top:1rem;background:#5865F2;">Discord koppelen</a>
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+{% endblock %}

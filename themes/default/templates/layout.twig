@@ -17,9 +17,14 @@
       🔮 {{ settings.site_name|default('Blueprint CMS') }}
     </a>
     <nav class="cf-nav">
+      <a href="/news" class="cf-nav-link">Nieuws</a>
+      <a href="/blog" class="cf-nav-link">Blog</a>
+      <a href="/forum" class="cf-nav-link">Forum</a>
+      <a href="/downloads" class="cf-nav-link">Downloads</a>
       {% for page in menu_pages %}
         <a href="/page/{{ page.slug }}" class="cf-nav-link">{{ page.title }}</a>
       {% endfor %}
+      <a href="/contact" class="cf-nav-link">Contact</a>
     </nav>
     <div class="cf-header-actions">
       {% if auth.check() %}

@@ -1,0 +1,34 @@
+{% extends 'layout.twig' %}
+{% block title %}{{ post.title }}{% endblock %}
+{% block content %}
+<div class="cf-page-header">
+  <div class="cf-breadcrumb">
+    <a href="/">Home</a> → <a href="/blog">Blog</a> → <a href="/blog/{{ post.username }}">{{ post.display_name|default(post.username) }}</a> → {{ post.title }}
+  </div>
+  <h1>
+    {% if post.status == 'draft' %}<span class="cf-badge cf-badge-purple">Concept — alleen voor jou zichtbaar</span>{% endif %}
+    {{ post.title }}
+  </h1>
+  <div class="cf-news-meta" style="margin-top:.5rem;">
+    <span>✍️ {{ post.display_name|default(post.username) }}</span>
+    {% if post.published_at %}<span>📅 {{ post.published_at|date('d M Y') }}</span>{% endif %}
+    <span>👁️ {{ post.views }}</span>
+  </div>
+</div>
+
+{% if can_manage %}
+<div style="display:flex;gap:.5rem;margin-bottom:1rem;">
+  <a href="/blog/{{ post.username }}/{{ post.slug }}/bewerk" class="cf-btn-sm cf-btn-ghost">✏️ Bewerken</a>
+  <form method="post" action="/blog/{{ post.username }}/{{ post.slug }}/verwijder" onsubmit="return confirm('Post definitief verwijderen?');">
+    {{ csrf_field()|raw }}
+    <button type="submit" class="cf-btn-sm cf-btn-ghost">🗑️ Verwijderen</button>
+  </form>
+</div>
+{% endif %}
+
+<div class="cf-article-content">{{ post.content|raw }}</div>
+
+<div style="margin-top:2rem;padding-top:1rem;border-top:1px solid var(--border);">
+  <a href="/blog/{{ post.username }}" class="cf-btn cf-btn-ghost">← Terug naar blog van {{ post.display_name|default(post.username) }}</a>
+</div>
+{% endblock %}

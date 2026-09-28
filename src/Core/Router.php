@@ -99,12 +99,60 @@ final class Router
         $this->get('/news/{slug:[a-z0-9-]+}',  'CommunityFusion\Modules\News\NewsController@show');
         $this->get('/page/{slug:[a-z0-9-/]+}', 'CommunityFusion\Modules\Pages\PageController@show');
 
+        // ── Forum ───────────────────────────────────────────────────────
+        // Let op volgorde: de letterlijke /nieuw-route moet vóór de generieke
+        // {topic}-route staan, anders matcht "nieuw" als topic-slug.
+        $this->get('/forum',                                       'CommunityFusion\Modules\Forum\ForumController@index');
+        $this->get('/forum/{board:[a-z0-9-]+}',                    'CommunityFusion\Modules\Forum\ForumController@board');
+        $this->get('/forum/{board:[a-z0-9-]+}/nieuw',               'CommunityFusion\Modules\Forum\ForumController@newTopicForm', $auth);
+        $this->post('/forum/{board:[a-z0-9-]+}/nieuw',              'CommunityFusion\Modules\Forum\ForumController@storeTopic',   $auth);
+        $this->get('/forum/{board:[a-z0-9-]+}/{topic:[a-z0-9-]+}',              'CommunityFusion\Modules\Forum\ForumController@topic');
+        $this->post('/forum/{board:[a-z0-9-]+}/{topic:[a-z0-9-]+}/reageer',     'CommunityFusion\Modules\Forum\ForumController@storePost',  $auth);
+        $this->post('/forum/{board:[a-z0-9-]+}/{topic:[a-z0-9-]+}/pin',         'CommunityFusion\Modules\Forum\ForumController@togglePin',  $auth);
+        $this->post('/forum/{board:[a-z0-9-]+}/{topic:[a-z0-9-]+}/lock',        'CommunityFusion\Modules\Forum\ForumController@toggleLock', $auth);
+        $this->post('/forum/{board:[a-z0-9-]+}/{topic:[a-z0-9-]+}/verwijder',   'CommunityFusion\Modules\Forum\ForumController@deleteTopic', $auth);
+
+        // ── Blog ────────────────────────────────────────────────────────
+        // Elk lid heeft z'n eigen blog: /blog/{username}/{slug}. Letterlijke
+        // suffix-routes (/nieuw, /bewerk, /verwijder) staan vóór de generieke
+        // {slug}-route om te voorkomen dat ze als slug worden gelezen.
+        $this->get('/blog',                                        'CommunityFusion\Modules\Blog\BlogController@index');
+        $this->get('/blog/{username:[a-zA-Z0-9_.-]+}',              'CommunityFusion\Modules\Blog\BlogController@author');
+        $this->get('/blog/{username:[a-zA-Z0-9_.-]+}/nieuw',        'CommunityFusion\Modules\Blog\BlogController@createForm', $auth);
+        $this->post('/blog/{username:[a-zA-Z0-9_.-]+}/nieuw',       'CommunityFusion\Modules\Blog\BlogController@store',      $auth);
+        $this->get('/blog/{username:[a-zA-Z0-9_.-]+}/{slug:[a-z0-9-]+}/bewerk',      'CommunityFusion\Modules\Blog\BlogController@editForm', $auth);
+        $this->post('/blog/{username:[a-zA-Z0-9_.-]+}/{slug:[a-z0-9-]+}/bewerk',     'CommunityFusion\Modules\Blog\BlogController@update',   $auth);
+        $this->post('/blog/{username:[a-zA-Z0-9_.-]+}/{slug:[a-z0-9-]+}/verwijder',  'CommunityFusion\Modules\Blog\BlogController@delete',   $auth);
+        $this->get('/blog/{username:[a-zA-Z0-9_.-]+}/{slug:[a-z0-9-]+}',             'CommunityFusion\Modules\Blog\BlogController@show');
+
+        // ── Downloads ───────────────────────────────────────────────────
+        $this->get('/downloads',                              'CommunityFusion\Modules\Downloads\DownloadsController@index');
+        $this->get('/downloads/nieuw',                         'CommunityFusion\Modules\Downloads\DownloadsController@createForm', $auth);
+        $this->post('/downloads/nieuw',                        'CommunityFusion\Modules\Downloads\DownloadsController@store',      $auth);
+        $this->get('/downloads/{slug:[a-z0-9-]+}/bewerk',      'CommunityFusion\Modules\Downloads\DownloadsController@editForm', $auth);
+        $this->post('/downloads/{slug:[a-z0-9-]+}/bewerk',     'CommunityFusion\Modules\Downloads\DownloadsController@update',   $auth);
+        $this->post('/downloads/{slug:[a-z0-9-]+}/verwijder',  'CommunityFusion\Modules\Downloads\DownloadsController@delete',   $auth);
+        $this->get('/downloads/{slug:[a-z0-9-]+}/bestand',     'CommunityFusion\Modules\Downloads\DownloadsController@download');
+        $this->get('/downloads/{slug:[a-z0-9-]+}',             'CommunityFusion\Modules\Downloads\DownloadsController@show');
+
+        // ── Contact ─────────────────────────────────────────────────────
+        $this->get('/contact',   'CommunityFusion\Modules\Contact\ContactController@form');
+        $this->post('/contact',  'CommunityFusion\Modules\Contact\ContactController@store');
+        $this->get('/admin/contact',                        'CommunityFusion\Modules\Contact\ContactController@inbox',  $auth);
+        $this->get('/admin/contact/{id:[0-9]+}',            'CommunityFusion\Modules\Contact\ContactController@show',   $auth);
+        $this->post('/admin/contact/{id:[0-9]+}/verwijder', 'CommunityFusion\Modules\Contact\ContactController@delete', $auth);
+
         // ── Auth ────────────────────────────────────────────────────────
         $this->get('/login',     'CommunityFusion\Modules\Users\AuthController@loginForm');
         $this->post('/login',    'CommunityFusion\Modules\Users\AuthController@login');
         $this->get('/logout',    'CommunityFusion\Modules\Users\AuthController@logout');
         $this->get('/register',  'CommunityFusion\Modules\Users\AuthController@registerForm');
         $this->post('/register', 'CommunityFusion\Modules\Users\AuthController@register');
+        $this->get('/profiel',          'CommunityFusion\Modules\Users\ProfileController@show',         $auth);
+        $this->post('/profiel/avatar',  'CommunityFusion\Modules\Users\ProfileController@updateAvatar',  $auth);
+
+        // ── Media (uploads, buiten webroot — zie UploadManager) ─────────
+        $this->get('/media/{path:[a-zA-Z0-9/_.-]+}', 'CommunityFusion\Modules\Media\MediaController@show');
 
         // ── Admin ────────────────────────────────────────────────────────
         $this->get('/admin',          'CommunityFusion\Modules\Settings\AdminController@dashboard', $auth);

@@ -1,4 +1,14 @@
 <?php
+/*
+ * This file — like step3.php and step4.php — used to open a bare <?php tag
+ * on line 1 with no closing ?>, immediately followed by raw HTML. layout.php
+ * already includes these step templates from INSIDE an open <?php block
+ * (see `<?php include __DIR__ . '/step' . $currentStep . '.php'; ?>`), so
+ * this second, unclosed <?php tried to parse the HTML below as PHP code —
+ * a hard parse error. Every real install hit a white screen on step 2.
+ * Fixed to match step1.php/step5.php's pattern: no opening tag needed here.
+ */
+?>
 <form method="POST">
   <div class="form-row-3">
     <div class="form-group">
