@@ -14,7 +14,7 @@ GPL-3.0-or-later
 [![PHP](https://img.shields.io/badge/PHP-8.3%2B-777BB4?style=flat-square&logo=php)](https://php.net)
 [![MariaDB](https://img.shields.io/badge/MariaDB-10.11%2B-003545?style=flat-square&logo=mariadb)](https://mariadb.org)
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.16.0-brightgreen?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-1.17.0-brightgreen?style=flat-square)](CHANGELOG.md)
 [![CI](https://img.shields.io/github/actions/workflow/status/Die0uwe/bluprint-cms/ci.yml?branch=main&style=flat-square&label=CI)](.github/workflows/ci.yml)
 
 *Geïnspireerd door PHP-Fusion · Down Under Fusion · ImpressCMS*
@@ -152,7 +152,7 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 | **S9** | ⚠️ v1.8.0 | ~~WoW Module v2 — Guild Roster + Character Armory~~ — **ingetrokken in v1.9.0**: bleek WordPress-code, nooit geladen. Zie CHANGELOG v1.9.0. |
 | **S9-audit** | ✅ v1.9.0 | Wave 0 gap-analyse tegen de echte repo, WP-code verwijderd, CI/tests toegevoegd, JWT/APP_KEY gescheiden, Discord-registratie, upload-handler, Forum/Blog/Downloads/Contact core-modules, installer Step5 dynamisch |
 | **S9-audit²** | ✅ v1.10.0–v1.11.0 | Wave 2: `/admin` permissie-gating, echte Mailer, News/Pages admin-CRUD, `migrate`/`module:install` CLI-commando's — en een kritieke `LIMIT`/`OFFSET`-bug gevonden door voor het eerst tegen een echte MariaDB-server te testen (zie CHANGELOG v1.11.0) |
-| **S9-audit³** | ✅ v1.12.0–v1.16.0 | Wave 3–6: eerste échte end-to-end boot (2 fatale autoload-bugs gevonden), `/admin/users`, Forum live-verificatie + bordbeheer, de laatste 5 placeholder-schermen (Roles/Menus/Logs/Themes/Media — **alle 6 oorspronkelijke placeholder-schermen uit v1.10.0 zijn hiermee vervangen**), en het Blokkensysteem (Kernprincipe #3), dat sinds Sprint 1 nog nooit had gewerkt. Zie CHANGELOG v1.12.0–v1.16.0. |
+| **S9-audit³** | ✅ v1.12.0–v1.17.0 | Wave 3–6: eerste échte end-to-end boot (2 fatale autoload-bugs gevonden), `/admin/users`, Forum live-verificatie + bordbeheer, de laatste 5 placeholder-schermen (Roles/Menus/Logs/Themes/Media — **alle 6 oorspronkelijke placeholder-schermen uit v1.10.0 zijn hiermee vervangen**), en het Blokkensysteem (Kernprincipe #3), dat sinds Sprint 1 nog nooit had gewerkt. Zie CHANGELOG v1.12.0–v1.17.0. |
 | **S10** | 📋 Gepland | YouTube + Kick integratie |
 | **S11** | 📋 Gepland | Media-galerij (los van de generieke upload-handler) |
 | **S12** | 📋 Gepland | Premium ecosysteem + licenties + betalingen |
@@ -176,7 +176,7 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 
 ---
 
-## ⚠️ Bekende beperkingen (stand v1.16.0)
+## ⚠️ Bekende beperkingen (stand v1.17.0)
 
 Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben opgelost — zie
 `docs/wave-0-gap-analysis.md` en `CHANGELOG.md` voor de volledige context per punt.
@@ -237,6 +237,17 @@ Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben o
 > via de echte admin-UI staat nu daadwerkelijk op de homepage. Bijvangst, eerlijk
 > gedocumenteerd: van de 6 layout-zones zijn er nu 2 (linker/rechter sidebar) écht
 > drag&drop-baar — header/topmenu/footer zijn nog vaste HTML. Zie CHANGELOG v1.16.0.
+>
+> **v1.17.0: beide openstaande gaten uit v1.16.0 gedicht.** Alle 6 layout-zones
+> (header/topmenu/sidebar-links/content/sidebar-rechts/footer) zijn nu echte
+> drag&drop-zones — header/topmenu-blokken krijgen elk hun eigen los-hoge balk náást de
+> vaste 64px-header (die anders zou overflowen bij willekeurige blok-inhoud), footer-
+> blokken passen binnen de al flexibele footer. En `cf_blocks.visibility_roles` wordt nu
+> daadwerkelijk gefilterd — ná de gedeelde 120s-cache i.p.v. erin, om te voorkomen dat één
+> bezoekers rol-gefilterde weergave in de gedeelde cache voor iedereen zou belanden. Beide
+> live bewezen: alle 3 nieuwe zones tonen een echt geplaatst blok; een rol-beperkt blok is
+> tegelijk onzichtbaar voor een anonieme bezoeker en zichtbaar voor de juiste rol. Zie
+> CHANGELOG v1.17.0.
 
 - ~~`/admin`-routes zijn niet permissie-gated~~ — **opgelost in v1.10.0.** Zie CHANGELOG:
   `PermissionMiddleware` + `admin.access`/`settings.edit`/`blocks.manage`/`marketplace.*`.
@@ -264,12 +275,11 @@ Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben o
   samenhangende bugs (ontbrekend CSRF-token op `/admin/blocks`, `cf_block_types` nooit
   gesynchroniseerd, de Twig-global `zones` hardcoded leeg) zorgden ervoor dat een geplaatst
   blok nog nooit op de site was verschenen — zie CHANGELOG v1.16.0 voor het volledige
-  verhaal. **Nog wel een bekend gat**: van de 6 layout-zones uit de blueprint (Header, Top
-  Menu, Linker Sidebar, Content, Rechter Sidebar, Footer) zijn alleen de linker en rechter
-  sidebar daadwerkelijk dynamische block-zones in `themes/*/templates/layout.twig` — header/
-  topmenu/footer zijn nog vaste HTML zonder `{% for block in zones.X %}`. Ook filtert
-  `BlockRegistry::getZoneBlocks()` nog niet op `cf_blocks.visibility_roles` — elk geplaatst
-  blok is voor iedereen zichtbaar.
+  verhaal. ~~Nog wel een bekend gat: alleen 2 van de 6 zones waren dynamisch, en
+  `visibility_roles` werd niet gefilterd~~ — **beide opgelost in v1.17.0.** Alle 6
+  layout-zones (Header, Top Menu, Linker Sidebar, Content, Rechter Sidebar, Footer) zijn nu
+  echte drag&drop-zones, en een geplaatst blok respecteert nu daadwerkelijk zijn
+  rol-zichtbaarheid — zie CHANGELOG v1.17.0.
 - ~~Contact verstuurt geen e-mail~~ — **opgelost in v1.10.0** (`Mailer`, raw-socket SMTP + `mail()`-
   fallback). Wel nog geen instelbaar "meldingen naar"-adres via de admin-UI — de mail gaat naar het
   geconfigureerde afzenderadres zelf. SMTP zelf heeft ook nog geen installer-veld; vul `MAIL_HOST`

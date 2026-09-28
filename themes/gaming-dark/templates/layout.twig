@@ -37,6 +37,27 @@
   </div>
 </header>
 
+{# HEADER-ZONE BLOKKEN — #cf-header hierboven heeft een vaste hoogte (logo/nav/acties
+   in één rij), dus geplaatste blokken komen in een eigen, los-hoge balk erónder i.p.v.
+   erin geperst — dat voorkomt overflow van blokken met willekeurige inhoud. #}
+{% if zones.header is defined and zones.header %}
+<div id="cf-header-blocks" class="cf-container">
+  {% for block in zones.header %}
+    {{ render_block(block)|raw }}
+  {% endfor %}
+</div>
+{% endif %}
+
+{# TOP MENU ZONE — apart van het vaste hoofdmenu in #cf-header, zoals de
+   projectblueprint Header en Top Menu als twee losse layout-onderdelen beschrijft. #}
+{% if zones.topmenu is defined and zones.topmenu %}
+<nav id="cf-topmenu" class="cf-container">
+  {% for block in zones.topmenu %}
+    {{ render_block(block)|raw }}
+  {% endfor %}
+</nav>
+{% endif %}
+
 {# MAIN LAYOUT #}
 <div id="cf-main" class="cf-layout">
 
@@ -68,6 +89,13 @@
 {# FOOTER #}
 <footer id="cf-footer">
   <div class="cf-container">
+    {% if zones.footer is defined and zones.footer %}
+    <div id="cf-footer-blocks">
+      {% for block in zones.footer %}
+        {{ render_block(block)|raw }}
+      {% endfor %}
+    </div>
+    {% endif %}
     <p>© {{ "now"|date("Y") }} {{ settings.site_name|default('Blueprint CMS') }}</p>
     <p class="cf-footer-links">
       <a href="https://www.dieouwe.nl">DieOuwe</a> ·

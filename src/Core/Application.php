@@ -273,11 +273,38 @@ final class Application
             // block (zie ook de syncTypesToDatabase()-fix hierboven, zonder welke
             // een block nooit geplaatst kon wórden) verscheen nooit ergens op de
             // site. Vul de 6 layout-zones nu echt met BlockRegistry::getZoneBlocks().
+            //
+            // cf_blocks.visibility_roles (JSON-array van role-IDs, NULL = iedereen)
+            // werd door getZoneBlocks() nooit gefilterd — elk geplaatst blok was voor
+            // iedereen zichtbaar. getZoneBlocks() cacht het volledige, ongefilterde
+            // resultaat per zone-naam (120s, gedeeld over alle bezoekers) — filteren
+            // zou dáár de cache per-gebruiker besmetten, dus dat gebeurt hier, na de
+            // cache-fetch, op de rol-IDs van de ingelogde bezoeker (leeg voor gasten,
+            // wat automatisch alleen de NULL/leeg-zichtbaarheid-blokken doorlaat).
+            $auth = $this->container->make(\CommunityFusion\Core\Auth\AuthManager::class);
+            $userRoleIds = [];
+            if ($auth->check() && $auth->id() !== null) {
+                $rbac = $this->container->make(\CommunityFusion\Core\Auth\RBAC\RBACManager::class);
+                $userRoleIds = array_map('intval', array_column($rbac->getUserRoles($auth->id()), 'id'));
+            }
+
             $registry = $this->container->make(\CommunityFusion\Core\Block\BlockRegistry::class);
             $zoneNames = ['header', 'topmenu', 'sidebar_left', 'content', 'sidebar_right', 'footer'];
             $zones = [];
             foreach ($zoneNames as $zoneName) {
-                $zones[$zoneName] = $registry->getZoneBlocks($zoneName);
+                $blocks = $registry->getZoneBlocks($zoneName);
+                $zones[$zoneName] = array_values(array_filter($blocks, function (array $block) use ($userRoleIds): bool {
+                    $allowed = json_decode($block['visibility_roles'] ?? 'null', true);
+                    if (!is_array($allowed) || $allowed === []) {
+                        return true; // geen restrictie ingesteld = voor iedereen
+                    }
+                    foreach ($allowed as $roleId) {
+                        if (in_array((int) $roleId, $userRoleIds, true)) {
+                            return true;
+                        }
+                    }
+                    return false;
+                }));
             }
             $theme->addGlobal('zones', $zones);
         } catch (\Throwable) {}

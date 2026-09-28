@@ -117,6 +117,17 @@ img { max-width: 100%; }
 
 .cf-header-actions { display: flex; gap: .5rem; margin-left: auto; flex-shrink: 0; }
 
+/* ── Header/Topmenu blok-zones (v1.17.0) ───────────────────────────────────
+   #cf-header zelf heeft een vaste hoogte, dus deze twee zones staan er los-
+   hoog naast/onder zodat blokken met willekeurige inhoud niet overflowen. */
+#cf-header-blocks, #cf-topmenu {
+  border-bottom: 1px solid var(--border);
+  padding: .6rem 0;
+  background: rgba(17,24,39,.6);
+}
+#cf-topmenu { display: flex; flex-wrap: wrap; gap: .5rem; }
+#cf-header-blocks .cf-block, #cf-topmenu .cf-block { margin-bottom: 0; }
+
 /* ── Knoppen ────────────────────────────────────────────────────────────── */
 .cf-btn, .cf-btn-sm {
   display: inline-flex;
@@ -271,6 +282,8 @@ img { max-width: 100%; }
   color: var(--muted);
   font-size: .8rem;
 }
+#cf-footer-blocks { margin-bottom: 1.5rem; text-align: left; }
+#cf-footer-blocks .cf-block { margin-bottom: .75rem; }
 .cf-footer-links { margin-top: .4rem; }
 .cf-footer-links a { color: var(--muted); }
 .cf-footer-links a:hover { color: var(--accent2); }

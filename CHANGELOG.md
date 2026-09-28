@@ -18,6 +18,44 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ---
 
+## [1.17.0] — 2026-09-29 — Wave 7: de 2 openstaande gaten uit v1.16.0 gedicht — alle 6 zones + rol-zichtbaarheid
+
+Aanleiding: "ga verder met de volgende stappen" — v1.16.0 loste het Blokkensysteem zelf op
+maar liet eerlijk twee gaten open: maar 2 van de 6 layout-zones waren echt dynamisch, en
+`cf_blocks.visibility_roles` werd nergens gefilterd. Beide nu gedicht.
+
+### Added / Fixed
+
+- **Alle 6 layout-zones zijn nu echte drag&drop-zones**, niet alleen sidebar_left/right.
+  `themes/default/templates/layout.twig` (en de identieke `gaming-dark`-variant) hebben
+  nu ook `zones.header`, `zones.topmenu` en `zones.footer`-render-loops, náást (niet in
+  plaats van) de bestaande vaste site-chrome (logo, hoofdmenu, footer-links).
+  `#cf-header` zelf heeft een vaste hoogte van 64px (logo/nav/acties in één rij) — blokken
+  daar rechtstreeks inpersen zou overflowen bij willekeurige blok-inhoud, dus header- en
+  topmenu-blokken krijgen elk hun eigen, los-hoge balk erónder (`#cf-header-blocks`,
+  `#cf-topmenu`). De footer had al flexibele hoogte, dus daar volstond een sectie binnen
+  de bestaande `<footer>`. CSS toegevoegd aan `public/assets/css/blueprint.css`.
+- **`cf_blocks.visibility_roles` wordt nu daadwerkelijk gefilterd.**
+  `BlockRegistry::getZoneBlocks()` cacht het volledige, ongefilterde resultaat per zone
+  (120s, gedeeld over alle bezoekers) — filteren op de ingelogde gebruiker vóór die cache
+  zou de cache per-gebruiker besmetten. Gefixt door in `Application::boot()`, ná de
+  cache-fetch, elke zone te filteren op de rol-IDs van de huidige bezoeker (leeg voor
+  gasten — laat automatisch alleen blokken zonder restrictie door).
+
+### Getest (live HTTP + database)
+
+- Een HTML-blok geplaatst in elk van de 3 nieuwe zones (`header`/`topmenu`/`footer`) via
+  de echte admin-UI → na cache-clear staan alle drie daadwerkelijk in de homepage-HTML,
+  op de verwachte plek (`#cf-header-blocks`, `#cf-topmenu`, `#cf-footer-blocks`).
+- Rol-zichtbaarheid: een footer-blok met `visibility_roles = [1]` (super_admin) →
+  **onzichtbaar voor een anonieme bezoeker**, **zichtbaar voor de ingelogde super_admin**
+  — beide met dezelfde, niet-verlopen cache, wat bevestigt dat de filtering ná de cache
+  gebeurt en niet per ongeluk de gedeelde cache zelf raakt.
+- Regressietest: `/`, `/news`, `/admin`, `/admin/blocks`, `/forum`, `/admin/roles`,
+  `/admin/themes` geven allemaal nog 200 — geen Twig-fouten door de layout-wijziging.
+
+---
+
 ## [1.16.0] — 2026-09-29 — Wave 6: het Blokkensysteem (Kernprincipe #3) bleek nog nooit te werken — 3 samenhangende bugs gefixt
 
 Aanleiding: "ga verder" op de standing "maak alles af"-opdracht. Met alle 6 placeholder-
