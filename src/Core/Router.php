@@ -212,6 +212,33 @@ final class Router
         $this->post('/admin/forum/boards/{id:[0-9]+}/bewerk',  'CommunityFusion\Modules\Forum\BoardAdminController@update',     $perm('forum.moderate'));
         $this->post('/admin/forum/boards/{id:[0-9]+}/verwijder', 'CommunityFusion\Modules\Forum\BoardAdminController@delete',   $perm('forum.moderate'));
 
+        // ── Rollen & Permissies (Wave 5 — voorheen alleen via SQL) ──────
+        $this->get('/admin/roles',                        'CommunityFusion\Modules\Roles\RoleAdminController@index',      $perm('roles.manage'));
+        $this->get('/admin/roles/nieuw',                   'CommunityFusion\Modules\Roles\RoleAdminController@createForm', $perm('roles.manage'));
+        $this->post('/admin/roles',                        'CommunityFusion\Modules\Roles\RoleAdminController@store',      $perm('roles.manage'));
+        $this->get('/admin/roles/{id:[0-9]+}/bewerk',       'CommunityFusion\Modules\Roles\RoleAdminController@editForm',   $perm('roles.manage'));
+        $this->post('/admin/roles/{id:[0-9]+}/bewerk',      'CommunityFusion\Modules\Roles\RoleAdminController@update',     $perm('roles.manage'));
+        $this->post('/admin/roles/{id:[0-9]+}/standaard',   'CommunityFusion\Modules\Roles\RoleAdminController@setDefault', $perm('roles.manage'));
+        $this->post('/admin/roles/{id:[0-9]+}/verwijder',   'CommunityFusion\Modules\Roles\RoleAdminController@delete',     $perm('roles.manage'));
+
+        // ── Sitenavigatie (Wave 5 — bouwt op cf_pages.menu_position) ────
+        $this->get('/admin/menus',                          'CommunityFusion\Modules\Menus\MenuAdminController@index',    $perm('menus.manage'));
+        $this->post('/admin/menus/{id:[0-9]+}/toevoegen',    'CommunityFusion\Modules\Menus\MenuAdminController@add',      $perm('menus.manage'));
+        $this->post('/admin/menus/{id:[0-9]+}/verwijderen',  'CommunityFusion\Modules\Menus\MenuAdminController@remove',   $perm('menus.manage'));
+        $this->post('/admin/menus/{id:[0-9]+}/omhoog',       'CommunityFusion\Modules\Menus\MenuAdminController@moveUp',   $perm('menus.manage'));
+        $this->post('/admin/menus/{id:[0-9]+}/omlaag',       'CommunityFusion\Modules\Menus\MenuAdminController@moveDown', $perm('menus.manage'));
+
+        // ── Systeemlogs (Wave 5 — alleen-lezen) ─────────────────────────
+        $this->get('/admin/logs', 'CommunityFusion\Modules\Logs\LogAdminController@index', $perm('logs.view'));
+
+        // ── Thema's (Wave 5 — actief thema wisselen zonder installer) ───
+        $this->get('/admin/themes',                        'CommunityFusion\Modules\Themes\ThemeAdminController@index',    $perm('themes.manage'));
+        $this->post('/admin/themes/{slug:[a-z0-9-]+}/activeren', 'CommunityFusion\Modules\Themes\ThemeAdminController@activate', $perm('themes.manage'));
+
+        // ── Media (Wave 5 — scant storage/uploads/ + storage/downloads/) ─
+        $this->get('/admin/media',              'CommunityFusion\Modules\Media\MediaAdminController@index',  $perm('media.manage'));
+        $this->post('/admin/media/verwijderen', 'CommunityFusion\Modules\Media\MediaAdminController@delete', $perm('media.manage'));
+
         // ── Overige admin-sidebar links (Wave 2) ────────────────────────────
         // /admin/modules dupliceerde in de praktijk /admin/marketplace (module-
         // installatie/-beheer gebeurt daar al) — een redirect voorkomt twee

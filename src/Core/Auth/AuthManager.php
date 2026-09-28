@@ -19,6 +19,7 @@ namespace CommunityFusion\Core\Auth;
 
 use CommunityFusion\Core\Database\Connection;
 use CommunityFusion\Core\Auth\RBAC\RBACManager;
+use CommunityFusion\Core\Audit\AuditLogger;
 
 /**
  * Authenticatie Manager
@@ -32,6 +33,7 @@ final class AuthManager
         private readonly Connection   $db,
         private readonly RBACManager  $rbac,
         private readonly JWTManager   $jwt,
+        private readonly AuditLogger  $audit,
     ) {
         if (session_status() === PHP_SESSION_NONE) {
             $this->startSecureSession();
@@ -79,6 +81,8 @@ final class AuthManager
             "UPDATE cf_users SET last_login_at = NOW(), last_login_ip = ? WHERE id = ?",
             [$_SERVER['REMOTE_ADDR'] ?? '0.0.0.0', $user['id']]
         );
+
+        $this->audit->log('auth.login', (int) $user['id'], (string) $user['username']);
     }
 
     /**
@@ -287,13 +291,18 @@ final class AuthManager
         );
     }
 
+    /**
+     * Tot v1.15.0 schreef dit alleen naar storage/logs/auth.log — een
+     * bestand dat nooit ergens door de applicatie werd uitgelezen (geen
+     * enkel scherm bestond om het te bekijken). Nu naar cf_audit_log, dat
+     * /admin/logs daadwerkelijk toont, náást geslaagde logins en de
+     * belangrijkste admin-acties. Rate limiting is hier nog steeds niet
+     * geïmplementeerd — zie de originele TODO hierboven, nu verplaatst.
+     */
     private function logFailedAttempt(string $identifier): void
     {
-        // Rate limiting kan hier uitgebreid worden
-        // Voorlopig: log naar storage/logs/auth.log
-        $log = CF_ROOT . '/storage/logs/auth.log';
-        $line = date('Y-m-d H:i:s') . " FAIL identifier={$identifier} ip=" . ($_SERVER['REMOTE_ADDR'] ?? '-') . PHP_EOL;
-        file_put_contents($log, $line, FILE_APPEND | LOCK_EX);
+        // TODO: rate limiting kan hier uitgebreid worden
+        $this->audit->log('auth.login_failed', null, null, ['identifier' => $identifier]);
     }
 
     private function startSecureSession(): void

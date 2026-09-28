@@ -1,0 +1,47 @@
+{% extends 'layout.twig' %}
+{% block content %}
+<div class="cf-page-header">
+  <div class="cf-breadcrumb"><a href="/">Home</a> → Downloads</div>
+  <h1>📦 Downloads</h1>
+</div>
+
+{% if can_manage %}
+<div style="margin-bottom:1rem;">
+  <a href="/downloads/nieuw" class="cf-btn">➕ Nieuwe download</a>
+</div>
+{% endif %}
+
+<div class="cf-forum-topics">
+  {% for item in downloads %}
+  <div class="cf-card" style="margin-bottom:.6rem;">
+    <div class="cf-card-body" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+      <div style="flex:1;min-width:220px;">
+        <h3 style="font-size:1rem;margin-bottom:.2rem;">
+          {% if not item.is_published %}<span class="cf-badge cf-badge-purple">Verborgen</span>{% endif %}
+          <a href="/downloads/{{ item.slug }}">{{ item.title }}</a>
+        </h3>
+        <div style="color:var(--muted);font-size:.8rem;">
+          door {{ item.display_name|default(item.username) }} · {{ item.created_at|date('d M Y') }}
+          · {{ (item.file_size / 1024 / 1024)|number_format(1) }} MB
+        </div>
+      </div>
+      <div style="text-align:center;min-width:70px;">
+        <div style="font-weight:800;">{{ item.download_count }}</div>
+        <div style="color:var(--muted);font-size:.75rem;">downloads</div>
+      </div>
+      <a href="/downloads/{{ item.slug }}/bestand" class="cf-btn-sm">⬇️ Download</a>
+    </div>
+  </div>
+  {% else %}
+  <p style="color:var(--muted);">Er staan nog geen downloads klaar.</p>
+  {% endfor %}
+</div>
+
+{% if pagination.total > 1 %}
+<div style="display:flex;gap:.5rem;justify-content:center;margin-top:1.5rem;">
+  {% for p in 1..pagination.total %}
+    <a href="/downloads?page={{ p }}" class="cf-btn-sm {{ p == pagination.current ? '' : 'cf-btn-ghost' }}">{{ p }}</a>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

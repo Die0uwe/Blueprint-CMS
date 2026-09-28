@@ -11,6 +11,8 @@ namespace CommunityFusion\Modules\Users;
 use CommunityFusion\Core\Request;
 use CommunityFusion\Core\Response;
 use CommunityFusion\Core\Auth\AuthManager;
+use CommunityFusion\Core\Auth\RBAC\RBACManager;
+use CommunityFusion\Core\Audit\AuditLogger;
 use CommunityFusion\Core\Security\CsrfProtection;
 
 /**
@@ -26,6 +28,8 @@ final class UserAdminController
     public function __construct(
         private readonly UserRepository $repo,
         private readonly AuthManager    $auth,
+        private readonly RBACManager    $rbac,
+        private readonly AuditLogger    $audit,
     ) {}
 
     public function index(Request $request): Response
@@ -91,6 +95,21 @@ final class UserAdminController
 
         $this->repo->setActive($id, $wantActive);
         $this->repo->syncRoles($id, $roleIds, $this->auth->id());
+
+        // Zonder dit bleef RBACManager's 300s-cache (rbac.user.{id}.permissions/
+        // .roles) de OUDE rollen teruggeven aan een al ingelogde gebruiker — een
+        // net ontnomen recht (of een net gegeven recht) had dus tot 5 minuten
+        // geen effect. Gevonden tijdens het bouwen van het Rollen-scherm
+        // (Wave 5), dat dezelfde cache-invalidatie nodig had en dit gat toen
+        // blootlegde. Zie CHANGELOG v1.15.0.
+        $this->rbac->clearUserCache($id);
+
+        $this->audit->log('users.update', $this->auth->id(), $this->auth->user()['username'] ?? null, [
+            'target_user_id' => $id,
+            'target_username' => $user['username'],
+            'active' => $wantActive,
+            'role_ids' => $roleIds,
+        ]);
 
         return Response::redirect('/admin/users?ok=bijgewerkt');
     }

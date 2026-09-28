@@ -481,3 +481,37 @@ INSERT IGNORE INTO `cf_permissions` (`name`, `group`, `description`) VALUES
 INSERT IGNORE INTO `cf_role_permissions` (`role_id`, `permission_id`)
 SELECT r.id, p.id FROM `cf_roles` r, `cf_permissions` p
 WHERE r.name = 'admin' AND p.name IN ('blog.moderate', 'downloads.manage', 'contact.manage');
+
+-- ============================================================
+-- Wave 5: /admin/roles, /admin/forum/boards, /admin/menus, /admin/themes,
+-- /admin/logs, /admin/media — de laatste van de 6 placeholder-schermen uit
+-- v1.10.0 kregen elk hun eigen permissie, net als de rest hierboven nooit
+-- eerder geseed.
+-- ============================================================
+INSERT IGNORE INTO `cf_permissions` (`name`, `group`, `description`) VALUES
+('roles.manage',   'system', 'Rollen aanmaken, bewerken en permissies toewijzen'),
+('menus.manage',   'system', 'Sitenavigatie beheren'),
+('themes.manage',  'system', 'Actief thema wisselen'),
+('logs.view',      'system', 'Systeem-auditlog inzien'),
+('media.manage',   'system', 'Geüploade bestanden inzien en verwijderen');
+
+INSERT IGNORE INTO `cf_role_permissions` (`role_id`, `permission_id`)
+SELECT r.id, p.id FROM `cf_roles` r, `cf_permissions` p
+WHERE r.name = 'admin' AND p.name IN ('roles.manage', 'menus.manage', 'themes.manage', 'logs.view', 'media.manage');
+
+-- Audit-log — Wave 5. Registreert alleen de events die daadwerkelijk ergens
+-- in de code aangeroepen worden (zie AuditLogger::log() call-sites); geen
+-- lege tabel die nooit gevuld wordt, zoals storage/logs/ tot deze wave was.
+CREATE TABLE IF NOT EXISTS `cf_audit_log` (
+    `id`         INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `user_id`    INT UNSIGNED NULL COMMENT 'NULL bij mislukte login (onbekende/anonieme gebruiker)',
+    `username`   VARCHAR(50)  NULL COMMENT 'Snapshot t.b.v. leesbaarheid, ook als de user later verwijderd wordt',
+    `action`     VARCHAR(100) NOT NULL COMMENT 'bv. auth.login, auth.login_failed, forum.board.delete',
+    `context`    JSON NULL COMMENT 'Vrije extra details per event, bv. {"board":"algemeen"}',
+    `ip_address` VARCHAR(45) NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `idx_created` (`created_at`),
+    KEY `idx_action` (`action`),
+    KEY `idx_user` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

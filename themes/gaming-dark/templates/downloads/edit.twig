@@ -1,0 +1,40 @@
+{% extends 'layout.twig' %}
+{% block content %}
+<div class="cf-page-header">
+  <div class="cf-breadcrumb"><a href="/">Home</a> → <a href="/downloads">Downloads</a> → {{ download ? 'Bewerken' : 'Nieuwe download' }}</div>
+  <h1>{{ download ? '✏️ Download bewerken' : '➕ Nieuwe download' }}</h1>
+</div>
+
+<div class="cf-card">
+  <div class="cf-card-body">
+    <form method="post" action="{{ download ? '/downloads/' ~ download.slug ~ '/bewerk' : '/downloads/nieuw' }}"
+          {{ download ? '' : 'enctype="multipart/form-data"' }}>
+      {{ csrf_field()|raw }}
+      <div class="cf-form-group">
+        <label class="cf-label" for="title">Titel</label>
+        <input type="text" id="title" name="title" class="cf-input" maxlength="255" value="{{ download.title|default('') }}" required>
+      </div>
+      <div class="cf-form-group">
+        <label class="cf-label" for="description">Omschrijving</label>
+        <textarea id="description" name="description" class="cf-textarea">{{ download.description|default('') }}</textarea>
+      </div>
+      {% if download %}
+        <div class="cf-form-group">
+          <label class="cf-label"><input type="checkbox" name="is_published" {{ download.is_published ? 'checked' : '' }}> Zichtbaar op de downloadspagina</label>
+        </div>
+        <p style="color:var(--muted);font-size:.8rem;">
+          Bestand: {{ download.original_filename }} ({{ (download.file_size / 1024 / 1024)|number_format(1) }} MB).
+          Het bestand zelf kan hier niet vervangen worden — verwijder de download en maak een nieuwe aan om een ander bestand te uploaden.
+        </p>
+      {% else %}
+        <div class="cf-form-group">
+          <label class="cf-label" for="file">Bestand (max. 50MB — zip, pdf, rar, 7z, gz, afbeeldingen)</label>
+          <input type="file" id="file" name="file" class="cf-input" required>
+        </div>
+      {% endif %}
+      <button type="submit" class="cf-btn">Opslaan</button>
+      <a href="/downloads" class="cf-btn cf-btn-ghost">Annuleren</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

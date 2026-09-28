@@ -10,6 +10,8 @@ namespace CommunityFusion\Modules\Forum;
 
 use CommunityFusion\Core\Request;
 use CommunityFusion\Core\Response;
+use CommunityFusion\Core\Auth\AuthManager;
+use CommunityFusion\Core\Audit\AuditLogger;
 use CommunityFusion\Core\Security\CsrfProtection;
 
 /**
@@ -24,7 +26,11 @@ use CommunityFusion\Core\Security\CsrfProtection;
  */
 final class BoardAdminController
 {
-    public function __construct(private readonly ForumRepository $repo) {}
+    public function __construct(
+        private readonly ForumRepository $repo,
+        private readonly AuthManager     $auth,
+        private readonly AuditLogger     $audit,
+    ) {}
 
     public function index(Request $request): Response
     {
@@ -91,7 +97,13 @@ final class BoardAdminController
         }
 
         $this->repo->deleteBoard($id);
+        $this->logAction('forum.board.delete', ['board_id' => $id, 'name' => $board['name']]);
         return Response::redirect('/admin/forum/boards?ok=verwijderd');
+    }
+
+    private function logAction(string $action, array $context): void
+    {
+        $this->audit->log($action, $this->auth->id(), $this->auth->user()['username'] ?? null, $context);
     }
 
     private function hasTopics(int $boardId): bool
@@ -121,7 +133,8 @@ final class BoardAdminController
         }
 
         if ($id === null) {
-            $this->repo->createBoard($slug, $name, $description, $position);
+            $newId = $this->repo->createBoard($slug, $name, $description, $position);
+            $this->logAction('forum.board.create', ['board_id' => $newId, 'slug' => $slug, 'name' => $name]);
             return Response::redirect('/admin/forum/boards?ok=aangemaakt');
         }
 
@@ -131,6 +144,7 @@ final class BoardAdminController
         }
 
         $this->repo->updateBoard($id, $slug, $name, $description, $position);
+        $this->logAction('forum.board.update', ['board_id' => $id, 'slug' => $slug, 'name' => $name]);
         return Response::redirect('/admin/forum/boards?ok=bijgewerkt');
     }
 

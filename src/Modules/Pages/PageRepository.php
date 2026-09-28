@@ -48,6 +48,62 @@ final class PageRepository
         });
     }
 
+    // ── Menubeheer (Wave 5 — /admin/menus. De ruwe mechaniek (menu_position
+    //    op cf_pages) bestond al sinds Sprint 2 en was al bewerkbaar via het
+    //    getal-invoerveld in /admin/pages/{id}/bewerk — maar een pagina aan
+    //    het menu toevoegen/verwijderen of herordenen betekende zelf een
+    //    vrij positienummer verzinnen en hopen dat het klopt. Dit scherm zet
+    //    er knoppen op i.p.v. een nieuw opslagmechanisme te verzinnen.) ──
+
+    /**
+     * Alle gepubliceerde pagina's, menu-pagina's eerst (op positie), dan de
+     * rest alfabetisch — precies de twee groepen die het menu-scherm toont.
+     */
+    public function getPublishedPagesForMenuScreen(): array
+    {
+        return $this->db->fetchAll(
+            "SELECT id, slug, title, menu_position FROM cf_pages
+             WHERE status = 'published' AND deleted_at IS NULL
+             ORDER BY (menu_position IS NULL) ASC, menu_position ASC, title ASC"
+        );
+    }
+
+    public function addToMenu(int $id): void
+    {
+        $row  = $this->db->fetchOne("SELECT COALESCE(MAX(menu_position), -1) + 1 AS next_pos FROM cf_pages WHERE menu_position IS NOT NULL");
+        $next = (int) ($row['next_pos'] ?? 0);
+        $this->db->update('pages', ['menu_position' => $next], 'id = ?', [$id]);
+        $this->cache->clear();
+    }
+
+    public function removeFromMenu(int $id): void
+    {
+        $this->db->update('pages', ['menu_position' => null], 'id = ?', [$id]);
+        $this->cache->clear();
+    }
+
+    /**
+     * Wissel de positie van deze menu-pagina met haar directe buur
+     * ($direction: -1 = omhoog, +1 = omlaag). Geen effect aan de randen.
+     */
+    public function swapMenuPosition(int $id, int $direction): void
+    {
+        $current = $this->db->fetchOne("SELECT id, menu_position FROM cf_pages WHERE id = ? AND menu_position IS NOT NULL", [$id]);
+        if ($current === null) return;
+
+        $neighbor = $direction < 0
+            ? $this->db->fetchOne("SELECT id, menu_position FROM cf_pages WHERE menu_position < ? AND menu_position IS NOT NULL ORDER BY menu_position DESC LIMIT 1", [$current['menu_position']])
+            : $this->db->fetchOne("SELECT id, menu_position FROM cf_pages WHERE menu_position > ? AND menu_position IS NOT NULL ORDER BY menu_position ASC LIMIT 1", [$current['menu_position']]);
+
+        if ($neighbor === null) return;
+
+        $this->db->transaction(function (Connection $db) use ($current, $neighbor) {
+            $db->update('pages', ['menu_position' => $neighbor['menu_position']], 'id = ?', [$current['id']]);
+            $db->update('pages', ['menu_position' => $current['menu_position']], 'id = ?', [$neighbor['id']]);
+        });
+        $this->cache->clear();
+    }
+
     // ── Admin CRUD (Wave 2 — /admin/pages bestond niet, dashboard.php linkte
     //    er wel al sinds Sprint 2 naartoe; zelfde patroon als NewsRepository) ──
 

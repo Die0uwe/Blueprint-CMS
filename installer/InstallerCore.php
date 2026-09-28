@@ -186,7 +186,17 @@ PHP;
     public static function importSchema(\PDO $pdo): void
     {
         $schema = file_get_contents(dirname(__DIR__) . '/src/Core/Database/schema.sql');
-        // Splits op statements en voer elk uit
+
+        // Splits op statements en voer elk uit. `-- commentaar`-regels worden
+        // EERST verwijderd — zonder dit brak elke `;` binnen zo'n regel de
+        // hele import in tweeën met een syntaxfout (bv. een JSON-voorbeeld of
+        // gewone tekst met een puntkomma erin, zie CHANGELOG v1.15.0). Een
+        // regel-comment strippen mag hier zonder een echte SQL-parser: dit
+        // schema-bestand gebruikt nergens een letterlijke `--` binnen een
+        // stringwaarde (de enige tekstvelden zijn Nederlandse omschrijvingen
+        // zonder dat teken), dus een simpele regex per regel is voldoende.
+        $schema = preg_replace('/^\s*--.*$/m', '', $schema);
+
         $statements = array_filter(
             array_map('trim', explode(';', $schema)),
             fn($s) => strlen($s) > 10

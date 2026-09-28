@@ -18,6 +18,134 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ---
 
+## [1.15.0] — 2026-09-29 — Wave 5: laatste 5 placeholder-schermen gebouwd (Roles, Menus, Logs, Themes, Media)
+
+Aanleiding: "vervolg alle logische stappen die nog moeten en maak af" — de 5 resterende
+placeholder-admin-schermen uit v1.10.0 (zie README "Bekende beperkingen") waren de laatste
+openstaande post op de roadmap. Elk scherm is met dezelfde methode gebouwd en live
+geverifieerd als v1.12.0–v1.14.0: echte HTTP-boot tegen een echte MariaDB, geen mocks.
+
+### Added — nieuw: audit-logging
+
+- **`cf_audit_log`-tabel + `AuditLogger`** (`src/Core/Audit/AuditLogger.php`): centrale,
+  kleine service (`log()`, `getRecent()`, `count()`, `distinctActions()`) die alle
+  gevoelige admin-acties vastlegt (wie, wat, wanneer, IP, JSON-context). Aangesloten op
+  `AuthManager` (login/mislukte login — verving een losse `storage/logs/auth.log`-schrijf-
+  actie die nergens werd uitgelezen), `UserAdminController`, `BoardAdminController`,
+  `ForumController` (pin/lock/verwijderen), `RoleAdminController`, `ThemeAdminController`,
+  `MediaAdminController`. Dit is meteen de databron voor het nieuwe `/admin/logs`-scherm.
+
+### Added — `/admin/roles` (Rollenbeheer)
+
+- `RoleRepository` + `RoleAdminController`: rollen aanmaken/bewerken, permissiematrix
+  (gegroepeerd) toewijzen, standaardrol instellen, verwijderen.
+- **`super_admin` is hard vergrendeld**: de wildcard-permissie (`*`) kan niet via de UI
+  weggehaald worden — zowel client-side (checkboxes disabled) als server-side (`update()`
+  forceert de permissie-set terug naar `[*]` ongeacht wat is gepost).
+- **Cascade-bescherming**: verwijderen wordt geblokkeerd zolang de rol nog gebruikers
+  heeft, of als het een van de 5 kernrollen is (`super_admin`/`admin`/`moderator`/
+  `member`/`guest`).
+- Permissie: `roles.manage`.
+
+### Added — `/admin/menus` (Menubeheer)
+
+- Bestaande, gepubliceerde pagina's toevoegen aan/verwijderen uit het hoofdmenu en hun
+  volgorde wijzigen (`PageRepository::addToMenu()`/`removeFromMenu()`/
+  `swapMenuPosition()`), zonder de `menu_position`-kolom rechtstreeks in de database te
+  hoeven bewerken. Permissie: `menus.manage`.
+
+### Added — `/admin/logs` (Auditlog-viewer)
+
+- Gepagineerde (30/pagina), filterbare (per actie) weergave van `cf_audit_log`, met
+  kleurgecodeerde badges per actietype en de JSON-context leesbaar uitgeklapt.
+  Permissie: `logs.view`.
+
+### Added — `/admin/themes` (Thema-omschakeling)
+
+- Scant `themes/*/theme.json` en schrijft de keuze naar `cf_settings('core',
+  'active_theme')`, die nu voorrang krijgt boven de statische `config/config.php`-waarde
+  (`Application.php`'s `ThemeManager`-singleton-factory raadpleegt eerst de database).
+  Een tweede, echt thema **"Gaming Dark"** is toegevoegd (`themes/gaming-dark/`) om het
+  omschakelmechanisme met iets anders dan het standaardthema te kunnen bewijzen.
+  Permissie: `themes.manage`.
+- **Eerlijk gedocumenteerde architecturale beperking**: `theme.json`'s `colors`-blok en de
+  per-thema `assets/`-map worden nergens door de templates gebruikt — `asset()` in
+  `ThemeManager` wijst altijd naar het globale `public/assets/`, thema-onafhankelijk.
+  Omschakelen wisselt dus de Twig-**templates** (bewezen via een nieuw
+  `data-theme-slug`/`-name`-attribuut op `<body>`), niet (nog) een kleurenschema. Dit
+  scherm zegt dat ook met zoveel woorden tegen de beheerder i.p.v. het te verbergen.
+
+### Added — `/admin/media` (Mediabeheer)
+
+- Scant beide onafhankelijke opslag-roots (`storage/uploads/` — avatars, en
+  `storage/downloads/` — de Downloads-module, elk met een eigen `UploadManager`-instantie)
+  en kruist elk bestand tegen `cf_users.avatar_url` en `cf_downloads.file_path` zodat een
+  bestand dat nog in gebruik is, niet per ongeluk verwijderd kan worden — de knop is dan
+  geen formulier maar een uitgeschakelde placeholder, en de server blokkeert een
+  geforceerde aanvraag ook zelf nog eens (zie "Gevonden bugs" hieronder — dat server-pad
+  legde een onafhankelijke bug bloot). Permissie: `media.manage`.
+
+### Gevonden en gefixte bugs (elk scherm legde er minstens één bloot)
+
+- **`installer/InstallerCore.php::importSchema()`**: `explode(';', $schema)` zonder eerst
+  SQL-commentaar te strippen — één `-- `-regel met een letterlijke puntkomma erin brak de
+  hele import. Fix: volledige commentaarregels worden nu met een regex verwijderd vóórdat
+  er gesplitst wordt.
+- **RBAC-cache werd niet geïnvalideerd bij rolwijzigingen** — noch in het nieuwe
+  `RoleRepository` (permissies aan een rol wijzigen), noch, bleek bij nader onderzoek, in
+  het **al bestaande** `UserAdminController::update()` (een gebruiker een andere rol
+  geven). Een al ingelogde gebruiker kon hierdoor tot 5 minuten (`RBACManager`'s 300s-TTL)
+  met verouderde rechten blijven werken. Beide gefixt door na elke rolwijziging
+  `RBACManager::clearUserCache()` aan te roepen voor elke betrokken gebruiker.
+- **Rollenformulier schakelde de permissiematrix uit voor álle 5 kernrollen**, niet
+  alleen `super_admin` — een `$isProtected`-vlag (die ook "naam niet wijzigbaar" en
+  "niet verwijderbaar" betekent) werd hergebruikt voor "checkboxes uitschakelen", waardoor
+  een beheerder de rechten van `admin`/`moderator`/`member`/`guest` niet via de UI had
+  kunnen aanpassen. Gevonden vóórdat dit live getest werd, via codereview. Gefixt met een
+  aparte `$isSuperAdmin`-variabele die alleen voor de checkbox-`disabled`-status gebruikt
+  wordt.
+- **CSRF-afwijzingen kwamen app-breed als generieke HTTP 500 naar buiten in plaats van
+  403** — `CsrfProtection::validateRequest()` gooide een kale `\RuntimeException(...,
+  403)`, maar `Application::handleException()` herkent alleen `instanceof HttpException`
+  (de class die in v1.14.0/Wave 2 precies voor dit probleem is gebouwd, voor
+  `AuthManager::authorize()`) en valt voor al het andere terug op 500. Dit trof **elk**
+  formulier in de hele applicatie dat `CsrfProtection::validateRequest()` gebruikt, niet
+  alleen Media — gevonden tijdens het live testen van het "verwijderen geblokkeerd
+  (bestand nog in gebruik)"-pad van `/admin/media`, dat hierdoor zelf ook een onterechte
+  500 gaf. Gefixt door `CsrfProtection` dezelfde `HttpException(..., 403)` te laten gooien
+  als `AuthManager::authorize()`; live herbevestigd dat een CSRF-afwijzing nu overal een
+  nette 403 geeft.
+
+### Getest (live HTTP + database, alle 5 schermen)
+
+- Permissiegrens: een testgebruiker zonder de betreffende `*.manage`-permissie krijgt
+  overal **403**, zowel op het scherm zelf als op de actie-routes.
+- Roles: permissiematrix bewerkt voor `admin`, database bevestigt; poging om
+  `super_admin`'s wildcard via een geforceerde POST weg te halen → blijft `[*]`; rol met
+  gebruikers eraan gekoppeld → verwijderen geblokkeerd met duidelijke foutmelding.
+  Cache-invalidatie geverifieerd: rolwijziging direct zichtbaar voor een al ingelogde
+  sessie, geen 5-minuten-vertraging meer.
+- Menus: pagina toegevoegd/verwijderd/verplaatst, `menu_position` klopt na elke stap.
+- Logs: paginering en actie-filter geverifieerd tegen echte `auth.login`/
+  `forum.topic.delete`/etc.-rijen die de andere schermen deze wave al genereerden.
+- Themes: omgeschakeld naar "Gaming Dark" → `data-theme-slug="gaming-dark"` zichtbaar in
+  de HTML-output; terug naar "default" → bevestigd.
+- Media: twee echte bestanden (een avatar-upload, een downloads-upload) correct als
+  "In gebruik" gemarkeerd; verwijderen van een in-gebruik bestand → geblokkeerd (302 +
+  foutmelding, bestand blijft staan — pas werkend ná de CSRF-bugfix hierboven);
+  verwijderen van een ongebruikt bestand → 302 + bestand weg van schijf + `media.delete`
+  in de auditlog.
+
+### Nog open
+
+Alle 6 oorspronkelijke placeholder-schermen uit v1.10.0 zijn nu echt: Users (v1.13.0),
+Forum-bordbeheer (v1.14.0), en nu Roles/Menus/Logs/Themes/Media. Het thema-kleuren-gat
+(hierboven) en het ontbrekende News-categorieënscherm (genoemd in v1.14.0) blijven staan
+als bekende, eerlijk gedocumenteerde vervolgstappen. `composer.lock` kan nog steeds niet
+in deze sandbox gegenereerd worden (geen internettoegang) — zie README.
+
+---
+
 ## [1.14.0] — 2026-09-29 — Wave 4: Forum live geverifieerd + bordbeheer gebouwd
 
 Aanleiding: de vraag "kunnen we het forum alvast klaarmaken zodat dat erin zit en werkt"

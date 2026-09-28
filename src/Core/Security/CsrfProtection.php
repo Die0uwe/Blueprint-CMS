@@ -16,6 +16,8 @@
 declare(strict_types=1);
 namespace CommunityFusion\Core\Security;
 
+use CommunityFusion\Core\HttpException;
+
 final class CsrfProtection
 {
     public static function getToken(): string
@@ -38,7 +40,13 @@ final class CsrfProtection
     {
         $token = $_POST['_csrf_token'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
         if (!self::verify($token)) {
-            throw new \RuntimeException('Ongeldige CSRF token.', 403);
+            // Was \RuntimeException(..., 403) — zelfde bug als AuthManager::authorize()
+            // had vóór HttpException bestond (zie dat bestand): Application::handleException()
+            // herkent alleen `instanceof HttpException`, dus een kale RuntimeException kwam
+            // altijd als generieke 500 naar buiten, ongeacht de meegegeven code. Elke CSRF-
+            // afwijzing in de hele app (elk formulier met CsrfProtection::validateRequest())
+            // gaf hierdoor een 500 i.p.v. een nette 403.
+            throw new HttpException('Ongeldige CSRF token.', 403);
         }
     }
 }

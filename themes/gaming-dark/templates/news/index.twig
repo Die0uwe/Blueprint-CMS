@@ -1,0 +1,25 @@
+{% extends 'layout.twig' %}
+{% block content %}
+<div class="cf-page-header">
+  <div class="cf-breadcrumb">🏠 Home → Nieuws</div>
+  <h1>📰 Nieuws</h1>
+</div>
+<div class="cf-news-grid">
+  {% for item in news %}
+  <article class="cf-news-item">
+    <div class="cf-news-img" style="display:flex;align-items:center;justify-content:center;font-size:3rem;background:var(--surface2);">📰</div>
+    <div class="cf-news-body">
+      <div class="cf-news-cat">Nieuws</div>
+      <h2 class="cf-news-title"><a href="/news/{{ item.slug }}">{{ item.title }}</a></h2>
+      <p class="cf-news-summary">{{ item.summary|default('')|slice(0,140) }}…</p>
+      <div class="cf-news-meta">
+        <span>✍️ {{ item.display_name }}</span>
+        <span>👁️ {{ item.views }}</span>
+      </div>
+    </div>
+  </article>
+  {% else %}
+  <p style="color:var(--muted);">Nog geen artikelen gepubliceerd.</p>
+  {% endfor %}
+</div>
+{% endblock %}

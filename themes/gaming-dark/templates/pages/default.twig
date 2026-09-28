@@ -1,0 +1,11 @@
+{% extends 'layout.twig' %}
+{% block title %}{{ page.title }}{% endblock %}
+{% block meta_desc %}{{ page.meta_desc|default('') }}{% endblock %}
+{% block content %}
+<div class="cf-page-header">
+  <h1>{{ page.title }}</h1>
+</div>
+<div class="cf-page-content">
+  {{ page.content|raw }}
+</div>
+{% endblock %}

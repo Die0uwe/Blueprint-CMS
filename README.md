@@ -14,7 +14,7 @@ GPL-3.0-or-later
 [![PHP](https://img.shields.io/badge/PHP-8.3%2B-777BB4?style=flat-square&logo=php)](https://php.net)
 [![MariaDB](https://img.shields.io/badge/MariaDB-10.11%2B-003545?style=flat-square&logo=mariadb)](https://mariadb.org)
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.14.0-brightgreen?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-1.15.0-brightgreen?style=flat-square)](CHANGELOG.md)
 [![CI](https://img.shields.io/github/actions/workflow/status/Die0uwe/bluprint-cms/ci.yml?branch=main&style=flat-square&label=CI)](.github/workflows/ci.yml)
 
 *Geïnspireerd door PHP-Fusion · Down Under Fusion · ImpressCMS*
@@ -152,6 +152,7 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 | **S9** | ⚠️ v1.8.0 | ~~WoW Module v2 — Guild Roster + Character Armory~~ — **ingetrokken in v1.9.0**: bleek WordPress-code, nooit geladen. Zie CHANGELOG v1.9.0. |
 | **S9-audit** | ✅ v1.9.0 | Wave 0 gap-analyse tegen de echte repo, WP-code verwijderd, CI/tests toegevoegd, JWT/APP_KEY gescheiden, Discord-registratie, upload-handler, Forum/Blog/Downloads/Contact core-modules, installer Step5 dynamisch |
 | **S9-audit²** | ✅ v1.10.0–v1.11.0 | Wave 2: `/admin` permissie-gating, echte Mailer, News/Pages admin-CRUD, `migrate`/`module:install` CLI-commando's — en een kritieke `LIMIT`/`OFFSET`-bug gevonden door voor het eerst tegen een echte MariaDB-server te testen (zie CHANGELOG v1.11.0) |
+| **S9-audit³** | ✅ v1.12.0–v1.15.0 | Wave 3–5: eerste échte end-to-end boot (2 fatale autoload-bugs gevonden), `/admin/users`, Forum live-verificatie + bordbeheer, en de laatste 5 placeholder-schermen (Roles/Menus/Logs/Themes/Media) — **alle 6 oorspronkelijke placeholder-schermen uit v1.10.0 zijn hiermee vervangen**. Zie CHANGELOG v1.12.0–v1.15.0. |
 | **S10** | 📋 Gepland | YouTube + Kick integratie |
 | **S11** | 📋 Gepland | Media-galerij (los van de generieke upload-handler) |
 | **S12** | 📋 Gepland | Premium ecosysteem + licenties + betalingen |
@@ -175,7 +176,7 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 
 ---
 
-## ⚠️ Bekende beperkingen (stand v1.14.0)
+## ⚠️ Bekende beperkingen (stand v1.15.0)
 
 Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben opgelost — zie
 `docs/wave-0-gap-analysis.md` en `CHANGELOG.md` voor de volledige context per punt.
@@ -210,6 +211,18 @@ Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben o
 > forumbord aan te maken zonder rechtstreekse SQL. `/admin/forum/boards` lost dat op, mét
 > bescherming tegen het per ongeluk cascade-verwijderen van topics. Hetzelfde soort gat bestaat
 > trouwens ook voor News-categorieën — niet meegenomen in deze wave. Zie CHANGELOG v1.14.0.
+>
+> **v1.15.0: de laatste 5 placeholder-schermen (Media, Roles, Themes, Menus, Logs) zijn
+> gebouwd en live geverifieerd — en legden zelf nog eens 4 echte bugs bloot**, waaronder
+> een app-brede: elke CSRF-afwijzing (op *elk* formulier, niet alleen de nieuwe schermen)
+> kwam als een generieke HTTP 500 naar buiten in plaats van een nette 403, omdat
+> `CsrfProtection` niet de `HttpException`-class gebruikte die v1.14.0 voor precies dit
+> probleem in `AuthManager::authorize()` had gebouwd. Ook gevonden: een RBAC-cache die na
+> een rolwijziging tot 5 minuten stale bleef (zowel in het nieuwe Rollenscherm als,
+> bleek bij nader onderzoek, in het al bestaande `/admin/users`), een verkeerd-
+> uitgeschakelde permissiematrix voor niet-`super_admin`-rollen, en een SQL-importbug in
+> de installer die crashte op een letterlijke puntkomma in een `--`-commentaarregel. Zie
+> CHANGELOG v1.15.0 voor de volledige lijst en het live-testrapport per scherm.
 
 - ~~`/admin`-routes zijn niet permissie-gated~~ — **opgelost in v1.10.0.** Zie CHANGELOG:
   `PermissionMiddleware` + `admin.access`/`settings.edit`/`blocks.manage`/`marketplace.*`.
@@ -220,10 +233,19 @@ Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben o
   bescherming — zie CHANGELOG v1.13.0). `/admin/modules` redirect naar `/admin/marketplace`.
   `/admin/forum/boards` is sinds **v1.14.0** eveneens een echt, live-geteste
   scherm (aanmaken/hernoemen/herordenen/verwijderen, met bescherming tegen het
-  cascade-verwijderen van topics — zie CHANGELOG v1.14.0).
-  **Nog steeds placeholder** ("nog niet gebouwd"-scherm i.p.v. een CRUD-UI):
-  `/admin/media`, `/admin/roles`, `/admin/themes`, `/admin/menus`, `/admin/logs`. Zie
-  CHANGELOG v1.10.0 voor wat er per scherm al wél achter de schermen werkt.
+  cascade-verwijderen van topics — zie CHANGELOG v1.14.0). Sinds **v1.15.0** zijn ook
+  `/admin/roles` (permissiematrix, vergrendelde `super_admin`-wildcard, cascade-
+  bescherming), `/admin/menus` (pagina's toevoegen/verwijderen/herordenen),
+  `/admin/logs` (gepagineerde, filterbare auditlog — nieuwe `cf_audit_log`-tabel +
+  `AuditLogger`), `/admin/themes` (echte omschakeling tussen "default" en het nieuwe
+  "Gaming Dark"-thema, via een DB-instelling) en `/admin/media` (scant
+  `storage/uploads/` + `storage/downloads/`, blokkeert verwijderen van bestanden die nog
+  als avatar of download in gebruik zijn) echte, live-geteste schermen — zie CHANGELOG
+  v1.15.0. **Alle 6 oorspronkelijke placeholder-schermen uit v1.10.0 zijn hiermee
+  vervangen.**
+  Nog wel een bekend gat: themawissel wisselt de Twig-templates, niet (nog) een
+  kleurenschema (`theme.json`'s `colors`-blok wordt nergens toegepast — zie CHANGELOG
+  v1.15.0), en er is nog geen beheerscherm voor News-categorieën (zie v1.14.0).
 - ~~Contact verstuurt geen e-mail~~ — **opgelost in v1.10.0** (`Mailer`, raw-socket SMTP + `mail()`-
   fallback). Wel nog geen instelbaar "meldingen naar"-adres via de admin-UI — de mail gaat naar het
   geconfigureerde afzenderadres zelf. SMTP zelf heeft ook nog geen installer-veld; vul `MAIL_HOST`

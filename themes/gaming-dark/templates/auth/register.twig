@@ -1,0 +1,36 @@
+{% extends 'layout.twig' %}
+{% block content %}
+<div style="max-width:480px;margin:3rem auto;">
+  <div class="cf-card">
+    <div class="cf-card-header">✨ Nieuw Account</div>
+    <div class="cf-card-body">
+      {% if errors is defined %}
+        <div class="cf-alert cf-alert-error">{% for e in errors %}<div>{{ e }}</div>{% endfor %}</div>
+      {% endif %}
+      <form method="POST" action="/register">
+        {{ csrf_field()|raw }}
+        <div class="cf-form-group">
+          <label class="cf-label">Gebruikersnaam</label>
+          <input class="cf-input" type="text" name="username" required>
+        </div>
+        <div class="cf-form-group">
+          <label class="cf-label">E-mailadres</label>
+          <input class="cf-input" type="email" name="email" required>
+        </div>
+        <div class="cf-form-group">
+          <label class="cf-label">Wachtwoord</label>
+          <input class="cf-input" type="password" name="password" minlength="8" required>
+        </div>
+        <div class="cf-form-group">
+          <label class="cf-label">Bevestig Wachtwoord</label>
+          <input class="cf-input" type="password" name="password_confirm" required>
+        </div>
+        <button type="submit" class="cf-btn" style="width:100%;justify-content:center;">Account Aanmaken →</button>
+      </form>
+      <p style="text-align:center;margin-top:1rem;font-size:.85rem;color:var(--muted);">
+        Al een account? <a href="/login">Inloggen</a>
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}

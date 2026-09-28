@@ -1,0 +1,7 @@
+{% extends 'layout.twig' %}
+{% block title %}{{ page.title }}{% endblock %}
+{% block content %}
+<div class="cf-page-content cf-page-full">
+  {{ page.content|raw }}
+</div>
+{% endblock %}

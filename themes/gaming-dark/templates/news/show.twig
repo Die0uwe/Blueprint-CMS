@@ -1,0 +1,25 @@
+{% extends 'layout.twig' %}
+{% block title %}{{ article.title }}{% endblock %}
+{% block content %}
+<div class="cf-page-header">
+  <div class="cf-breadcrumb">
+    <a href="/">Home</a> → <a href="/news">Nieuws</a> → {{ article.title }}
+  </div>
+  <h1>{{ article.title }}</h1>
+  <div class="cf-news-meta" style="margin-top:.5rem;">
+    <span>✍️ {{ article.display_name|default(article.username) }}</span>
+    <span>📅 {{ article.published_at|date('d M Y') }}</span>
+    <span>👁️ {{ article.views }}</span>
+  </div>
+</div>
+{% if article.featured_image %}
+  <img src="{{ article.featured_image }}" alt="{{ article.title }}"
+       style="width:100%;border-radius:var(--radius);margin-bottom:1.5rem;max-height:400px;object-fit:cover;">
+{% endif %}
+<div class="cf-article-content">
+  {{ article.content|raw }}
+</div>
+<div style="margin-top:2rem;padding-top:1rem;border-top:1px solid var(--border);">
+  <a href="/news" class="cf-btn cf-btn-ghost">← Terug naar nieuws</a>
+</div>
+{% endblock %}

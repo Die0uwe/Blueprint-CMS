@@ -115,20 +115,43 @@ final class Application
                 $this->container->make(Connection::class),
                 $this->container->make(\CommunityFusion\Core\Auth\RBAC\RBACManager::class),
                 $this->container->make(\CommunityFusion\Core\Auth\JWTManager::class),
+                $this->container->make(\CommunityFusion\Core\Audit\AuditLogger::class),
             );
         });
 
         // Hook systeem
         $this->container->singleton(HookManager::class, fn() => $this->hooks);
 
+        // Audit-log (Wave 5) — vóór AuthManager geregistreerd, want die
+        // heeft 'm nodig voor auth.login/auth.login_failed.
+        $this->container->singleton(\CommunityFusion\Core\Audit\AuditLogger::class, function() {
+            return new \CommunityFusion\Core\Audit\AuditLogger($this->container->make(Connection::class));
+        });
+
         // Cache
         $this->container->singleton(CacheManager::class, function() use ($config) {
             return new CacheManager($config['cache']);
         });
 
-        // Template engine
+        // Template engine — het actieve thema komt normaal uit
+        // config/config.php['app']['theme'] (installer-default 'default'),
+        // maar /admin/themes (Wave 5) moet zonder installer opnieuw te
+        // draaien kunnen wisselen. cf_settings('core','active_theme') is
+        // dus de nieuwe bron van waarheid ZODRA een admin ooit via dat
+        // scherm heeft gewisseld; tot dan valt dit terug op config.php
+        // (en vóór installatie bestaat cf_settings nog niet — vandaar de
+        // try/catch, zelfde patroon als de andere pre-install-gevoelige
+        // stukken hieronder).
         $this->container->singleton(ThemeManager::class, function() use ($config) {
-            return new ThemeManager(CF_ROOT . '/themes', $config['app']['theme'] ?? 'default');
+            $theme = $config['app']['theme'] ?? 'default';
+            try {
+                $settingsRepo = $this->container->make(\CommunityFusion\Modules\Settings\SettingsRepository::class);
+                $dbTheme = $settingsRepo->get('core', 'active_theme');
+                if (is_string($dbTheme) && $dbTheme !== '') {
+                    $theme = $dbTheme;
+                }
+            } catch (\Throwable) {}
+            return new ThemeManager(CF_ROOT . '/themes', $theme);
         });
 
         // Uploads — schrijft altijd buiten webroot naar storage/uploads/

@@ -20,6 +20,7 @@ namespace CommunityFusion\Modules\Forum;
 use CommunityFusion\Core\Request;
 use CommunityFusion\Core\Response;
 use CommunityFusion\Core\Auth\AuthManager;
+use CommunityFusion\Core\Audit\AuditLogger;
 use CommunityFusion\Core\Template\ThemeManager;
 use CommunityFusion\Core\Security\CsrfProtection;
 
@@ -36,6 +37,7 @@ final class ForumController
         private readonly ForumRepository $repo,
         private readonly AuthManager     $auth,
         private readonly ThemeManager    $theme,
+        private readonly AuditLogger     $audit,
     ) {}
 
     /** GET /forum — bordenlijst */
@@ -201,7 +203,9 @@ final class ForumController
         $topic = $this->requireModeratableTopic($request);
         if ($topic instanceof Response) return $topic;
 
-        $this->repo->setPinned((int) $topic['id'], !((bool) $topic['is_pinned']));
+        $newState = !((bool) $topic['is_pinned']);
+        $this->repo->setPinned((int) $topic['id'], $newState);
+        $this->logModAction($newState ? 'forum.topic.pin' : 'forum.topic.unpin', $topic);
 
         return Response::redirect("/forum/{$request->param('board')}/{$topic['slug']}");
     }
@@ -212,7 +216,9 @@ final class ForumController
         $topic = $this->requireModeratableTopic($request);
         if ($topic instanceof Response) return $topic;
 
-        $this->repo->setLocked((int) $topic['id'], !((bool) $topic['is_locked']));
+        $newState = !((bool) $topic['is_locked']);
+        $this->repo->setLocked((int) $topic['id'], $newState);
+        $this->logModAction($newState ? 'forum.topic.lock' : 'forum.topic.unlock', $topic);
 
         return Response::redirect("/forum/{$request->param('board')}/{$topic['slug']}");
     }
@@ -224,8 +230,17 @@ final class ForumController
         if ($topic instanceof Response) return $topic;
 
         $this->repo->deleteTopic((int) $topic['id']);
+        $this->logModAction('forum.topic.delete', $topic);
 
         return Response::redirect("/forum/{$request->param('board')}");
+    }
+
+    private function logModAction(string $action, array $topic): void
+    {
+        $this->audit->log($action, $this->auth->id(), $this->auth->user()['username'] ?? null, [
+            'topic_id' => (int) $topic['id'],
+            'title'    => $topic['title'],
+        ]);
     }
 
     /**

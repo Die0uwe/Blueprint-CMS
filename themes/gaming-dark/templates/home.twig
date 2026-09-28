@@ -1,0 +1,38 @@
+{% extends 'layout.twig' %}
+
+{% block content %}
+<div class="cf-page-header cf-animate">
+  <h1>Welkom bij {{ settings.site_name|default('Blueprint CMS') }}</h1>
+  <p style="color:var(--text-dim);margin-top:.5rem;">Jouw community, jouw regels.</p>
+</div>
+
+{% if latest_news %}
+<section>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+    <h2 style="font-size:1.1rem;font-weight:700;">📰 Laatste Nieuws</h2>
+    <a href="/news" class="cf-btn-sm cf-btn-ghost">Alle artikelen →</a>
+  </div>
+  <div class="cf-news-grid">
+    {% for item in latest_news %}
+    <article class="cf-news-item">
+      {% if item.featured_image %}
+        <img class="cf-news-img" src="{{ item.featured_image }}" alt="{{ item.title }}">
+      {% else %}
+        <div class="cf-news-img" style="display:flex;align-items:center;justify-content:center;font-size:2.5rem;">📰</div>
+      {% endif %}
+      <div class="cf-news-body">
+        <div class="cf-news-cat">Nieuws</div>
+        <h3 class="cf-news-title"><a href="/news/{{ item.slug }}">{{ item.title }}</a></h3>
+        <p class="cf-news-summary">{{ item.summary|default(item.content|striptags|slice(0,120)) }}…</p>
+        <div class="cf-news-meta">
+          <span>✍️ {{ item.display_name|default(item.username) }}</span>
+          <span>👁️ {{ item.views }}</span>
+          <span>{{ item.published_at|date('d M Y') }}</span>
+        </div>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+{% endblock %}

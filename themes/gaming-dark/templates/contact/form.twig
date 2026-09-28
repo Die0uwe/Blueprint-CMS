@@ -1,0 +1,40 @@
+{% extends 'layout.twig' %}
+{% block content %}
+<div class="cf-page-header">
+  <div class="cf-breadcrumb"><a href="/">Home</a> → Contact</div>
+  <h1>✉️ Contact</h1>
+</div>
+
+{% if sent %}
+  <div class="cf-alert cf-alert-success">Bedankt! Je bericht is verzonden — we nemen zo snel mogelijk contact op.</div>
+{% endif %}
+
+<div class="cf-card">
+  <div class="cf-card-body">
+    <form method="post" action="/contact">
+      {{ csrf_field()|raw }}
+      {# Honeypot: voor bots onzichtbaar via CSS, een echte bezoeker vult dit nooit in #}
+      <div style="position:absolute;left:-9999px;" aria-hidden="true">
+        <label>Website<input type="text" name="website" tabindex="-1" autocomplete="off"></label>
+      </div>
+      <div class="cf-form-group">
+        <label class="cf-label" for="name">Naam</label>
+        <input type="text" id="name" name="name" class="cf-input" maxlength="150" value="{{ prefill.name }}" required>
+      </div>
+      <div class="cf-form-group">
+        <label class="cf-label" for="email">E-mailadres</label>
+        <input type="email" id="email" name="email" class="cf-input" maxlength="255" value="{{ prefill.email }}" required>
+      </div>
+      <div class="cf-form-group">
+        <label class="cf-label" for="subject">Onderwerp (optioneel)</label>
+        <input type="text" id="subject" name="subject" class="cf-input" maxlength="255">
+      </div>
+      <div class="cf-form-group">
+        <label class="cf-label" for="message">Bericht</label>
+        <textarea id="message" name="message" class="cf-textarea" required></textarea>
+      </div>
+      <button type="submit" class="cf-btn">Versturen</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

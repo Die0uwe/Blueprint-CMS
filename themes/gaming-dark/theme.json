@@ -1,0 +1,19 @@
+{
+    "slug":        "gaming-dark",
+    "name":        "Gaming Dark",
+    "version":     "1.0.0",
+    "author":      "DieOuwe",
+    "description": "Fel groen/oranje esports-varant van het standaardthema — zelfde templates, eigen kleurenpalet.",
+    "colors": {
+        "bg":       "#0a0e0a",
+        "surface":  "#131a13",
+        "accent":   "#22c55e",
+        "accent2":  "#f97316",
+        "gold":     "#facc15",
+        "text":     "#e8f5e9",
+        "muted":    "#5f7a63",
+        "success":  "#22c55e",
+        "error":    "#ef4444"
+    },
+    "supports": ["dark_mode", "responsive", "mobile_first"]
+}

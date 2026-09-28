@@ -1,0 +1,35 @@
+{% extends 'layout.twig' %}
+{% block content %}
+<div class="cf-page-header">
+  <div class="cf-breadcrumb"><a href="/">Home</a> → <a href="/admin">Admin</a> → Contact</div>
+  <h1>✉️ Contact-inbox {% if unread > 0 %}<span class="cf-badge cf-badge-gold">{{ unread }} ongelezen</span>{% endif %}</h1>
+</div>
+
+<div class="cf-forum-topics">
+  {% for message in messages %}
+  <div class="cf-card" style="margin-bottom:.5rem;">
+    <div class="cf-card-body" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+      <div style="flex:1;min-width:220px;">
+        <h3 style="font-size:1rem;margin-bottom:.2rem;">
+          {% if not message.is_read %}<span class="cf-badge cf-badge-gold">Nieuw</span>{% endif %}
+          <a href="/admin/contact/{{ message.id }}">{{ message.subject|default('(geen onderwerp)') }}</a>
+        </h3>
+        <div style="color:var(--muted);font-size:.8rem;">
+          {{ message.name }} &lt;{{ message.email }}&gt; · {{ message.created_at|date('d M Y H:i') }}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <p style="color:var(--muted);">Geen berichten.</p>
+  {% endfor %}
+</div>
+
+{% if pagination.total > 1 %}
+<div style="display:flex;gap:.5rem;justify-content:center;margin-top:1.5rem;">
+  {% for p in 1..pagination.total %}
+    <a href="/admin/contact?page={{ p }}" class="cf-btn-sm {{ p == pagination.current ? '' : 'cf-btn-ghost' }}">{{ p }}</a>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}
