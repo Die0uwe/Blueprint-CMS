@@ -60,11 +60,54 @@ final class InstallerCore
         return 'base64:' . base64_encode(random_bytes(32));
     }
 
+    /**
+     * Lees één waarde uit .env zonder Dotenv/Composer — de installer laadt
+     * bewust geen framework-klassen (zie de rest van dit bestand), maar
+     * KEY=VALUE-regels parsen is triviaal en dependency-vrij. Gebruikt om
+     * MAIL_HOST e.a. over te nemen als iemand vóór installatie al een echt
+     * .env-bestand met SMTP-gegevens heeft klaargezet (zie .env.example).
+     * Geeft '' terug als .env ontbreekt of de key niet gezet is.
+     */
+    private static function readEnvValue(string $key): string
+    {
+        static $cache = null;
+        if ($cache === null) {
+            $cache = [];
+            $path  = dirname(__DIR__) . '/.env';
+            if (is_file($path)) {
+                foreach (file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [] as $line) {
+                    $line = trim($line);
+                    if ($line === '' || $line[0] === '#' || !str_contains($line, '=')) continue;
+                    [$k, $v] = array_map('trim', explode('=', $line, 2));
+                    $cache[$k] = trim($v, "\"'");
+                }
+            }
+        }
+        return $cache[$key] ?? '';
+    }
+
     /** Schrijf de uiteindelijke config/config.php */
     public static function writeConfig(array $data): void
     {
         $key       = self::generateAppKey();
         $jwtSecret = self::generateAppKey();
+
+        // SMTP is (nog) geen installer-UI-veld (zie Step3) — wordt overgenomen
+        // uit .env als dat vóór installatie al is ingevuld, anders blijft
+        // driver 'mail' (PHP's ingebouwde mail()), precies zoals voorheen.
+        $mailHost = self::readEnvValue('MAIL_HOST');
+        $mailDriver     = $mailHost !== '' ? 'smtp' : 'mail';
+        $mailPort       = self::readEnvValue('MAIL_PORT') ?: '587';
+        $mailUser       = self::readEnvValue('MAIL_USER');
+        $mailPass       = self::readEnvValue('MAIL_PASS');
+        $mailEncryption = self::readEnvValue('MAIL_ENCRYPTION') ?: 'tls';
+        $mailDriverPhp     = var_export($mailDriver, true);
+        $mailHostPhp       = var_export($mailHost, true);
+        $mailPortPhp       = var_export((int) $mailPort, true);
+        $mailUserPhp       = var_export($mailUser, true);
+        $mailPassPhp       = var_export($mailPass, true);
+        $mailEncryptionPhp = var_export($mailEncryption, true);
+
         $config = <<<PHP
 <?php
 // ============================================================================
@@ -117,8 +160,13 @@ return [
         'samesite' => 'Strict',
     ],
     'mail' => [
-        'driver' => 'mail',
-        'from'   => ['address' => {$data['mail_php']}, 'name' => {$data['site_name_php']}],
+        'driver'     => {$mailDriverPhp},
+        'host'       => {$mailHostPhp},
+        'port'       => {$mailPortPhp},
+        'username'   => {$mailUserPhp},
+        'password'   => {$mailPassPhp},
+        'encryption' => {$mailEncryptionPhp},
+        'from'       => ['address' => {$data['mail_php']}, 'name' => {$data['site_name_php']}],
     ],
     'oauth' => [
         'discord' => ['client_id' => '', 'client_secret' => '', 'redirect_uri' => ''],

@@ -231,12 +231,36 @@ img { max-width: 100%; }
 .cf-badge-purple { background: rgba(108,61,244,.2); color: var(--accent2); }
 .cf-badge-gold   { background: rgba(245,158,11,.15); color: var(--gold); }
 .cf-badge-green  { background: rgba(16,185,129,.15); color: var(--success); }
+.cf-badge-gray   { background: rgba(255,255,255,.08); color: var(--muted); }
+.cf-badge-red    { background: rgba(239,68,68,.15); color: #fca5a5; }
 
 /* ── Alerts ─────────────────────────────────────────────────────────────── */
 .cf-alert { padding: .9rem 1.1rem; border-radius: 8px; margin-bottom: 1rem; font-size: .875rem; }
 .cf-alert-error   { background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.3); color: #fca5a5; }
 .cf-alert-success { background: rgba(16,185,129,.1); border: 1px solid rgba(16,185,129,.3); color: #6ee7b7; }
 .cf-alert-warning { background: rgba(245,158,11,.1); border: 1px solid rgba(245,158,11,.3); color: #fcd34d; }
+
+/* ── Admin data-tabellen (Wave 2 — News/Pages/etc. admin-overzichten) ─────── */
+.cf-table { width: 100%; border-collapse: collapse; font-size: .875rem; }
+.cf-table th {
+  text-align: left; padding: .7rem 1rem; font-size: .72rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .06em; color: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+.cf-table td { padding: .8rem 1rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.cf-table tbody tr:hover { background: rgba(255,255,255,.02); }
+.cf-table tbody tr:last-child td { border-bottom: none; }
+.cf-table-actions { display: flex; gap: .5rem; justify-content: flex-end; white-space: nowrap; }
+.cf-table-empty { padding: 2.5rem 1rem; text-align: center; color: var(--muted); }
+
+/* ── Admin toolbar & paginatie (Wave 2) ────────────────────────────────── */
+.cf-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.2rem; gap: 1rem; }
+.cf-pagination { display: flex; gap: .4rem; margin-top: 1.2rem; }
+.cf-pagination a, .cf-pagination span {
+  padding: .4rem .75rem; border-radius: 6px; font-size: .8rem;
+  border: 1px solid var(--border); color: var(--text-dim);
+}
+.cf-pagination .active { background: rgba(108,61,244,.2); color: var(--accent2); border-color: transparent; }
 
 /* ── Footer ─────────────────────────────────────────────────────────────── */
 #cf-footer {

@@ -364,25 +364,36 @@ INSERT IGNORE INTO `cf_categories` (`type`, `slug`, `name`, `description`, `posi
 -- toegekend. Elke auth()->can(...)-check in de codebase was dus dood.
 -- ============================================================
 INSERT IGNORE INTO `cf_permissions` (`name`, `group`, `description`) VALUES
-('*',              'system',   'Alle rechten (super admin wildcard)'),
-('users.manage',   'users',    'Gebruikers aanmaken, bewerken, bannen'),
-('news.create',    'news',     'Nieuwsartikelen aanmaken en bewerken'),
-('pages.manage',   'pages',    'Pagina\'s aanmaken en bewerken'),
-('modules.manage', 'system',   'Modules in-/uitschakelen'),
-('blocks.manage',  'system',   'Blokken-layout beheren'),
-('settings.edit',  'system',   'Site-instellingen bewerken'),
-('discord.admin',  'discord',  'Discord-module configureren'),
-('discord.sync',   'discord',  'Discord rollen-synchronisatie uitvoeren'),
-('forum.post',     'forum',    'Nieuwe forumtopics en reacties plaatsen'),
-('forum.moderate', 'forum',    'Topics/posts pinnen, sluiten of verwijderen');
+('*',                  'system',      'Alle rechten (super admin wildcard)'),
+('admin.access',       'system',      'Basistoegang tot het /admin-paneel'),
+('users.manage',       'users',       'Gebruikers aanmaken, bewerken, bannen'),
+('users.view',         'users',       'Gebruikerslijst inzien via de API'),
+('news.create',        'news',        'Nieuwsartikelen aanmaken en bewerken'),
+('pages.manage',       'pages',       'Pagina\'s aanmaken en bewerken'),
+('modules.manage',     'system',      'Modules in-/uitschakelen'),
+('blocks.manage',      'system',      'Blokken-layout beheren'),
+('settings.edit',      'system',      'Site-instellingen bewerken'),
+('marketplace.view',   'marketplace', 'Marketplace-catalogus en installed-lijst inzien'),
+('marketplace.install','marketplace', 'Modules/thema\'s installeren, bijwerken, verwijderen'),
+('discord.admin',      'discord',     'Discord-module configureren'),
+('discord.sync',       'discord',     'Discord rollen-synchronisatie uitvoeren'),
+('forum.post',         'forum',       'Nieuwe forumtopics en reacties plaatsen'),
+('forum.moderate',     'forum',       'Topics/posts pinnen, sluiten of verwijderen');
 
+-- Wave 2: marketplace.view/marketplace.install en users.view werden al
+-- sinds respectievelijk Sprint 7 en Sprint 6 aangeroepen door
+-- MarketplaceController::authorize() en UsersController::index() — maar
+-- stonden, net als de rest hierboven, nooit in cf_permissions. Voor
+-- MarketplaceController betekende dit dat zelfs de 'admin'-rol nooit bij
+-- /admin/marketplace kon (alleen super_admin, via de '*'-wildcard).
 INSERT IGNORE INTO `cf_role_permissions` (`role_id`, `permission_id`)
 SELECT r.id, p.id FROM `cf_roles` r, `cf_permissions` p
 WHERE (r.name = 'super_admin' AND p.name = '*')
    OR (r.name = 'admin' AND p.name IN (
-        'users.manage','news.create','pages.manage','modules.manage',
-        'blocks.manage','settings.edit','discord.admin','discord.sync',
-        'forum.post','forum.moderate'
+        'admin.access','users.manage','users.view','news.create','pages.manage',
+        'modules.manage','blocks.manage','settings.edit',
+        'marketplace.view','marketplace.install',
+        'discord.admin','discord.sync','forum.post','forum.moderate'
    ))
    OR (r.name = 'moderator' AND p.name IN ('forum.moderate'))
    OR (r.name = 'member' AND p.name IN ('forum.post'));

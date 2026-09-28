@@ -128,12 +128,12 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 | Module | Sinds | Highlights |
 |---|---|---|
 | Users | v1.0.0 | Login/registratie, profiel + avatar-upload, Discord/Twitch OAuth (ook voor nieuwe bezoekers) |
-| News | v1.0.0 | Artikelen, categorieën (lezen; admin-CRUD ontbreekt nog, zie Bekende beperkingen) |
-| Pages | v1.0.0 | Statische CMS-pagina's + menu |
+| News | v1.10.0 | Artikelen, categorieën, volledige admin-CRUD (`/admin/news`) |
+| Pages | v1.10.0 | Statische CMS-pagina's + menu, volledige admin-CRUD (`/admin/pages`) |
 | Forum | v1.9.0 | Borden (gedeelde `cf_categories`), topics, reacties, `forum.post`/`forum.moderate` RBAC |
 | Blog | v1.9.0 | Eén blog per lid (`/blog/{username}/{slug}`), draft/published, `blog.moderate` voor moderatie |
 | Downloads | v1.9.0 | Bestandsbeheer via `UploadManager::forDownloads()` (zip/pdf/rar/7z/gz), `downloads.manage` |
-| Contact | v1.9.0 | Publiek formulier + CSRF + honeypot, admin-inbox — **verstuurt geen e-mail** (geen Mailer-klasse) |
+| Contact | v1.10.0 | Publiek formulier + CSRF + honeypot, admin-inbox, verstuurt meldingsmail via `Mailer` |
 
 ---
 
@@ -174,21 +174,25 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 
 ---
 
-## ⚠️ Bekende beperkingen (stand v1.9.0)
+## ⚠️ Bekende beperkingen (stand v1.10.0)
 
-Eerlijk overzicht van wat deze Wave 1-doorloop wél en niet heeft opgelost — zie
+Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben opgelost — zie
 `docs/wave-0-gap-analysis.md` en `CHANGELOG.md` voor de volledige context per punt.
 
-- **`/admin`-routes zijn niet permissie-gated.** `AuthMiddleware` controleert alleen "is
-  ingelogd", niet welke rol of permissie. Ondanks dat RBAC nu wél echt geseed is (zie
-  CHANGELOG), roept geen enkele admin-controller `auth()->authorize(...)` aan — elk ingelogd
-  lid kan vandaag bij `/admin`, `/admin/blocks`, `/admin/marketplace`, enz.
-- **De admin-sidebar bevat nog dode links.** `/admin/news`, `/admin/pages`, `/admin/media`,
-  `/admin/users`, `/admin/roles`, `/admin/themes`, `/admin/menus`, `/admin/modules`,
-  `/admin/logs` staan in `dashboard.php` maar hebben geen route/controller. News en Pages
-  hebben zelfs géén admin-CRUD UI, ondanks dat `NewsRepository::create()` al bestaat.
-- **Contact verstuurt geen e-mail.** Er is geen `Mailer`-klasse in de codebase, ondanks een
-  volledige SMTP-configuratiesectie in `config/config.php`. Berichten worden alleen opgeslagen.
+- ~~`/admin`-routes zijn niet permissie-gated~~ — **opgelost in v1.10.0.** Zie CHANGELOG:
+  `PermissionMiddleware` + `admin.access`/`settings.edit`/`blocks.manage`/`marketplace.*`.
+- ~~De admin-sidebar bevat dode links~~ — **opgelost in v1.10.0.** `/admin/news` en
+  `/admin/pages` hebben nu volledige admin-CRUD (overzicht, aanmaken, bewerken, soft-delete).
+  `/admin/modules` redirect naar het al bestaande `/admin/marketplace`. De overige zes
+  (`/admin/media`, `/admin/users`, `/admin/roles`, `/admin/themes`, `/admin/menus`,
+  `/admin/logs`) geven nu een eerlijk "nog niet gebouwd"-scherm i.p.v. een kale 404 — de
+  schermen zelf bestaan dus nog niet, alleen de dode link is verholpen. Zie CHANGELOG v1.10.0
+  voor wat er per scherm al wél werkt (bv. uploads/RBAC/logging zelf draaien allemaal al,
+  alleen de admin-UI ervoor ontbreekt nog).
+- ~~Contact verstuurt geen e-mail~~ — **opgelost in v1.10.0** (`Mailer`, raw-socket SMTP + `mail()`-
+  fallback). Wel nog geen instelbaar "meldingen naar"-adres via de admin-UI — de mail gaat naar het
+  geconfigureerde afzenderadres zelf. SMTP zelf heeft ook nog geen installer-veld; vul `MAIL_HOST`
+  e.a. in `.env` in vóór je de installer draait (zie `.env.example`).
 - **`migrate`/`module:install` CLI-commando's ontbreken.** Stonden al sinds v1.0.0 in de
   help-tekst; sinds v1.9.0 geeft `console.php` een duidelijke melding i.p.v. een fatal error.
 - **Module-specifieke extra tabellen** (bv. `cf_discord_role_mapping`) worden niet direct

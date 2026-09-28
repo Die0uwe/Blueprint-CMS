@@ -128,6 +128,28 @@ final class Application
             );
         });
 
+        // Mailer — config/config.php['mail'] bestond al sinds Sprint 1 (installer
+        // schrijft er 'driver'+'from' in), maar er was geen enkele klasse die
+        // hem daadwerkelijk gebruikte. 'driver' => 'smtp' + host/port/etc. is
+        // (nog) geen installer-UI-veld — die haal je uit .env (MAIL_HOST e.a.,
+        // zie .env.example), zodat je zonder installer-wijziging toch SMTP kan
+        // inschakelen. Bij 'driver' => 'mail' (de installer-default) blijft
+        // host altijd leeg, ongeacht wat er in .env staat, zodat Mailer bewust
+        // op PHP's ingebouwde mail() terugvalt — zie Mailer::send().
+        $this->container->singleton(\CommunityFusion\Core\Mail\Mailer::class, function() use ($config) {
+            $mail   = $config['mail'] ?? [];
+            $driver = $mail['driver'] ?? 'mail';
+            return new \CommunityFusion\Core\Mail\Mailer(
+                host:        $driver === 'smtp' ? (string) ($mail['host'] ?? ($_ENV['MAIL_HOST'] ?? '')) : '',
+                port:        (int) ($mail['port'] ?? ($_ENV['MAIL_PORT'] ?? 587)),
+                username:    (string) ($mail['username'] ?? ($_ENV['MAIL_USER'] ?? '')),
+                password:    (string) ($mail['password'] ?? ($_ENV['MAIL_PASS'] ?? '')),
+                fromAddress: (string) ($mail['from']['address'] ?? ($_ENV['MAIL_FROM'] ?? 'noreply@localhost')),
+                fromName:    (string) ($mail['from']['name'] ?? ($_ENV['MAIL_FROM_NAME'] ?? '')),
+                encryption:  (string) ($mail['encryption'] ?? ($_ENV['MAIL_ENCRYPTION'] ?? 'tls')),
+            );
+        });
+
         // Block Registry
         $this->container->singleton(\CommunityFusion\Core\Block\BlockRegistry::class, function() {
             return new \CommunityFusion\Core\Block\BlockRegistry(

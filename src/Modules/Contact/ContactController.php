@@ -22,6 +22,7 @@ use CommunityFusion\Core\Response;
 use CommunityFusion\Core\Auth\AuthManager;
 use CommunityFusion\Core\Template\ThemeManager;
 use CommunityFusion\Core\Security\CsrfProtection;
+use CommunityFusion\Core\Mail\Mailer;
 
 /**
  * ContactController
@@ -36,6 +37,7 @@ final class ContactController
         private readonly ContactRepository $repo,
         private readonly AuthManager       $auth,
         private readonly ThemeManager      $theme,
+        private readonly Mailer            $mailer,
     ) {}
 
     /** GET /contact */
@@ -83,7 +85,40 @@ final class ContactController
             ip:      $request->ip(),
         );
 
+        $this->notifyAdmin($name, $email, $subject, $message);
+
         return Response::redirect('/contact?verzonden=1');
+    }
+
+    /**
+     * Wave 1 bouwde dit formulier zonder Mailer (die bestond nog niet) —
+     * berichten werden alleen opgeslagen, nooit gemaild. Er is (nog) geen
+     * apart "meldingen naar"-adres in te stellen via de admin-UI (settings.php
+     * is een statische pagina, geen key/value-editor), dus het bericht gaat
+     * naar het geconfigureerde afzenderadres zelf — in de praktijk vaak
+     * dezelfde inbox bij een kleine community. Een mislukte mail (geen SMTP
+     * bereikbaar, verkeerd wachtwoord, …) mag een bezoeker nooit een 500
+     * opleveren: het bericht staat al veilig in de database/inbox, dus dit
+     * is best-effort en faalt stil (Mailer logt zelf via error_log()).
+     */
+    private function notifyAdmin(string $name, string $email, string $subject, string $message): void
+    {
+        $to = $this->mailer->getFromAddress();
+        if ($to === '' || $to === 'noreply@localhost') {
+            return; // geen zinnig adres geconfigureerd — niets te versturen
+        }
+
+        $this->mailer->send(
+            to: $to,
+            subject: '[Contact] ' . ($subject !== '' ? $subject : 'Nieuw bericht van ' . $name),
+            textBody: "Nieuw contactformulier-bericht:\n\n"
+                . "Naam: {$name}\n"
+                . "E-mail: {$email}\n"
+                . "Onderwerp: " . ($subject !== '' ? $subject : '(geen)') . "\n\n"
+                . "Bericht:\n{$message}\n\n"
+                . "— Beheer dit bericht via /admin/contact",
+            replyTo: $email,
+        );
     }
 
     /** GET /admin/contact */

@@ -139,7 +139,12 @@ final class AuthManager
     public function authorize(string $permission): void
     {
         if (!$this->can($permission)) {
-            throw new \RuntimeException("Toegang geweigerd: '{$permission}' vereist.", 403);
+            // Was \RuntimeException(..., 403) — but Application::handleException()
+            // only recognizes CommunityFusion\Core\HttpException for its status
+            // code, a class that never actually existed in this codebase (see
+            // HttpException.php). Every authorize() rejection was silently
+            // rendered as a generic 500, never the intended 403.
+            throw new \CommunityFusion\Core\HttpException("Toegang geweigerd: '{$permission}' vereist.", 403);
         }
     }
 

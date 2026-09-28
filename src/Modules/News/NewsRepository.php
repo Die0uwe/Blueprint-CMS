@@ -74,6 +74,85 @@ final class NewsRepository
         );
         return (int) ($row['count'] ?? 0);
     }
+
+    // ── Admin CRUD (Wave 2 — /admin/news bestond niet, dashboard.php linkte
+    //    er wel al sinds Sprint 2 naartoe) ──────────────────────────────────
+
+    /** Alle niet-verwijderde artikelen, ook drafts/archived — voor het admin-overzicht. */
+    public function getAll(int $limit = 20, int $offset = 0): array
+    {
+        return $this->db->fetchAll(
+            "SELECT n.*, u.username, u.display_name
+             FROM cf_news n
+             JOIN cf_users u ON u.id = n.author_id
+             WHERE n.deleted_at IS NULL
+             ORDER BY n.created_at DESC
+             LIMIT ? OFFSET ?",
+            [$limit, $offset]
+        );
+    }
+
+    public function countAll(): int
+    {
+        $row = $this->db->fetchOne("SELECT COUNT(*) as count FROM cf_news WHERE deleted_at IS NULL");
+        return (int) ($row['count'] ?? 0);
+    }
+
+    /** Zoals findBySlug(), maar zonder de 'published'-restrictie — voor bewerken van drafts. */
+    public function findById(int $id): ?array
+    {
+        return $this->db->fetchOne(
+            "SELECT n.*, u.username, u.display_name
+             FROM cf_news n JOIN cf_users u ON u.id = n.author_id
+             WHERE n.id = ? AND n.deleted_at IS NULL",
+            [$id]
+        );
+    }
+
+    public function slugExists(string $slug, ?int $exceptId = null): bool
+    {
+        $sql  = "SELECT id FROM cf_news WHERE slug = ? AND deleted_at IS NULL";
+        $bind = [$slug];
+        if ($exceptId !== null) {
+            $sql   .= " AND id != ?";
+            $bind[] = $exceptId;
+        }
+        return $this->db->fetchOne($sql, $bind) !== null;
+    }
+
+    public function update(int $id, array $data): void
+    {
+        $this->db->update('news', $data, 'id = ?', [$id]);
+        $this->cache->clear();
+    }
+
+    /** Soft delete — consistent met de rest van de content-modules. */
+    public function delete(int $id): void
+    {
+        $this->db->update('news', ['deleted_at' => date('Y-m-d H:i:s')], 'id = ?', [$id]);
+        $this->cache->clear();
+    }
+
+    /** Zelfde patroon als BlogRepository/ForumRepository/DownloadsRepository. */
+    public function uniqueSlug(string $title, ?int $exceptId = null): string
+    {
+        $base = strtolower(trim($title));
+        $base = preg_replace('/[^a-z0-9]+/', '-', $base) ?: 'artikel';
+        $base = trim($base, '-');
+        $base = substr($base, 0, 190) ?: 'artikel';
+
+        $candidate = $base;
+        $attempt   = 0;
+        while ($this->slugExists($candidate, $exceptId)) {
+            $attempt++;
+            $candidate = substr($base, 0, 190 - 6) . '-' . bin2hex(random_bytes(2));
+            if ($attempt > 10) {
+                throw new \RuntimeException('Kon geen unieke nieuws-slug genereren.');
+            }
+        }
+
+        return $candidate;
+    }
 }
 
 // ╔══════════════════════════════════════════════════════════════════════╗

@@ -18,6 +18,188 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ---
 
+## [1.10.0] — 2026-09-28 — Wave 2: /admin permissie-gating + de resterende "Bekende beperkingen"
+
+> Vervolg op Wave 1 (v1.9.0): de expliciet als "niet opgelost" gedisclosede punten uit README's
+> "Bekende beperkingen" worden hier één voor één afgehandeld, te beginnen met de belangrijkste:
+> `/admin` was login-gated maar niet rol-gated.
+
+### Toegevoegd
+
+**Permissie-gating voor /admin (was: alleen login-check)**
+- `src/Core/HttpException.php` — deze class bestond niet, terwijl
+  `Application::handleException()` er al sinds Sprint 1 naar verwees
+  (`$e instanceof HttpException`) en `AuthManager::authorize()` een gewone
+  `\RuntimeException(..., 403)` gooide in de veronderstelling dat zoiets
+  bestond. `instanceof` tegen een niet-bestaande class faalt in PHP niet
+  hard — het evalueert gewoon naar `false` — dus dit crashte nooit, het
+  betekende alleen dat **elke** `authorize()`-afwijzing overal in de
+  codebase (inclusief het al langer bestaande `MarketplaceController`, dat
+  wél consequent `authorize('marketplace.view'/'marketplace.install')`
+  aanriep) als een generieke 500 "Er is een fout opgetreden" naar buiten
+  kwam in plaats van de bedoelde 403. Nu opgelost door de class alsnog te
+  bouwen in de namespace waar hij al werd verwacht.
+- `src/Api/Middleware/PermissionMiddleware.php` — nieuwe middleware die ná
+  `AuthMiddleware` een specifieke permissie afdwingt. `Router::buildPipeline()`
+  ondersteunt nu een `"ClassName:argument"`-syntax in de middleware-array
+  (bv. `PermissionMiddleware:settings.edit`) — het deel na `:` wordt als
+  derde argument aan `handle()` doorgegeven; bestaande 2-parameter
+  middlewares (`AuthMiddleware` e.a.) negeren dat argument gewoon, want PHP
+  staat extra argumenten toe zonder foutmelding (geverifieerd met een losse
+  smoke-test die dit exact simuleert).
+- Alle `/admin`-routes die voorheen alleen `$auth` (ingelogd?) hadden,
+  hebben nu ook een permissie: `/admin` → `admin.access`, `/admin/settings`
+  → `settings.edit`, `/admin/blocks/*` (5 routes) → `blocks.manage`,
+  `/api/v1/blocks/positions` → `blocks.manage` (bleek zelfs helemaal geen
+  interne `->can()`-check te hebben — de route-level check was de enige
+  gate, en die was login-only), `/admin/marketplace/*` → `marketplace.view`
+  / `marketplace.install` als extra, vroege laag bovenop de al bestaande
+  interne `authorize()`-calls in de controller zelf.
+- `cf_permissions`/`cf_role_permissions` (`schema.sql`) uitgebreid met drie
+  permissies die al wél door code werden aangeroepen maar nooit bestonden:
+  `marketplace.view`, `marketplace.install` (`MarketplaceController`, sinds
+  Sprint 7 — zonder deze fix kon zelfs de `admin`-rol nooit bij
+  `/admin/marketplace`, alleen `super_admin` via de `*`-wildcard) en
+  `users.view` (`Api\V1\UsersController::index()`, sinds Sprint 6). Plus een
+  nieuwe `admin.access`-permissie als basistoegang tot de `/admin`-shell.
+  Alle vier toegekend aan de `admin`-rol.
+- `/admin/contact` (Wave 1) had dit patroon al goed: een interne
+  `requireManager()`-guard met een echte `Response::html(..., 403)` in
+  plaats van een exception. Die is ongewijzigd gelaten.
+
+**Mailer — Contact verstuurt nu écht e-mail (was: alleen opslaan)**
+- `src/Core/Mail/Mailer.php` — nieuwe, dependency-vrije SMTP-client via raw
+  sockets: platte verbinding, STARTTLS (587) en implicit TLS (465, `ssl://`),
+  AUTH LOGIN, RFC 2047 encoded-words voor niet-ASCII onderwerpen/namen, RFC
+  5321 dot-stuffing, en een `mail()`-fallback wanneer geen host is
+  geconfigureerd. Geen nieuwe Composer-dependency (PHPMailer e.d.) nodig —
+  packagist is in deze sandbox onbereikbaar, dus `composer require` was
+  sowieso geen optie, en de use-case (één plain-text notificatiemail per
+  contactbericht) rechtvaardigt geen library.
+  **Echt getest**, niet alleen ge-lint: een lokale Python `smtpd`
+  debug-server ontving de volledige SMTP-conversatie correct (EHLO, MAIL
+  FROM, RCPT TO, DATA), en het ontvangen bericht klopte byte-voor-byte
+  terug — inclusief een RFC 2047-gecodeerd onderwerp met é/ë/€ dat correct
+  terug-decodeerde, en een berichtregel die met een punt begint (dot-stuffing
+  round-trip geverifieerd). Verbindingsfouten (onbereikbare host, ongeldig
+  e-mailadres) falen netjes naar `false` i.p.v. te crashen.
+- `config/config.php`'s `'mail'`-sectie (door de installer gegenereerd)
+  bevatte al sinds Sprint 1 alleen `driver` + `from` — geen `host`/`port`/
+  `username`/`password` velden, dus zelfs met een Mailer-klasse was er geen
+  weg om SMTP daadwerkelijk te configureren. De installer laadt bewust geen
+  Dotenv/Composer (zie eerdere Wave 1-fix in `InstallerCore.php`), dus
+  `InstallerCore::readEnvValue()` is een kleine, dependency-vrije KEY=VALUE
+  `.env`-parser: als `MAIL_HOST` vóór installatie al in een echt `.env`
+  staat, schrijft de installer `driver: 'smtp'` + de volledige SMTP-config
+  weg; anders blijft `driver: 'mail'` (ongewijzigd gedrag). Alle waarden
+  gaan door `var_export()` de gegenereerde PHP-bron in — geverifieerd met
+  een wachtwoord dat zowel `"` als `'` bevat, dat correct en veilig ge-escaped
+  terugkwam.
+- `Application::boot()` registreert `Mailer` als singleton, met dezelfde
+  `config/config.php` → `$_ENV`-fallback-volgorde als de rest van de
+  bootstrap. Bij `driver: 'mail'` blijft `host` altijd leeg, ongeacht wat er
+  toevallig in `.env` staat, zodat de `mail()`-fallback bewust gekozen kan
+  worden.
+- `ContactController::store()` verstuurt nu een meldingsmail bij elk nieuw
+  bericht (best-effort — een mislukte mail geeft nooit een 500, het bericht
+  staat al veilig in de database/inbox). Er is nog geen apart "meldingen
+  naar"-adres in te stellen via de admin-UI (`settings.php` is een statische
+  pagina, geen key/value-editor — zie Task voor admin-CRUD hieronder), dus
+  het bericht gaat vooralsnog naar het geconfigureerde afzenderadres zelf.
+- `.env.example` — `MAIL_HOST` was een ingevulde placeholder
+  (`smtp.example.com`); nu bewust leeg, zodat een kale `.env`-kopie niet
+  stilzwijgend "smtp" kiest en probeert te verbinden met een hostnaam die
+  niet bestaat. `MAIL_ENCRYPTION` toegevoegd; het ongebruikte `MAIL_DRIVER`
+  verwijderd (driver wordt nu afgeleid van of `MAIL_HOST` gezet is).
+
+**Nieuws + Pagina's admin-CRUD (was: dode links in de sidebar sinds Sprint 2)**
+- `dashboard.php` linkt al sinds Sprint 2 naar `/admin/news` en `/admin/pages`
+  — geen van beide had een route, controller-methode of view. Elke klik gaf
+  een kale 404 zonder verklaring. Nu volledig gebouwd volgens hetzelfde
+  patroon als `BlockController` (raw PHP-views via `ob_start()`+`include`,
+  geen Twig in `/admin/*`): overzicht met paginatie, aanmaken, bewerken,
+  soft-delete.
+- `NewsRepository`/`PageRepository` — admin-methoden toegevoegd (`getAll()`,
+  `countAll()`, `findById()` zonder de publieke `status='published'`-restrictie,
+  `slugExists()`, `update()`, `delete()` als soft delete, `uniqueSlug()` met
+  een collision-retry-loop — zelfde patroon als `BlogRepository::uniqueSlug()`).
+- `NewsController`/`PageController` — admin-methoden (`adminIndex`,
+  `createForm`, `store`, `editForm`, `update`, `delete`) plus een gedeelde
+  private `fromRequest()` voor validatie/normalisatie. Een slug wordt alleen
+  bij aanmaken gegenereerd en blijft daarna stabiel (bestaande permalinks/SEO
+  blijven werken bij een latere bewerking). `published_at` van een
+  nieuwsartikel wordt alleen gezet bij de **eerste** keer publiceren (via een
+  hidden `_current_published_at`-veld in het bewerk-formulier), niet bij elke
+  volgende opslag — anders zou de publicatiedatum bij iedere bewerking
+  "nu" worden.
+- Nieuwe route-groepen in `Router.php`: `/admin/news*` (6 routes,
+  `news.create`) en `/admin/pages*` (6 routes, `pages.manage`) — beide
+  permissies bestonden al in `schema.sql` maar werden nog nergens
+  aangeroepen. Letterlijke `/create`-routes staan vóór de generieke
+  `{id}`-routes, zelfde volgorde-conventie als de bestaande Blog-routes.
+- `src/Modules/Shared/views/admin_sidebar.php` + `admin_styles.php` —
+  nieuwe gedeelde partials. `dashboard.php` en `Blocks/views/index.php`
+  herhaalden de sidebar/topbar-CSS allebei handmatig; vanaf nu gebruiken
+  **nieuwe** `/admin/*`-schermen (News, Pages, de placeholders hieronder)
+  één partial in plaats van een derde/vierde kopie. De twee bestaande
+  bestanden zijn bewust niet aangepast (kleinere diff); ze op de partial
+  overzetten is een goede vervolgstap maar viel buiten deze wave.
+- `public/assets/css/blueprint.css` — `.cf-table`, `.cf-table-actions`,
+  `.cf-table-empty`, `.cf-toolbar`, `.cf-pagination`, `.cf-badge-gray` en
+  `.cf-badge-red` toegevoegd. Er bestond nog geen tabel-stijl voor
+  admin-overzichten (`BlockController`'s scherm is een drag&drop-builder,
+  geen lijst).
+
+**De overige dode admin-sidebar-links (Media, Gebruikers, Rollen, Thema's, Menu's, Logs, Modules)**
+- Ook deze zes linkten al sinds Sprint 2 naar niets. Zes volledige
+  CRUD-schermen bouwen viel buiten wat deze wave aankon zonder kwaliteit in
+  te leveren — in plaats daarvan krijgt elk scherm nu een eerlijk "dit
+  bestaat nog niet"-scherm (`Settings/views/_placeholder.php` + zes kleine
+  losse bestanden die alleen titel/icoon/toelichting zetten) i.p.v. een kale
+  404 zonder uitleg. Elke toelichting noemt specifiek wat er al wél werkt
+  (bv. Media: uploads + `/media/{path}` werken, alleen de bladerbare
+  bibliotheek ontbreekt nog).
+- `/admin/modules` is een **redirect** naar `/admin/marketplace` geworden
+  (geen placeholder) — module-installatie/-beheer gebeurt daar al sinds
+  Sprint 7, een los "Modules"-scherm zou alleen uit de pas gaan lopen.
+- `AdminController::handle(Request $request)` bestond al sinds Sprint 1
+  (sanitizeert `path` naar `[a-z0-9/-]` en include't `views/{path}.php`) maar
+  was in `Router.php` nooit aan een route gekoppeld — dode code. Nu
+  geregistreerd als catch-all `/admin/{path}`, bewust als **allerlaatste**
+  `/admin/*`-route: de Router matcht op registratievolgorde, niet op
+  specificiteit, dus alles hierboven (incl. Marketplace) moet er vóór staan.
+  Dat bleek in de praktijk niet triviaal: de eerste versie van deze regel
+  stond per ongeluk vóór het Marketplace-blok en zou `/admin/marketplace`
+  hebben gekaapt — gevangen door een losse routing-smoke-test (zie hieronder)
+  vóórdat dit gepusht werd, niet door productiegebruik.
+
+### Getest
+- Alle gewijzigde/nieuwe bestanden: volledige `php -l`-sweep van de repo,
+  schoon.
+- Nieuwe admin-CRUD-logica: een losse smoke-test met een **echte** `PDO`
+  sqlite in-memory-database (via reflection in de anders-final `Connection`
+  geïnjecteerd — de DSN is normaal hardcoded op `mysql:`) en een echte
+  `CacheManager`/`Request`: 27 checks tegen echte SQL (`uniqueSlug()`
+  collision-retry, `fromRequest()`-validatie inclusief de
+  `published_at`-eenmalig-stempel-regel, volledige create→update→delete
+  round-trip voor zowel News als Pages). Geen enkele klasse is voor de test
+  aangepast.
+- Route-volgorde: een losse smoke-test parsete de daadwerkelijke
+  registratievolgorde uit `Router.php` en simuleerde `compilePattern()` +
+  first-match-wins voor 19 paden (elke nieuwe/gewijzigde `/admin/*`-route
+  plus de zes catch-all-paden) — ving de hierboven genoemde
+  Marketplace-regressie vóór de push.
+
+### Gewijzigd
+- README.md "Bekende beperkingen" — het punt "`/admin`-routes zijn
+  login-gated maar niet rol-gated" is verwijderd; het Contact-e-mailpunt is
+  bijgewerkt naar "verstuurt nu wél e-mail, maar zonder instelbaar
+  ontvanger-adres"; het punt over dode `/admin/news`, `/admin/pages` en de
+  overige sidebar-links is verwijderd/bijgewerkt. Zie hieronder voor wat nog
+  resteert.
+
+---
+
 ## [1.9.0] — 2026-09-28 — Wave 0 audit: WP-contaminatie verwijderd, CI, security, ontbrekende core-modules
 
 > Dit is een BigBoss Wave 0 gap-analyse tegen de echte repo (`Die0uwe/bluprint-cms` @ `6108fec3`),

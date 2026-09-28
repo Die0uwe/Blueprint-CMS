@@ -79,10 +79,17 @@ final class Router
     private function buildPipeline(array $middlewareClasses, callable $handler): callable
     {
         $pipeline = $handler;
-        foreach (array_reverse($middlewareClasses) as $class) {
+        foreach (array_reverse($middlewareClasses) as $entry) {
+            // "ClassName:arg" laat een route een parameter doorgeven aan de
+            // middleware, bv. PermissionMiddleware:settings.edit. Container::make()
+            // kent alleen class-namen, dus het deel na de eerste ':' wordt
+            // hier afgesplitst en als extra argument aan handle() gegeven —
+            // bestaande 2-parameter middlewares (AuthMiddleware e.a.) negeren
+            // dat gewoon, PHP staat extra argumenten toe zonder foutmelding.
+            [$class, $arg] = array_pad(explode(':', $entry, 2), 2, '');
             $middleware = $this->container->make($class);
             $next       = $pipeline;
-            $pipeline   = fn(Request $req) => $middleware->handle($req, $next);
+            $pipeline   = fn(Request $req) => $middleware->handle($req, $next, $arg);
         }
         return $pipeline;
     }
@@ -155,15 +162,46 @@ final class Router
         $this->get('/media/{path:[a-zA-Z0-9/_.-]+}', 'CommunityFusion\Modules\Media\MediaController@show');
 
         // ── Admin ────────────────────────────────────────────────────────
-        $this->get('/admin',          'CommunityFusion\Modules\Settings\AdminController@dashboard', $auth);
-        $this->get('/admin/settings', 'CommunityFusion\Modules\Settings\AdminController@settings',  $auth);
+        // Wave 0/1 gap: deze routes hadden alleen $auth (ingelogd?), geen
+        // rol-check — elk lid kon bij /admin. $perm() hangt PermissionMiddleware
+        // ná AuthMiddleware zodat een ongeautoriseerde bezoeker eerst netjes
+        // naar /login gaat, en een ingelogd lid zonder de juiste permissie een
+        // 403 krijgt (zie PermissionMiddleware, HttpException).
+        $perm = fn(string $permission) => [...$auth, "CommunityFusion\\Api\\Middleware\\PermissionMiddleware:{$permission}"];
+
+        $this->get('/admin',          'CommunityFusion\Modules\Settings\AdminController@dashboard', $perm('admin.access'));
+        $this->get('/admin/settings', 'CommunityFusion\Modules\Settings\AdminController@settings',  $perm('settings.edit'));
 
         // Blokken admin
-        $this->get('/admin/blocks',                     'CommunityFusion\Modules\Blocks\BlockController@index',  $auth);
-        $this->get('/admin/blocks/create',              'CommunityFusion\Modules\Blocks\BlockController@create', $auth);
-        $this->post('/admin/blocks/store',              'CommunityFusion\Modules\Blocks\BlockController@store',  $auth);
-        $this->post('/admin/blocks/{id:[0-9]+}/update', 'CommunityFusion\Modules\Blocks\BlockController@update', $auth);
-        $this->post('/admin/blocks/{id:[0-9]+}/delete', 'CommunityFusion\Modules\Blocks\BlockController@delete', $auth);
+        $this->get('/admin/blocks',                     'CommunityFusion\Modules\Blocks\BlockController@index',  $perm('blocks.manage'));
+        $this->get('/admin/blocks/create',              'CommunityFusion\Modules\Blocks\BlockController@create', $perm('blocks.manage'));
+        $this->post('/admin/blocks/store',              'CommunityFusion\Modules\Blocks\BlockController@store',  $perm('blocks.manage'));
+        $this->post('/admin/blocks/{id:[0-9]+}/update', 'CommunityFusion\Modules\Blocks\BlockController@update', $perm('blocks.manage'));
+        $this->post('/admin/blocks/{id:[0-9]+}/delete', 'CommunityFusion\Modules\Blocks\BlockController@delete', $perm('blocks.manage'));
+
+        // ── Nieuws admin (Wave 2 — dashboard.php linkte al sinds Sprint 2
+        //    naar /admin/news, dat bestond niet) — letterlijke /create-route
+        //    vóór de generieke {id}-route, zelfde volgorde-conventie als Blog. ──
+        $this->get('/admin/news',                     'CommunityFusion\Modules\News\NewsController@adminIndex', $perm('news.create'));
+        $this->get('/admin/news/create',               'CommunityFusion\Modules\News\NewsController@createForm', $perm('news.create'));
+        $this->post('/admin/news',                     'CommunityFusion\Modules\News\NewsController@store',      $perm('news.create'));
+        $this->get('/admin/news/{id:[0-9]+}/bewerk',    'CommunityFusion\Modules\News\NewsController@editForm',   $perm('news.create'));
+        $this->post('/admin/news/{id:[0-9]+}/bewerk',   'CommunityFusion\Modules\News\NewsController@update',     $perm('news.create'));
+        $this->post('/admin/news/{id:[0-9]+}/verwijder','CommunityFusion\Modules\News\NewsController@delete',     $perm('news.create'));
+
+        // ── Pagina's admin (Wave 2 — zelfde gap als News hierboven) ─────────
+        $this->get('/admin/pages',                      'CommunityFusion\Modules\Pages\PageController@adminIndex', $perm('pages.manage'));
+        $this->get('/admin/pages/create',                'CommunityFusion\Modules\Pages\PageController@createForm', $perm('pages.manage'));
+        $this->post('/admin/pages',                      'CommunityFusion\Modules\Pages\PageController@store',      $perm('pages.manage'));
+        $this->get('/admin/pages/{id:[0-9]+}/bewerk',     'CommunityFusion\Modules\Pages\PageController@editForm',   $perm('pages.manage'));
+        $this->post('/admin/pages/{id:[0-9]+}/bewerk',    'CommunityFusion\Modules\Pages\PageController@update',     $perm('pages.manage'));
+        $this->post('/admin/pages/{id:[0-9]+}/verwijder', 'CommunityFusion\Modules\Pages\PageController@delete',     $perm('pages.manage'));
+
+        // ── Overige admin-sidebar links (Wave 2) ────────────────────────────
+        // /admin/modules dupliceerde in de praktijk /admin/marketplace (module-
+        // installatie/-beheer gebeurt daar al) — een redirect voorkomt twee
+        // losse "modules"-schermen die uit de pas gaan lopen.
+        $this->get('/admin/modules', fn(Request $r) => Response::redirect('/admin/marketplace'), $perm('admin.access'));
 
         // ── REST API v1 ─────────────────────────────────────────────────
         $this->get('/api/v1/status',               'CommunityFusion\Api\V1\StatusController@index',           $cors);
@@ -175,20 +213,39 @@ final class Router
         $this->get('/api/v1/news/{slug:[a-z0-9-]+}', 'CommunityFusion\Api\V1\ContentController@newsItem',    $cors);
         $this->get('/api/v1/pages',                'CommunityFusion\Api\V1\ContentController@pages',          $cors);
         $this->get('/api/v1/blocks/zones',         'CommunityFusion\Modules\Blocks\BlockController@getZonesApi', $cors);
-        $this->post('/api/v1/blocks/positions',    'CommunityFusion\Modules\Blocks\BlockController@savePositions', $auth);
+        // BlockController zelf heeft geen enkele interne ->can()-check — dit was
+        // de enige gate, en die was login-only. Nu ook permissie-gated.
+        $this->post('/api/v1/blocks/positions',    'CommunityFusion\Modules\Blocks\BlockController@savePositions', $perm('blocks.manage'));
 
 
         // ── Marketplace ────────────────────────────────────────────────────
-        $this->get('/admin/marketplace',                      'CommunityFusion\Modules\Marketplace\MarketplaceController@index',     $auth);
-        $this->get('/admin/marketplace/package/{slug:[a-z0-9-]+}', 'CommunityFusion\Modules\Marketplace\MarketplaceController@detail',  $auth);
-        $this->post('/admin/marketplace/install',             'CommunityFusion\Modules\Marketplace\MarketplaceController@install',   $auth);
-        $this->post('/admin/marketplace/upload',              'CommunityFusion\Modules\Marketplace\MarketplaceController@upload',    $auth);
-        $this->post('/admin/marketplace/uninstall',           'CommunityFusion\Modules\Marketplace\MarketplaceController@uninstall',$auth);
-        $this->post('/admin/marketplace/toggle',              'CommunityFusion\Modules\Marketplace\MarketplaceController@toggle',    $auth);
-        $this->post('/admin/marketplace/update',              'CommunityFusion\Modules\Marketplace\MarketplaceController@update',    $auth);
+        // MarketplaceController zelf roept al authorize('marketplace.view'/
+        // 'marketplace.install') aan — maar die permissies waren nooit geseed
+        // (zie schema.sql) en authorize() gooide tot deze doorloop een
+        // exception die als generieke 500 werd afgehandeld i.p.v. een 403
+        // (zie HttpException.php). Route-level $perm() hier is een tweede,
+        // vroege laag die nu ook echt iets doet.
+        $this->get('/admin/marketplace',                      'CommunityFusion\Modules\Marketplace\MarketplaceController@index',     $perm('marketplace.view'));
+        $this->get('/admin/marketplace/package/{slug:[a-z0-9-]+}', 'CommunityFusion\Modules\Marketplace\MarketplaceController@detail',  $perm('marketplace.view'));
+        $this->post('/admin/marketplace/install',             'CommunityFusion\Modules\Marketplace\MarketplaceController@install',   $perm('marketplace.install'));
+        $this->post('/admin/marketplace/upload',              'CommunityFusion\Modules\Marketplace\MarketplaceController@upload',    $perm('marketplace.install'));
+        $this->post('/admin/marketplace/uninstall',           'CommunityFusion\Modules\Marketplace\MarketplaceController@uninstall', $perm('marketplace.install'));
+        $this->post('/admin/marketplace/toggle',              'CommunityFusion\Modules\Marketplace\MarketplaceController@toggle',    $perm('marketplace.install'));
+        $this->post('/admin/marketplace/update',               'CommunityFusion\Modules\Marketplace\MarketplaceController@update',    $perm('marketplace.install'));
         $this->get('/api/v1/marketplace',                     'CommunityFusion\Modules\Marketplace\MarketplaceController@apiCatalog',  $cors);
-        $this->get('/api/v1/marketplace/installed',           'CommunityFusion\Modules\Marketplace\MarketplaceController@apiInstalled', [...$cors,...$auth]);
+        $this->get('/api/v1/marketplace/installed',           'CommunityFusion\Modules\Marketplace\MarketplaceController@apiInstalled', [...$cors, ...$perm('marketplace.view')]);
         $this->get('/api/v1/marketplace/updates',             'CommunityFusion\Modules\Marketplace\MarketplaceController@apiUpdates',   [...$cors,...$auth]);
+
+        // ── Overige admin-sidebar links, catch-all (Wave 2) ─────────────────
+        // Media/Gebruikers/Rollen/Thema's/Menu's/Logs stonden al sinds Sprint 2
+        // in de sidebar maar hadden geen enkele route (kale 404). AdminController
+        // ::handle() bestond al (zie dat bestand) maar werd nergens geregistreerd
+        // — dit vangt die zes op met een eerlijk "nog niet gebouwd"-scherm i.p.v.
+        // een 404 zonder uitleg. Moet de ALLERLAATSTE /admin/*-route zijn: de
+        // Router matcht routes in registratievolgorde (niet op specificiteit),
+        // dus elke specifiekere /admin/... hierboven (incl. Marketplace) moet
+        // hier vóór staan — anders "wint" deze catch-all en breekt die route.
+        $this->get('/admin/{path:[a-z0-9\/-]+}', 'CommunityFusion\Modules\Settings\AdminController@handle', $perm('admin.access'));
 
         // ── OAuth Callbacks ─────────────────────────────────────────────
         $this->get('/auth/discord/callback', 'CommunityFusion\Modules\Users\OAuthController@discordCallback');
