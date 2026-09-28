@@ -49,9 +49,9 @@ $navItem = static function (string $key, string $href, string $icon, string $lab
     <?php
     $navItem('users', '/admin/users', '👥', 'Gebruikers');
     $navItem('roles', '/admin/roles', '🔑', 'Rollen');
+    $navItem('forum', '/admin/forum/boards', '💬', 'Forumborden');
+    $navItem('contact', '/admin/contact', '✉️', 'Contact');
     ?>
-    <a href="/forum" class="admin-nav-link"><span class="nav-icon">💬</span> Forum</a>
-    <?php $navItem('contact', '/admin/contact', '✉️', 'Contact'); ?>
 
     <div class="admin-nav-section">Uiterlijk</div>
     <?php

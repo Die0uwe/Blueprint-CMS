@@ -204,6 +204,14 @@ final class Router
         $this->get('/admin/users/{id:[0-9]+}/bewerk',     'CommunityFusion\Modules\Users\UserAdminController@editForm', $perm('users.manage'));
         $this->post('/admin/users/{id:[0-9]+}/bewerk',    'CommunityFusion\Modules\Users\UserAdminController@update',   $perm('users.manage'));
 
+        // ── Forumborden (Wave 4 — voorheen alleen via SQL aan te maken) ──
+        $this->get('/admin/forum/boards',                    'CommunityFusion\Modules\Forum\BoardAdminController@index',      $perm('forum.moderate'));
+        $this->get('/admin/forum/boards/nieuw',               'CommunityFusion\Modules\Forum\BoardAdminController@createForm', $perm('forum.moderate'));
+        $this->post('/admin/forum/boards',                    'CommunityFusion\Modules\Forum\BoardAdminController@store',      $perm('forum.moderate'));
+        $this->get('/admin/forum/boards/{id:[0-9]+}/bewerk',   'CommunityFusion\Modules\Forum\BoardAdminController@editForm',   $perm('forum.moderate'));
+        $this->post('/admin/forum/boards/{id:[0-9]+}/bewerk',  'CommunityFusion\Modules\Forum\BoardAdminController@update',     $perm('forum.moderate'));
+        $this->post('/admin/forum/boards/{id:[0-9]+}/verwijder', 'CommunityFusion\Modules\Forum\BoardAdminController@delete',   $perm('forum.moderate'));
+
         // ── Overige admin-sidebar links (Wave 2) ────────────────────────────
         // /admin/modules dupliceerde in de praktijk /admin/marketplace (module-
         // installatie/-beheer gebeurt daar al) — een redirect voorkomt twee

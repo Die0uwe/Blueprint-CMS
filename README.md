@@ -14,7 +14,7 @@ GPL-3.0-or-later
 [![PHP](https://img.shields.io/badge/PHP-8.3%2B-777BB4?style=flat-square&logo=php)](https://php.net)
 [![MariaDB](https://img.shields.io/badge/MariaDB-10.11%2B-003545?style=flat-square&logo=mariadb)](https://mariadb.org)
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.13.0-brightgreen?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-1.14.0-brightgreen?style=flat-square)](CHANGELOG.md)
 [![CI](https://img.shields.io/github/actions/workflow/status/Die0uwe/bluprint-cms/ci.yml?branch=main&style=flat-square&label=CI)](.github/workflows/ci.yml)
 
 *Geïnspireerd door PHP-Fusion · Down Under Fusion · ImpressCMS*
@@ -130,7 +130,7 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 | Users | v1.0.0 | Login/registratie, profiel + avatar-upload, Discord/Twitch OAuth (ook voor nieuwe bezoekers) |
 | News | v1.10.0 | Artikelen, categorieën, volledige admin-CRUD (`/admin/news`) |
 | Pages | v1.10.0 | Statische CMS-pagina's + menu, volledige admin-CRUD (`/admin/pages`) |
-| Forum | v1.9.0 | Borden (gedeelde `cf_categories`), topics, reacties, `forum.post`/`forum.moderate` RBAC |
+| Forum | v1.9.0 | Borden (gedeelde `cf_categories`), topics, reacties, pin/lock/verwijderen, `forum.post`/`forum.moderate` RBAC — **live end-to-end geverifieerd in v1.14.0**, `/admin/forum/boards` voor bordbeheer toegevoegd |
 | Blog | v1.9.0 | Eén blog per lid (`/blog/{username}/{slug}`), draft/published, `blog.moderate` voor moderatie |
 | Downloads | v1.9.0 | Bestandsbeheer via `UploadManager::forDownloads()` (zip/pdf/rar/7z/gz), `downloads.manage` |
 | Contact | v1.10.0 | Publiek formulier + CSRF + honeypot, admin-inbox, verstuurt meldingsmail via `Mailer` |
@@ -175,7 +175,7 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 
 ---
 
-## ⚠️ Bekende beperkingen (stand v1.12.0)
+## ⚠️ Bekende beperkingen (stand v1.14.0)
 
 Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben opgelost — zie
 `docs/wave-0-gap-analysis.md` en `CHANGELOG.md` voor de volledige context per punt.
@@ -202,6 +202,14 @@ Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben o
 > parameters als string, waardoor élke `LIMIT ? OFFSET ?`-query faalde tegen een echte
 > MySQL/MariaDB-server (tien bestanden, van News/Pages tot de REST API) — ontdekt doordat Wave 2
 > voor het eerst tegen een echte, lokaal geïnstalleerde database draaide. Zie CHANGELOG v1.11.0.
+>
+> **v1.14.0: het Forum-core-module (gebouwd in Wave 1, nooit eerder echt getest) is als eerste
+> module deze sessie zonder enige bug door de live end-to-end-verificatie gekomen** — borden,
+> topics, reacties, pin/lock/verwijderen en de `forum.moderate`-permissiegrens werkten allemaal
+> meteen goed. De verificatie legde wél één echt gat bloot: er was geen manier om een tweede
+> forumbord aan te maken zonder rechtstreekse SQL. `/admin/forum/boards` lost dat op, mét
+> bescherming tegen het per ongeluk cascade-verwijderen van topics. Hetzelfde soort gat bestaat
+> trouwens ook voor News-categorieën — niet meegenomen in deze wave. Zie CHANGELOG v1.14.0.
 
 - ~~`/admin`-routes zijn niet permissie-gated~~ — **opgelost in v1.10.0.** Zie CHANGELOG:
   `PermissionMiddleware` + `admin.access`/`settings.edit`/`blocks.manage`/`marketplace.*`.
@@ -210,6 +218,9 @@ Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben o
   admin-CRUD sinds v1.10.0. `/admin/users` is sinds **v1.13.0** een echt, live-geteste
   scherm (lijst + zoeken + rollen toewijzen + activeren/deactiveren + zelf-lockout-
   bescherming — zie CHANGELOG v1.13.0). `/admin/modules` redirect naar `/admin/marketplace`.
+  `/admin/forum/boards` is sinds **v1.14.0** eveneens een echt, live-geteste
+  scherm (aanmaken/hernoemen/herordenen/verwijderen, met bescherming tegen het
+  cascade-verwijderen van topics — zie CHANGELOG v1.14.0).
   **Nog steeds placeholder** ("nog niet gebouwd"-scherm i.p.v. een CRUD-UI):
   `/admin/media`, `/admin/roles`, `/admin/themes`, `/admin/menus`, `/admin/logs`. Zie
   CHANGELOG v1.10.0 voor wat er per scherm al wél achter de schermen werkt.

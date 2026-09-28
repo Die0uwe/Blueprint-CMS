@@ -18,6 +18,70 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ---
 
+## [1.14.0] — 2026-09-29 — Wave 4: Forum live geverifieerd + bordbeheer gebouwd
+
+Aanleiding: de vraag "kunnen we het forum alvast klaarmaken zodat dat erin zit en werkt"
+— het Forum-core-module (gebouwd in Wave 1) was nog nooit echt gebooted of getest.
+
+### Getest (echte HTTP-boot + database, zelfde methode als v1.12.0/v1.13.0)
+
+Het bestaande Forum-module (`ForumController`, `ForumRepository`, 4 Twig-templates) bleek
+bij code-review al goed opgezet — en is als **eerste module deze sessie zonder enige bug**
+door de live-verificatie gekomen:
+
+- `GET /forum` (anoniem) → 200, toont bord "Algemeen".
+- `GET /forum/algemeen` leeg → 200, "Nog geen topics".
+- Ingelogd als BigBoss: topic aanmaken via `/forum/algemeen/nieuw` → 302, correcte
+  auto-slug (`welkom-op-het-nieuwe-forum`).
+- Tweede, echte gebruiker "TestMember" (via `/register`) plaatst een reactie → zichtbaar na
+  herladen, `cf_forum_topics.reply_count` correct 0 → 1 (database-check).
+- **Moderatie-permissiegrens**: TestMember (rol `member`, geen `forum.moderate`) krijgt
+  **403** op pin/lock/verwijderen; BigBoss (super_admin, wildcard-permissie) kan alle drie
+  — elk geverifieerd via zowel de HTTP-response als een directe databasecheck
+  (`is_pinned`, `is_locked`, `deleted_at`).
+- Gesloten topic toont "Dit topic is gesloten" en het reactieformulier verdwijnt.
+- Verwijderd topic (soft delete) verdwijnt direct uit de publieke bordlijst.
+
+### Added
+
+- **`/admin/forum/boards` — Bordbeheer**, het enige echte gat dat de Forum-verificatie
+  blootlegde: er was geen manier om een tweede forumbord aan te maken behalve met
+  rechtstreekse SQL (`schema.sql` seedt alleen "Algemeen").
+  - `ForumRepository`: `getAllBoardsForAdmin()`, `findBoardById()`, `boardSlugTaken()`,
+    `createBoard()`, `updateBoard()`, `deleteBoard()`.
+  - `BoardAdminController` (`src/Modules/Forum/BoardAdminController.php`): lijst,
+    aanmaken, bewerken (naam/slug/omschrijving/positie), verwijderen. Permissie:
+    `forum.moderate`.
+  - **Cascade-bescherming**: `cf_forum_topics.board_id` heeft `ON DELETE CASCADE` naar
+    `cf_categories` — zonder ingreep zou een bord verwijderen stilzwijgend alle topics
+    én reacties erin meenemen. `deleteBoard()` wordt daarom alleen aangeroepen nadat
+    `countTopics($id) === 0` is geverifieerd; anders krijgt de admin een duidelijke
+    foutmelding ("bevat nog topics — verplaats of verwijder die eerst") i.p.v. dataverlies.
+  - Sidebar-link "Forum" (ging voorheen naar de publieke `/forum`) gewijzigd naar dit
+    nieuwe beheerscherm; de publieke forumlink blijft bereikbaar via "Bekijk site".
+
+### Getest (bordbeheer, zelfde live-methode)
+
+- TestMember krijgt 403 op `GET /admin/forum/boards` (geen `forum.moderate`).
+- Nieuw bord "Aankondigingen" aangemaakt (auto-slug) → direct zichtbaar op publieke
+  `/forum`-index naast "Algemeen".
+- Bord hernoemd ("Aankondigingen" → "Mededelingen", slug behouden) → database bevestigt.
+- Topic geplaatst in het nieuwe bord, daarna verwijder-poging → **geblokkeerd** met de
+  verwachte foutmelding; bord bleef bestaan (database-check).
+- Wegwerpbord zonder topics aangemaakt en verwijderd → lukt zoals verwacht, weg uit
+  de database.
+- TestMember krijgt 403 op de verwijder-route zelf (niet alleen op het scherm).
+
+### Nog open (van de oorspronkelijke 6 placeholder-schermen uit v1.10.0)
+
+`/admin/users` (v1.13.0) en nu de Forum-bordbeheer-aanvulling zijn echt. Nog steeds
+placeholder: Media, Roles, Themes, Menus, Logs — zie README "Bekende beperkingen".
+Dezelfde ontbrekende-beheerscherm-situatie geldt overigens ook voor News-categorieën
+(`cf_categories` met `type='news'`) — niet in scope van dit verzoek, maar wel een
+vergelijkbaar gat voor een volgende wave.
+
+---
+
 ## [1.13.0] — 2026-09-28 — Wave 3: /admin/users echt gebouwd (eerste van de 6 placeholder-schermen)
 
 ### Added

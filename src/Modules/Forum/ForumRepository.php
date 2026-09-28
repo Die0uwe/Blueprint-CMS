@@ -82,6 +82,83 @@ final class ForumRepository
         );
     }
 
+    // ─── BORDBEHEER (admin — Wave 4) ────────────────────────────────────────
+    // De publieke getBoards() hierboven levert live tellingen voor de
+    // forumindex; deze admin-variant is lichter (geen tellingen/cache) en
+    // toont ook borden zonder topics, voor het /admin/forum/boards-scherm.
+
+    public function getAllBoardsForAdmin(): array
+    {
+        return $this->db->fetchAll(
+            "SELECT c.*, COUNT(t.id) AS topic_count
+             FROM cf_categories c
+             LEFT JOIN cf_forum_topics t ON t.board_id = c.id AND t.deleted_at IS NULL
+             WHERE c.type = 'forum'
+             GROUP BY c.id
+             ORDER BY c.position ASC, c.name ASC"
+        );
+    }
+
+    public function findBoardById(int $id): ?array
+    {
+        return $this->db->fetchOne(
+            "SELECT * FROM cf_categories WHERE type = 'forum' AND id = ?",
+            [$id]
+        );
+    }
+
+    public function boardSlugTaken(string $slug, ?int $exceptId = null): bool
+    {
+        if ($exceptId !== null) {
+            $row = $this->db->fetchOne(
+                "SELECT id FROM cf_categories WHERE type = 'forum' AND slug = ? AND id != ?",
+                [$slug, $exceptId]
+            );
+        } else {
+            $row = $this->db->fetchOne(
+                "SELECT id FROM cf_categories WHERE type = 'forum' AND slug = ?",
+                [$slug]
+            );
+        }
+        return $row !== null;
+    }
+
+    public function createBoard(string $slug, string $name, string $description, int $position): int
+    {
+        $id = $this->db->insert('categories', [
+            'type'        => 'forum',
+            'slug'        => $slug,
+            'name'        => $name,
+            'description' => $description,
+            'position'    => $position,
+        ]);
+        $this->cache->delete('forum.boards');
+        return (int) $id;
+    }
+
+    public function updateBoard(int $id, string $slug, string $name, string $description, int $position): void
+    {
+        $this->db->update('categories', [
+            'slug'        => $slug,
+            'name'        => $name,
+            'description' => $description,
+            'position'    => $position,
+        ], 'id = ? AND type = ?', [$id, 'forum']);
+        $this->cache->delete('forum.boards');
+    }
+
+    /**
+     * Verwijdert een bord alleen als het geen (niet-verwijderde) topics meer
+     * bevat — de FK cf_forum_topics.board_id staat ON DELETE CASCADE, dus
+     * zonder deze check zou een bord verwijderen ook stilzwijgend alle
+     * topics + reacties erin meenemen.
+     */
+    public function deleteBoard(int $id): void
+    {
+        $this->db->delete('categories', 'id = ? AND type = ?', [$id, 'forum']);
+        $this->cache->delete('forum.boards');
+    }
+
     // ─── TOPICS ─────────────────────────────────────────────────────────────
 
     public function getTopics(int $boardId, int $limit, int $offset): array
