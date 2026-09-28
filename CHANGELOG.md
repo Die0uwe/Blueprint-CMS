@@ -18,6 +18,46 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ---
 
+## [1.13.0] — 2026-09-28 — Wave 3: /admin/users echt gebouwd (eerste van de 6 placeholder-schermen)
+
+### Added
+
+- **`/admin/users` — volledig werkend Gebruikersbeheer**, ter vervanging van de "nog niet
+  gebouwd"-placeholder uit v1.10.0 (`src/Modules/Settings/views/users.php`, nu verwijderd).
+  - `UserRepository` (`src/Modules/Users/UserRepository.php`): gepagineerde lijst met
+    zoeken op username/e-mail/naam, rol-toewijzing lezen/schrijven (`syncRoles()`,
+    transactioneel), account activeren/deactiveren, soft-delete. Paginering gaat via
+    `Connection::execute()`'s `bindValue()`-pad, dezelfde die de v1.11.0 LIMIT/OFFSET-bug
+    fixte — hier dus vanaf het begin goed.
+  - `UserAdminController` (`src/Modules/Users/UserAdminController.php`): `index()`
+    (lijst+zoeken), `editForm()`/`update()` (rollen-checkboxes + actief-toggle).
+    Permissie: `users.manage` (al sinds Wave 1/2 geseed, nooit een scherm voor gehad).
+  - **Zelf-lockout-bescherming**: een beheerder kan zichzelf via dit scherm niet
+    deactiveren of zijn eigen laatste rol afpakken — anders kan de enige ingelogde
+    super_admin zichzelf per ongeluk buitensluiten. Live geverifieerd (zie hieronder).
+  - Routes toegevoegd aan `Router.php`, vóór de `/admin/{path}`-catch-all (zelfde
+    volgorde-regel als News/Pages in v1.10.0).
+
+### Getest (echte HTTP-boot, zelfde reconstructed-`vendor/`-methode als v1.12.0)
+
+- Login als de echte installer-admin → `GET /admin/users` toont de lijst.
+- `GET /admin/users/1/bewerk` (eigen account) → "eigen account"-waarschuwing + rollen-
+  checkboxes, `super_admin` al aangevinkt.
+- **Zelf-lockout-test**: `POST /admin/users/1/bewerk` met een lege `roles[]` → 302 terug
+  naar het formulier met `?error=Je+kan+je+eigen+laatste+rol+niet+verwijderen…` — de
+  rol-toewijzing in de database bleef ongewijzigd.
+- Een tweede, echte gebruiker geregistreerd via `/register` (`TestMember`) → verschijnt
+  in `/admin/users` → als BigBoss gedeactiveerd + rol `member` toegewezen via het
+  formulier → geverifieerd rechtstreeks in de database: `is_active = 0`,
+  `cf_user_roles` bevat `(user_id=2, role_id=<member>, assigned_by=1)`.
+
+### Nog open (van de oorspronkelijke 6 placeholder-schermen uit v1.10.0)
+
+`/admin/users` is nu echt. Nog steeds placeholder: Media, Roles, Themes, Menus, Logs —
+zie README "Bekende beperkingen" voor het stappenplan.
+
+---
+
 ## [1.12.0] — 2026-09-28 — Eerste échte end-to-end boot: 2 fatale bugs die géén enkele eerdere test kon vinden
 
 ### Context

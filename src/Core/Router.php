@@ -197,6 +197,13 @@ final class Router
         $this->post('/admin/pages/{id:[0-9]+}/bewerk',    'CommunityFusion\Modules\Pages\PageController@update',     $perm('pages.manage'));
         $this->post('/admin/pages/{id:[0-9]+}/verwijder', 'CommunityFusion\Modules\Pages\PageController@delete',     $perm('pages.manage'));
 
+        // ── Gebruikersbeheer admin (Wave 3 — verving de "nog niet gebouwd"-
+        //    placeholder uit Wave 2; zie Settings/views/_placeholder.php-patroon,
+        //    dat bestand hier vervangen is door een echt scherm). ────────────
+        $this->get('/admin/users',                       'CommunityFusion\Modules\Users\UserAdminController@index',    $perm('users.manage'));
+        $this->get('/admin/users/{id:[0-9]+}/bewerk',     'CommunityFusion\Modules\Users\UserAdminController@editForm', $perm('users.manage'));
+        $this->post('/admin/users/{id:[0-9]+}/bewerk',    'CommunityFusion\Modules\Users\UserAdminController@update',   $perm('users.manage'));
+
         // ── Overige admin-sidebar links (Wave 2) ────────────────────────────
         // /admin/modules dupliceerde in de praktijk /admin/marketplace (module-
         // installatie/-beheer gebeurt daar al) — een redirect voorkomt twee

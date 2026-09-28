@@ -14,7 +14,7 @@ GPL-3.0-or-later
 [![PHP](https://img.shields.io/badge/PHP-8.3%2B-777BB4?style=flat-square&logo=php)](https://php.net)
 [![MariaDB](https://img.shields.io/badge/MariaDB-10.11%2B-003545?style=flat-square&logo=mariadb)](https://mariadb.org)
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.12.0-brightgreen?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-1.13.0-brightgreen?style=flat-square)](CHANGELOG.md)
 [![CI](https://img.shields.io/github/actions/workflow/status/Die0uwe/bluprint-cms/ci.yml?branch=main&style=flat-square&label=CI)](.github/workflows/ci.yml)
 
 *Geïnspireerd door PHP-Fusion · Down Under Fusion · ImpressCMS*
@@ -205,14 +205,14 @@ Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben o
 
 - ~~`/admin`-routes zijn niet permissie-gated~~ — **opgelost in v1.10.0.** Zie CHANGELOG:
   `PermissionMiddleware` + `admin.access`/`settings.edit`/`blocks.manage`/`marketplace.*`.
-- ~~De admin-sidebar bevat dode links~~ — **opgelost in v1.10.0.** `/admin/news` en
-  `/admin/pages` hebben nu volledige admin-CRUD (overzicht, aanmaken, bewerken, soft-delete).
-  `/admin/modules` redirect naar het al bestaande `/admin/marketplace`. De overige zes
-  (`/admin/media`, `/admin/users`, `/admin/roles`, `/admin/themes`, `/admin/menus`,
-  `/admin/logs`) geven nu een eerlijk "nog niet gebouwd"-scherm i.p.v. een kale 404 — de
-  schermen zelf bestaan dus nog niet, alleen de dode link is verholpen. Zie CHANGELOG v1.10.0
-  voor wat er per scherm al wél werkt (bv. uploads/RBAC/logging zelf draaien allemaal al,
-  alleen de admin-UI ervoor ontbreekt nog).
+- ~~De admin-sidebar bevat dode links~~ — **opgelost in v1.10.0** (geen 404's meer) **en
+  gedeeltelijk écht afgebouwd in v1.13.0.** `/admin/news` en `/admin/pages` hebben volledige
+  admin-CRUD sinds v1.10.0. `/admin/users` is sinds **v1.13.0** een echt, live-geteste
+  scherm (lijst + zoeken + rollen toewijzen + activeren/deactiveren + zelf-lockout-
+  bescherming — zie CHANGELOG v1.13.0). `/admin/modules` redirect naar `/admin/marketplace`.
+  **Nog steeds placeholder** ("nog niet gebouwd"-scherm i.p.v. een CRUD-UI):
+  `/admin/media`, `/admin/roles`, `/admin/themes`, `/admin/menus`, `/admin/logs`. Zie
+  CHANGELOG v1.10.0 voor wat er per scherm al wél achter de schermen werkt.
 - ~~Contact verstuurt geen e-mail~~ — **opgelost in v1.10.0** (`Mailer`, raw-socket SMTP + `mail()`-
   fallback). Wel nog geen instelbaar "meldingen naar"-adres via de admin-UI — de mail gaat naar het
   geconfigureerde afzenderadres zelf. SMTP zelf heeft ook nog geen installer-veld; vul `MAIL_HOST`
