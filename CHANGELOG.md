@@ -18,6 +18,55 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ---
 
+## [1.22.0] — 2026-09-29 — S10 (vervolg): Kick-integratie (live-status, kijkers, stream-embed)
+
+Aanleiding: "ja kick eerst aub" — de tweede en laatste van de twee S10-integraties uit de
+roadmap (YouTube in v1.21.0, nu Kick), zodat S10 volledig is afgerond.
+
+### Nieuw — `modules/kick/`
+
+Twee blocktypes, naar hetzelfde bewezen Twitch/YouTube-patroon:
+
+- **`kick-live`** — live/offline-status, titel, kijkersaantal, categorie, thumbnail.
+- **`kick-stream`** — iframe-embed via `player.kick.com/{kanaal}` (eenvoudiger dan Twitch's
+  embed: geen verplichte `parent`-domeinwhitelist nodig).
+
+### Ontwerpkeuze: publiek endpoint i.p.v. Kick's officiële OAuth-API
+
+Onderzocht en bevestigd (zie bronvermeldingen in `KickApi.php`'s klassecommentaar): Kick heeft
+sinds 2024/2025 een officiële, OAuth 2.1-beveiligde Developer API
+(`https://api.kick.com/public/v1`, login via `id.kick.com/oauth/authorize` + `/oauth/token`,
+verplichte PKCE — vergelijkbaar qua zwaarte met de Golf 10-providers). Die API is echter gebouwd
+voor kanaal-eigenaren die hún eigen kanaal beheren (chat, moderatie, beloningen) — er bestaat
+geen gedocumenteerd "zoek kanaal X op zonder dat X zelf inlogt"-endpoint, wat nodig is voor een
+simpel live-status-blok. Daarom gebruikt `KickApi.php` bewust het publieke, ongeauthenticeerde
+`kick.com/api/v2/channels/{slug}`-endpoint — hetzelfde endpoint dat kick.com's eigen website
+intern gebruikt en dat de meeste bestaande open-source Kick-tools om diezelfde reden gebruiken.
+Dit is **eerlijk gedocumenteerd als een bekende beperking**: het is geen door Kick officieel
+ondersteund endpoint en kan zonder aankondiging wijzigen. Een browser-achtige `User-Agent`-header
+is toegevoegd omdat Kick's Cloudflare-bescherming een kale PHP-curl-UA vaker blokkeert. Precies
+zoals `TwitchApi`/`YouTubeApi` degradeert elke aanroep netjes naar `null` bij een fout — nooit
+een crash, alleen een "Offline"-weergave.
+
+Instellingenscherm werkt weer direct via het generieke `ModuleSettingsController` uit Golf 10
+(één simpel veld: `channel_slug`, geen sleutel/app-registratie nodig) — inclusief een eigen
+provider-uitleg in `module_settings.php::oauth_provider_hint()` die expliciet uitlegt waarom
+hier geen OAuth-koppeling nodig is en waar de officiële Developer API wél voor bedoeld is.
+
+### Live getest (scripted install + PHP-server + curl)
+
+Beide blocktypes verschijnen automatisch in de `/admin/blocks`-picker; via de echte
+`/admin/blocks/store`-flow geplaatst en op de homepage gerenderd. `kick-live` degradeerde
+netjes naar "⚫ Offline" (geen uitgaand verkeer naar willekeurige domeinen toegestaan in deze
+sandbox — hetzelfde als bij YouTube/Twitch), `kick-stream` rendert een correcte
+`player.kick.com/xqc`-iframe zonder netwerkaanroep nodig te hebben. Instellingenscherm
+save→DB→herlaad-roundtrip bevestigd (`channel_slug` blijft correct staan na opslaan). Geen
+PHP-fouten/warnings in de serverlog. Regressiesweep over 19 routes (incl. alle vier
+OAuth-login-redirects en alle vier providerinstellingenschermen) — alles 200/302, geen enkele
+breuk.
+
+---
+
 ## [1.21.0] — 2026-09-29 — Golf 10a: YouTube-module (kanaalinfo, laatste video's, live-status, playlists)
 
 Aanleiding: vervolg op Golf 10 — "ga vervolgens verder met stap 10a youtube", de eerste van de

@@ -158,6 +158,19 @@ function oauth_provider_hint(string $slug): ?string
             <strong>Standaard kanaal-ID</strong>: geen gebruikersnaam maar het technische ID
             (begint met <code>UC</code>) — te vinden via de \"Info\"-sectie van een kanaal of een
             gratis kanaal-ID-lookuptool.",
+        'kick' => "
+            <strong>Kick</strong> — dit is GEEN login/OAuth-koppeling maar simpelweg de
+            kanaalnaam (slug) die je in de URL van je Kick-kanaal ziet, bv.
+            <code>kick.com/jouwkanaal</code> → vul <code>jouwkanaal</code> in. Er is geen
+            sleutel of app-registratie nodig: dit blok leest Kick's publieke,
+            ongeauthenticeerde kanaal-endpoint uit — hetzelfde endpoint dat kick.com zelf
+            gebruikt. Let op: dit is geen door Kick officieel gedocumenteerd endpoint (zie
+            de uitleg in <code>KickApi.php</code>) en kan in theorie zonder aankondiging
+            wijzigen. Kick heeft ook een officiële, OAuth-beveiligde Developer API
+            (<a href=\"https://kick.com/settings/developer\" target=\"_blank\" rel=\"noopener\">kick.com/settings/developer</a>),
+            maar die is bedoeld voor kanaal-eigenaren die hún eigen kanaal beheren
+            (chat/moderatie/beloningen) — niet nodig voor het tonen van live-status van een
+            willekeurig kanaal op je website.",
         default => null,
     };
 }

@@ -1,0 +1,19 @@
+{
+    "slug":        "kick",
+    "name":        "Kick Integration",
+    "version":     "1.0.0",
+    "description": "Kick live-status, kijkersaantal en stream-embed via het publieke kanaal-endpoint.",
+    "author":      "DieOuwe",
+    "author_url":  "https://www.dieouwe.nl",
+    "min_cms":     "1.0.0",
+    "class":       "CommunityFusion\\Modules\\Kick\\KickModule",
+    "autoload":    "src/",
+    "is_core":     false,
+    "dependencies": [],
+    "hooks": ["render.sidebar_right"],
+    "permissions": ["kick.view", "kick.admin"],
+    "blocks": ["kick-live", "kick-stream"],
+    "settings": [
+        {"key": "channel_slug", "label": "Standaard kanaalnaam (slug)", "type": "string"}
+    ]
+}

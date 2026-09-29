@@ -54,6 +54,7 @@
         'google'           => '🔑',
         'battlenet'        => '🌀',
         'youtube'          => '▶️',
+        'kick'             => '🟢',
         'guild-management' => '⚔️',
         'minecraft'        => '🟫',
         'fivem'            => '🚓',

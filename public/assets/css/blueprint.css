@@ -474,6 +474,28 @@ img { max-width: 100%; }
 .cf-youtube-video-card img { width:100%; border-radius:8px; display:block; margin-bottom:.35rem; }
 .cf-youtube-embed-wrap { border-radius:8px; overflow:hidden; }
 
+/* ── Kick Blocks (S10) ────────────────────────────────────────────────────── */
+.cf-kick-block    { font-size:.875rem; }
+.cf-kick-header   { display:flex; align-items:center; gap:.7rem; }
+.cf-kick-logo     { font-size:1.4rem; }
+.cf-kick-channel  { font-weight:700; color:var(--text); }
+.cf-kick-channel:hover { color:#53fc18; }
+.cf-kick-status   { font-size:.75rem; margin-top:.15rem; }
+.cf-kick-status.live    { color:#ef4444; }
+.cf-kick-status.offline { color:var(--muted); }
+.cf-kick-viewers  { margin-left:.4rem; color:var(--muted); }
+.cf-kick-thumb-wrap { position:relative; margin-bottom:.7rem; }
+.cf-kick-thumb    { width:100%; border-radius:8px; display:block; }
+.cf-kick-live-badge {
+  position:absolute; top:.5rem; left:.5rem;
+  background:#ef4444; color:#fff; font-size:.7rem;
+  font-weight:700; padding:.15rem .5rem; border-radius:4px;
+}
+.cf-kick-info  { margin-top:.5rem; }
+.cf-kick-title { font-size:.82rem; color:var(--text-dim); margin:.4rem 0 .2rem; line-height:1.3; }
+.cf-kick-game  { font-size:.75rem; color:var(--muted); }
+.cf-kick-embed-wrap { border-radius:8px; overflow:hidden; }
+
 /* ── Guild Management ───────────────────────────────────────────────────── */
 .cf-guild-members      { display:flex; flex-direction:column; gap:.35rem; }
 .cf-guild-member-row   { display:flex; justify-content:space-between; align-items:center;
