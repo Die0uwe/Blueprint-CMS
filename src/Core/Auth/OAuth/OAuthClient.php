@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace CommunityFusion\Core\Auth\OAuth;
 
 use CommunityFusion\Core\Database\Connection;
+use CommunityFusion\Core\Security\Crypto;
 
 /**
  * OAuthClient — Abstract base voor OAuth2 providers.
@@ -181,32 +182,17 @@ abstract class OAuthClient
 
     // ─── ENCRYPTIE ────────────────────────────────────────────────────────
 
+    // Golf 10: gedelegeerd naar Core\Security\Crypto (nu ook gebruikt door
+    // SettingsRepository voor 'encrypted'-type instellingen zoals een OAuth
+    // client_secret) — was hier voorheen private, ongedupliceerde logica.
     protected function encrypt(string $value): string
     {
-        $key  = $this->getAppKey();
-        $iv   = random_bytes(12);
-        $tag  = '';
-        $enc  = openssl_encrypt($value, 'aes-256-gcm', $key, OPENSSL_RAW_DATA, $iv, $tag);
-        return base64_encode($iv . $tag . $enc);
+        return Crypto::encrypt($value);
     }
 
     protected function decrypt(string $encrypted): string
     {
-        $key  = $this->getAppKey();
-        $raw  = base64_decode($encrypted);
-        $iv   = substr($raw, 0, 12);
-        $tag  = substr($raw, 12, 16);
-        $enc  = substr($raw, 28);
-        return openssl_decrypt($enc, 'aes-256-gcm', $key, OPENSSL_RAW_DATA, $iv, $tag);
-    }
-
-    private function getAppKey(): string
-    {
-        $key = $_ENV['APP_KEY'] ?? '';
-        if (str_starts_with($key, 'base64:')) {
-            return base64_decode(substr($key, 7));
-        }
-        return str_pad($key, 32, "\0");
+        return Crypto::decrypt($encrypted);
     }
 
     // ─── HTTP HELPERS ─────────────────────────────────────────────────────

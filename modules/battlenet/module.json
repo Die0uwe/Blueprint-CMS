@@ -1,0 +1,22 @@
+{
+    "slug":        "battlenet",
+    "name":        "Battle.net Login",
+    "version":     "1.0.0",
+    "description": "Inloggen en registreren met een Battle.net-account (Blizzard OAuth2) — toont de BattleTag.",
+    "author":      "DieOuwe",
+    "author_url":  "https://www.dieouwe.nl",
+    "min_cms":     "1.0.0",
+    "class":       "CommunityFusion\\Modules\\BattleNet\\BattleNetModule",
+    "autoload":    "src/",
+    "is_core":     false,
+    "dependencies": [],
+    "hooks": ["user.login", "user.register"],
+    "permissions": ["battlenet.view"],
+    "blocks": [],
+    "settings": [
+        {"key": "client_id",     "label": "Client ID",     "type": "string"},
+        {"key": "client_secret", "label": "Client Secret", "type": "encrypted"},
+        {"key": "region",        "label": "Regio (eu/us/kr/tw/cn)", "type": "string"},
+        {"key": "redirect_uri",  "label": "Redirect URI",  "type": "string"}
+    ]
+}

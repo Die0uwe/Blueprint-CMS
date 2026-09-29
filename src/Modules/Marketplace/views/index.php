@@ -193,6 +193,24 @@ $typeColors = ['module' => '#6c3df4', 'theme' => '#f59e0b', 'block' => '#1D9E75'
         </button>
       </div>
 
+      <?php if (!empty($configurableModules)): ?>
+      <!-- Golf 10: providers/API-instellingen — buiten de tab-structuur om
+           altijd zichtbaar, ongeacht welke tab actief is en ongeacht of de
+           module via cf_marketplace_installed getrackt wordt (zie
+           MarketplaceController::getConfigurableModules() voor waarom dat
+           niet volstaat voor installer-tijd ingeschakelde modules). -->
+      <div style="background:rgba(108,61,244,.08);border:1px solid rgba(108,61,244,.25);border-radius:12px;padding:1rem 1.25rem;margin-bottom:1.25rem;">
+        <div style="font-weight:600;margin-bottom:.5rem;">🔑 Providers &amp; API-instellingen</div>
+        <div style="display:flex;flex-wrap:wrap;gap:.5rem;">
+          <?php foreach ($configurableModules as $cm): ?>
+            <a class="btn-sm" href="/admin/marketplace/package/<?= htmlspecialchars($cm['slug'], ENT_QUOTES) ?>/instellingen">
+              ⚙️ <?= htmlspecialchars($cm['name']) ?>
+            </a>
+          <?php endforeach; ?>
+        </div>
+      </div>
+      <?php endif; ?>
+
       <!-- TAB: BROWSEN -->
       <div id="tab-browse" class="<?= $tab !== 'browse' ? 'hidden' : '' ?>" style="display:<?= $tab === 'browse' ? 'block' : 'none' ?>">
 
@@ -313,6 +331,20 @@ $typeColors = ['module' => '#6c3df4', 'theme' => '#f59e0b', 'block' => '#1D9E75'
                         onclick="updatePkg('<?= htmlspecialchars($pkg['package_slug'], ENT_QUOTES) ?>')">
                   ⬆️ Updaten
                 </button>
+              <?php endif; ?>
+              <?php
+                // Golf 10: alleen tonen als de module echt een settings-schema
+                // declareert in zijn module.json — voorkomt een dode link naar
+                // een leeg formulier voor modules zonder configureerbare opties.
+                $manifestPath = CF_ROOT . "/modules/{$pkg['package_slug']}/module.json";
+                $hasSettings  = false;
+                if (is_file($manifestPath)) {
+                    $m = json_decode(file_get_contents($manifestPath), true);
+                    $hasSettings = !empty($m['settings']);
+                }
+              ?>
+              <?php if ($hasSettings): ?>
+                <a class="btn-sm" href="/admin/marketplace/package/<?= htmlspecialchars($pkg['package_slug'], ENT_QUOTES) ?>/instellingen" title="Instellingen">⚙️</a>
               <?php endif; ?>
               <label class="toggle-switch" title="<?= $enabled ? 'Uitschakelen' : 'Inschakelen' ?>">
                 <input type="checkbox" <?= $enabled ? 'checked' : '' ?>

@@ -11,6 +11,7 @@ use CommunityFusion\Core\Marketplace\PackageManager;
 use CommunityFusion\Core\Marketplace\PackageException;
 use CommunityFusion\Core\Security\CsrfProtection;
 use CommunityFusion\Core\Auth\AuthManager;
+use CommunityFusion\Core\Database\Connection;
 
 /**
  * MarketplaceController
@@ -26,6 +27,7 @@ final class MarketplaceController
     public function __construct(
         private readonly PackageManager $packages,
         private readonly AuthManager    $auth,
+        private readonly Connection     $db,
     ) {}
 
     // ─── ADMIN UI ────────────────────────────────────────────────────────────
@@ -43,10 +45,45 @@ final class MarketplaceController
         $catalog   = $this->packages->getCatalog($type, $search, $sortBy, 20, 0);
         $installed = $this->packages->getInstalledPackages();
         $updates   = $this->packages->checkForUpdates();
+        $configurableModules = $this->getConfigurableModules();
 
         ob_start();
         include __DIR__ . '/views/index.php';
         return Response::html(ob_get_clean());
+    }
+
+    /**
+     * Golf 10 — ontdekte gat: $installed (hierboven) komt uit
+     * cf_marketplace_installed, een tabel die ALLEEN gevuld wordt door
+     * PackageManager::install()/installFromUpload() (de ZIP-download/upload-
+     * flow). Een module die tijdens de installer (Step5.php) of rechtstreeks
+     * via cf_modules is ingeschakeld — wat voor Discord/Twitch/Google/
+     * Battle.net de normale weg is — staat daardoor NOOIT in $installed en
+     * had dus ook nooit een link naar zijn instellingenscherm. Deze losse
+     * query leest cf_modules zelf (de tabel die Application::loadModules()
+     * ook echt gebruikt om te bepalen wat er draait) en filtert op modules
+     * die een 'settings'-schema declareren — ongeacht hoe ze zijn ingeschakeld.
+     *
+     * @return array<int,array{slug:string,name:string}>
+     */
+    private function getConfigurableModules(): array
+    {
+        $rows = $this->db->fetchAll(
+            "SELECT slug, name FROM cf_modules WHERE is_enabled = 1 ORDER BY name"
+        );
+
+        $result = [];
+        foreach ($rows as $row) {
+            $manifestPath = CF_ROOT . "/modules/{$row['slug']}/module.json";
+            if (!is_file($manifestPath)) continue;
+
+            $manifest = json_decode((string) file_get_contents($manifestPath), true);
+            if (!empty($manifest['settings'])) {
+                $result[] = ['slug' => $row['slug'], 'name' => $row['name'] ?: $row['slug']];
+            }
+        }
+
+        return $result;
     }
 
     /** GET /admin/marketplace/package/{slug} */

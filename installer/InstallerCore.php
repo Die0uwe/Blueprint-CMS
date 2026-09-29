@@ -168,9 +168,17 @@ return [
         'encryption' => {$mailEncryptionPhp},
         'from'       => ['address' => {$data['mail_php']}, 'name' => {$data['site_name_php']}],
     ],
+    // Golf 10: dit 'oauth'-blok is NIET de bron van waarheid — geen enkele
+    // OAuthController leest ooit uit config.php. De echte instellingen staan
+    // in cf_settings (group = providerslug) en worden ingevuld via
+    // /admin/marketplace/package/{slug}/instellingen (zie
+    // ModuleSettingsController). Dit blok blijft staan als document van welke
+    // providers ondersteund worden, niet als functionele configuratie.
     'oauth' => [
-        'discord' => ['client_id' => '', 'client_secret' => '', 'redirect_uri' => ''],
-        'twitch'  => ['client_id' => '', 'client_secret' => '', 'redirect_uri' => ''],
+        'discord'   => ['client_id' => '', 'client_secret' => '', 'redirect_uri' => ''],
+        'twitch'    => ['client_id' => '', 'client_secret' => '', 'redirect_uri' => ''],
+        'google'    => ['client_id' => '', 'client_secret' => '', 'redirect_uri' => ''],
+        'battlenet' => ['client_id' => '', 'client_secret' => '', 'redirect_uri' => '', 'region' => 'eu'],
     ],
     'storage' => [
         // Buiten webroot — zie UploadManager. NIET public/uploads/.

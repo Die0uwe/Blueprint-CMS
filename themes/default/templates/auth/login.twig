@@ -17,12 +17,31 @@
         </div>
         <button type="submit" class="cf-btn" style="width:100%;justify-content:center;">Inloggen →</button>
       </form>
+
+      {# Golf 10 — OAuth-providers: elke knop hieronder gaat naar de
+         .../login route (niet .../ — die is voor koppelen aan een al
+         ingelogd account, zie *OAuthController@loginRedirect). Een
+         provider die niet als module actief is, geeft via de centrale
+         Users\OAuthController nette redirect met ?error=..._module_not_installed
+         i.p.v. een kale 404 — de knoppen mogen dus altijd getoond worden. #}
       <div style="text-align:center;margin:1rem 0;color:var(--muted);font-size:.8rem;">of</div>
-      <a href="/auth/discord/login" class="cf-btn cf-btn-discord" style="width:100%;justify-content:center;background:#5865F2;">
-        Inloggen met Discord
-      </a>
+      <div style="display:flex;flex-direction:column;gap:.5rem;">
+        <a href="/auth/discord/login" class="cf-btn" style="width:100%;justify-content:center;background:#5865F2;color:#fff;">
+          🎮 Inloggen met Discord
+        </a>
+        <a href="/auth/twitch/login" class="cf-btn" style="width:100%;justify-content:center;background:#9146FF;color:#fff;">
+          📺 Inloggen met Twitch
+        </a>
+        <a href="/auth/google/login" class="cf-btn" style="width:100%;justify-content:center;background:#fff;color:#1f1f1f;border:1px solid var(--border);">
+          🔑 Inloggen met Google
+        </a>
+        <a href="/auth/battlenet/login" class="cf-btn" style="width:100%;justify-content:center;background:#148eff;color:#fff;">
+          🌀 Inloggen met Battle.net
+        </a>
+      </div>
+
       <p style="text-align:center;margin-top:1rem;font-size:.85rem;color:var(--muted);">
-        Nog geen account? <a href="/register">Registreren</a> — of gebruik Discord hierboven, dan wordt er automatisch één aangemaakt.
+        Nog geen account? <a href="/register">Registreren</a> — of gebruik een van de knoppen hierboven, dan wordt er automatisch één aangemaakt.
       </p>
     </div>
   </div>

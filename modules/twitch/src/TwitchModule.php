@@ -34,10 +34,15 @@ final class TwitchModule implements ModuleInterface
         $registry->register(new TwitchLiveBlock($db, $cache, $config));
         $registry->register(new TwitchStreamBlock($config));
 
-        // Twitch OAuth routes
+        // Twitch OAuth routes — Golf 10: /login toegevoegd (zie
+        // TwitchOAuthController voor de link/login-intentie-uitleg) +
+        // /disconnect, die al bestond op de controller maar nooit
+        // geregistreerd was.
         $hooks->addAction('router.routes', function($router) {
-            $router->get('/auth/twitch',          'CommunityFusion\Modules\Twitch\TwitchOAuthController@redirect');
-            $router->get('/auth/twitch/callback', 'CommunityFusion\Modules\Twitch\TwitchOAuthController@callback');
+            $router->get('/auth/twitch',             'CommunityFusion\Modules\Twitch\TwitchOAuthController@redirect');
+            $router->get('/auth/twitch/login',       'CommunityFusion\Modules\Twitch\TwitchOAuthController@loginRedirect');
+            $router->get('/auth/twitch/callback',    'CommunityFusion\Modules\Twitch\TwitchOAuthController@callback');
+            $router->post('/auth/twitch/disconnect', 'CommunityFusion\Modules\Twitch\TwitchOAuthController@disconnect');
         });
     }
 

@@ -31,7 +31,9 @@
             "CommunityFusion\\Modules\\Guild\\": "modules/guild-management/src/",
             "CommunityFusion\\Modules\\Minecraft\\": "modules/minecraft/src/",
             "CommunityFusion\\Modules\\FiveM\\": "modules/fivem/src/",
-            "CommunityFusion\\Modules\\Ollama\\": "modules/ollama/src/"
+            "CommunityFusion\\Modules\\Ollama\\": "modules/ollama/src/",
+            "CommunityFusion\\Modules\\Google\\": "modules/google/src/",
+            "CommunityFusion\\Modules\\BattleNet\\": "modules/battlenet/src/"
         }
     },
     "autoload-dev": {

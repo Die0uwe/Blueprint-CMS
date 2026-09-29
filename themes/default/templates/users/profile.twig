@@ -5,12 +5,13 @@
     <div class="cf-card-header">👤 Mijn profiel</div>
     <div class="cf-card-body">
 
-      {% if discord_status == 'connected' %}
-        <div class="cf-alert cf-alert-success">Discord-account gekoppeld.</div>
-      {% endif %}
-      {% if twitch_status == 'connected' %}
-        <div class="cf-alert cf-alert-success">Twitch-account gekoppeld.</div>
-      {% endif %}
+      {% for p in oauth_providers %}
+        {% if p.status == 'connected' %}
+          <div class="cf-alert cf-alert-success">{{ p.label }}-account gekoppeld.</div>
+        {% elseif p.status == 'disconnected' %}
+          <div class="cf-alert cf-alert-success">{{ p.label }}-account ontkoppeld.</div>
+        {% endif %}
+      {% endfor %}
 
       <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;">
         {% if user.avatar_url %}
@@ -41,7 +42,7 @@
       {% endif %}
       {% for c in connections %}
         <div style="display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid var(--border);">
-          <span>{{ c.provider|capitalize }} — {{ c.data.username ?? c.data.login ?? '—' }}</span>
+          <span>{{ c.provider|capitalize }} — {{ c.data.username ?? c.data.login ?? c.data.battletag ?? c.data.name ?? '—' }}</span>
           <form method="POST" action="/auth/{{ c.provider }}/disconnect" style="margin:0;">
             {{ csrf_field()|raw }}
             <button type="submit" class="cf-btn cf-btn-danger" style="padding:.25rem .75rem;font-size:.8rem;">Ontkoppelen</button>
@@ -49,9 +50,15 @@
         </div>
       {% endfor %}
 
-      {% if connections|filter(c => c.provider == 'discord')|length == 0 %}
-        <a href="/auth/discord" class="cf-btn" style="margin-top:1rem;background:#5865F2;">Discord koppelen</a>
-      {% endif %}
+      {# Golf 10: was hardcoded op alleen Discord — nu een knop per provider
+         die nog niet gekoppeld is, voor alle vier ondersteunde providers. #}
+      <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-top:1rem;">
+        {% for p in oauth_providers %}
+          {% if connections|filter(c => c.provider == p.slug)|length == 0 %}
+            <a href="/auth/{{ p.slug }}" class="cf-btn" style="background:{{ p.color }};color:#fff;">{{ p.label }} koppelen</a>
+          {% endif %}
+        {% endfor %}
+      </div>
 
     </div>
   </div>

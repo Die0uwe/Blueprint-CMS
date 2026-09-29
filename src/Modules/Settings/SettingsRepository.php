@@ -19,6 +19,7 @@ namespace CommunityFusion\Modules\Settings;
 
 use CommunityFusion\Core\Database\Connection;
 use CommunityFusion\Core\Cache\CacheManager;
+use CommunityFusion\Core\Security\Crypto;
 
 final class SettingsRepository
 {
@@ -54,24 +55,57 @@ final class SettingsRepository
         return $this->loaded[$group];
     }
 
-    public function set(string $group, string $key, mixed $value): void
+    /**
+     * Golf 10: $type kan nu meegegeven worden. Bij 'encrypted' wordt $value
+     * vóór opslag versleuteld met Crypto (AES-256-GCM / APP_KEY) — vóór deze
+     * golf stond hier alleen (string) $value, ongeacht het kolomtype, dus
+     * een OAuth client_secret zou in platte tekst in cf_settings hebben
+     * gestaan. Bestaande aanroepen zonder $type blijven ongewijzigd werken
+     * (blijft NULL in de kolom vervangen door de vorige DEFAULT 'string').
+     */
+    public function set(string $group, string $key, mixed $value, ?string $type = null): void
     {
-        $this->db->execute(
-            "INSERT INTO cf_settings (`group`, `key`, `value`) VALUES (?, ?, ?)
-             ON DUPLICATE KEY UPDATE `value` = VALUES(`value`), updated_at = NOW()",
-            [$group, $key, (string) $value]
-        );
+        $stored = ($type === 'encrypted' && $value !== '')
+            ? Crypto::encrypt((string) $value)
+            : (string) $value;
+
+        if ($type !== null) {
+            $this->db->execute(
+                "INSERT INTO cf_settings (`group`, `key`, `value`, `type`) VALUES (?, ?, ?, ?)
+                 ON DUPLICATE KEY UPDATE `value` = VALUES(`value`), `type` = VALUES(`type`), updated_at = NOW()",
+                [$group, $key, $stored, $type]
+            );
+        } else {
+            $this->db->execute(
+                "INSERT INTO cf_settings (`group`, `key`, `value`) VALUES (?, ?, ?)
+                 ON DUPLICATE KEY UPDATE `value` = VALUES(`value`), updated_at = NOW()",
+                [$group, $key, $stored]
+            );
+        }
         $this->cache->delete("settings.{$group}");
         unset($this->loaded[$group]);
+    }
+
+    /**
+     * Is er al een niet-lege waarde opgeslagen voor deze sleutel? Gebruikt
+     * door het instellingenformulier om een 'encrypted' veld leeg te laten
+     * (placeholder "•••• — laat leeg om te behouden") i.p.v. de ontsleutelde
+     * waarde terug naar de browser te sturen.
+     */
+    public function has(string $group, string $key): bool
+    {
+        $value = $this->get($group, $key, '');
+        return $value !== '' && $value !== null;
     }
 
     private function cast(mixed $value, string $type): mixed
     {
         return match ($type) {
-            'int'  => (int) $value,
-            'bool' => $value === '1' || $value === 'true',
-            'json' => json_decode($value ?? '{}', true),
-            default => $value,
+            'int'       => (int) $value,
+            'bool'      => $value === '1' || $value === 'true',
+            'json'      => json_decode($value ?? '{}', true),
+            'encrypted' => $value !== '' && $value !== null ? Crypto::decrypt($value) : '',
+            default     => $value,
         };
     }
 }

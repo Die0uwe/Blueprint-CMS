@@ -230,10 +230,18 @@ final class DiscordOAuthController
 
     private function getSetting(string $key, string $default = ''): string
     {
+        // Golf 10: client_secret/bot_token worden nu via het admin
+        // instellingenscherm als 'encrypted' opgeslagen (zie
+        // ModuleSettingsController + Core\Security\Crypto) — hier dus ook
+        // ontsleutelen i.p.v. de rauwe (versleutelde) waarde te gebruiken.
         $row = $this->db->fetchOne(
-            "SELECT value FROM cf_settings WHERE `group` = 'discord' AND `key` = ?",
+            "SELECT value, `type` FROM cf_settings WHERE `group` = 'discord' AND `key` = ?",
             [$key]
         );
+        if ($row === null) return $default;
+        if (($row['type'] ?? 'string') === 'encrypted' && $row['value'] !== '') {
+            return \CommunityFusion\Core\Security\Crypto::decrypt($row['value']);
+        }
         return $row['value'] ?? $default;
     }
 

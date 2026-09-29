@@ -55,8 +55,15 @@ final class ProfileController
                 ],
                 $connections
             ),
-            'discord_status' => $request->query('discord'),
-            'twitch_status'  => $request->query('twitch'),
+            // Golf 10: generiek gemaakt voor alle vier OAuth-providers i.p.v.
+            // hardcoded discord_status/twitch_status — profile.twig loopt nu
+            // over 'oauth_providers' i.p.v. losse if-blokken per provider.
+            'oauth_providers' => [
+                ['slug' => 'discord',   'label' => 'Discord',    'color' => '#5865F2', 'status' => $request->query('discord')],
+                ['slug' => 'twitch',    'label' => 'Twitch',     'color' => '#9146FF', 'status' => $request->query('twitch')],
+                ['slug' => 'google',    'label' => 'Google',     'color' => '#4285F4', 'status' => $request->query('google')],
+                ['slug' => 'battlenet', 'label' => 'Battle.net', 'color' => '#148eff', 'status' => $request->query('battlenet')],
+            ],
         ]);
 
         return Response::html($html);

@@ -18,6 +18,127 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ---
 
+## [1.20.0] — 2026-09-29 — Golf 10: OAuth-login met Google, Discord, Battle.net en Twitch
+
+Aanleiding: "ik wil de mogelijkheid in te loggen met google discord battlenet en twitch
+voorbereid en dan api en keys met instructie hoe en waar in te voegen en waar te halen".
+Discord en Twitch hadden al een werkende OAuth-basis (sinds Sprint 4-5), maar zonder
+Google/Battle.net, zonder "inloggen met Twitch" (alleen "koppelen"), en — belangrijkste gat —
+zonder ENIGE admin-UI om een client_id/secret in te vullen: dat moest tot nu toe met kale SQL.
+Deze golf lost alle vier tegelijk op, inclusief twee bugs die pas zichtbaar werden tijdens het
+bouwen ervan.
+
+### Nieuw — generiek instellingenscherm voor elke OAuth-provider
+
+`/admin/marketplace/package/{slug}/instellingen` (nieuw: `ModuleSettingsController` +
+`views/module_settings.php`) leest het `settings`-schema uit `modules/{slug}/module.json` en
+rendert er automatisch een formulier voor — werkt dus meteen voor Discord, Twitch, Google
+ÉN Battle.net zonder 4x hetzelfde scherm te hoeven bouwen, en voor elke toekomstige module die
+een `settings`-blok declareert. Elk scherm toont bovendien provider-specifieke uitleg: waar je
+de client-ID/secret vandaan haalt (Discord Developer Portal, Twitch Developer Console, Google
+Cloud Console, develop.battle.net) en welke exacte redirect-URI je daar moet whitelisten — het
+`redirect_uri`-veld wordt voorgevuld met de berekende waarde (`APP_URL` + `/auth/{slug}/callback`)
+zodat je 'm letterlijk kunt kopiëren.
+
+Bereikbaar via een nieuwe "🔑 Providers & API-instellingen"-kaart bovenaan `/admin/marketplace`
+(zichtbaar zodra minstens één ingeschakelde module een settings-schema heeft) én via een
+⚙️-icoon per rij in het "Geïnstalleerd"-tabblad.
+
+**Bug ontdekt tijdens het bouwen hiervan**: dat ⚙️-icoon zou in de praktijk nooit verschijnen
+voor Discord/Twitch/Google/Battle.net, want `MarketplaceController`'s "Geïnstalleerd"-tabblad
+leest `cf_marketplace_installed` — een tabel die ALLEEN gevuld wordt door de ZIP-download/
+upload-flow van de Marketplace zelf. Modules die via de installer (Step5.php) of rechtstreeks
+via `cf_modules` zijn ingeschakeld — de normale weg voor elke module die al in `modules/`
+meegeleverd wordt — komen daar nooit in terecht. Vandaar de losstaande "Providers &
+API-instellingen"-kaart, die `cf_modules` rechtstreeks uitleest (dezelfde tabel die
+`Application::loadModules()` ook echt gebruikt) i.p.v. te vertrouwen op die marketplace-tracking.
+
+### Nieuw — echte encryptie voor opgeslagen instellingen (`Core\Security\Crypto`)
+
+`cf_settings.type` had al een `'encrypted'`-enumwaarde in het schema staan, maar
+`SettingsRepository::set()`/`get()` deden er NOOIT iets mee — een client_secret zou dus in
+platte tekst in de database hebben gestaan zodra het nieuwe instellingenscherm 'm opsloeg. Een
+nieuwe gedeelde helperklasse `Core\Security\Crypto` (AES-256-GCM op basis van `APP_KEY`) lost
+dit op; `SettingsRepository::set()` accepteert nu een optioneel `$type`-argument en versleutelt
+bij `'encrypted'`, `getGroup()`/`get()` ontsleutelen automatisch terug. `OAuthClient`'s eigen,
+tot nu toe gedupliceerde `encrypt()`/`decrypt()` (voor `cf_user_oauth`-tokens) delegeren nu naar
+dezelfde klasse i.p.v. een eigen kopie te onderhouden.
+
+**Tweede bug, zelfde familie**: `DiscordOAuthController::getSetting()` en de oude
+`TwitchOAuthController::getSetting()` gaven een `'encrypted'`-waarde altijd RUW terug — een
+client_secret ingevuld via het nieuwe scherm zou dus letterlijk de versleutelde blob naar
+Discord/Twitch gestuurd hebben i.p.v. het echte geheim. Beide `getSetting()`-methodes
+ontsleutelen nu terecht via `Crypto::decrypt()` wanneer de kolom `type = 'encrypted'` is
+(round-trip live getest, zie onderaan).
+
+### Nieuw — twee losse OAuth-modules: Google en Battle.net
+
+`modules/google/` en `modules/battlenet/` (elk: `module.json`, `*OAuth.php` extends de
+bestaande abstracte `OAuthClient`, `*OAuthController.php`, `*Module.php`) — gebouwd door twee
+parallelle subagents in geïsoleerde git-worktrees, exact naar het bestaande Discord-patroon
+(link/login-intentie via de sessie, `AuthManager::findOrCreateFromOAuth()` voor account-aanmaak
+zonder wachtwoord), daarna zelf samengevoegd en aangevuld (`composer.json`'s PSR-4-mapping,
+die per module apart staat — geen wildcard-autoloading in deze codebase — misten beide agents
+terecht als buiten hun bereik).
+
+- **Google**: OpenID Connect (`accounts.google.com` → `oauth2.googleapis.com` →
+  `openidconnect.googleapis.com/v1/userinfo`), scope `openid email profile`,
+  `prompt=select_account` zodat een gebruiker met meerdere Google-accounts altijd kan kiezen.
+- **Battle.net**: regio-gebonden (`{eu|us|kr|tw}.battle.net/oauth/...`, `region`-instelling,
+  default `eu`), geeft bewust geen e-mailadres terug — `AuthManager::uniqueEmailFrom()` had die
+  placeholder-fallback al (gebouwd voor Discord's eigen scope-afhankelijke e-mail), dus geen
+  extra werk nodig. BattleTag wordt overgenomen als `display_name` als die nog leeg is.
+
+### Fix — Twitch had geen "inloggen met", alleen "koppelen"
+
+`TwitchOAuthController` eiste altijd een ingelogde sessie in zijn callback — er was dus geen
+manier om via Twitch een nieuw account te krijgen of in te loggen, in tegenstelling tot Discord
+(dat dit al sinds Sprint 4 had). Nu exact hetzelfde link/login-intentiepatroon als Discord
+(`oauth_intent_twitch` in de sessie), plus de ontbrekende `/auth/twitch/disconnect`-route (de
+controller-methode bestond al, was alleen nooit geregistreerd).
+
+### Login- en profielscherm — alle vier providers, niet meer hardcoded op Discord
+
+`themes/{default,gaming-dark}/templates/auth/login.twig`: knoppen voor alle vier providers
+i.p.v. alleen Discord. `.../users/profile.twig`: "gekoppelde accounts"-sectie en "koppelen"-
+knoppen zijn generiek gemaakt (loop over `oauth_providers` vanuit `ProfileController`) i.p.v.
+een hardcoded if-blok per provider — een vijfde provider in de toekomst vereist dus geen
+twig-wijziging meer, alleen een entry in die ene array. `LoginBlock.php` (het compacte
+sidebar-loginblok) kreeg een kleine iconenrij met dezelfde vier providers.
+
+### Installer
+
+`installer/templates/step5.php` bouwt de moduleselectie al dynamisch op uit `modules/*/
+module.json` (geen wijziging nodig) — Google en Battle.net verschijnen daar dus automatisch;
+alleen de icoontjes (🔑 / 🌀) zijn toegevoegd. `InstallerCore.php`'s `config.php`-sjabloon
+kreeg entries voor beide nieuwe providers, met een verduidelijkende opmerking dat dit
+`'oauth'`-blok NOOIT gelezen wordt door de applicatie (ontdekt tijdens deze golf) — de enige
+werkende plek is cf_settings via het nieuwe instellingenscherm. `.env.example` kreeg dezelfde
+waarschuwing: de `DISCORD_*`/`TWITCH_*`/`GOOGLE_*`/`BATTLENET_*`-variabelen daar zijn NOOIT
+door de applicatie gelezen (bevestigd met een repo-brede grep) en dienen puur als overzicht.
+
+### Live getest (scripted install + PHP-server + curl, zelfde methodiek als Golf 9)
+
+Alle vier `/auth/{provider}/login`-redirects gecontroleerd op de juiste authorize-URL, client_id
+en `redirect_uri` (incl. Battle.net regio-wissel eu→us); instellingenscherm getest voor
+discord/google/battlenet (GET rendert schema + provider-uitleg, POST slaat op); encryptie-
+round-trip bevestigd (DB toont alleen een AES-blob, de echte OAuth-redirect toont het juiste
+plaintext client_id/secret-effect); "leeg laten = behouden"-gedrag voor encrypted velden
+bevestigd; "Providers & API-instellingen"-kaart en het ⚙️-icoon in Marketplace bevestigd
+zichtbaar voor installer-tijd ingeschakelde modules; login-/profielpagina tonen alle vier
+knoppen; volledige regressiesweep (20 routes, incl. `/admin/marketplace` in alle vier tabs) —
+alles 200/302 zoals verwacht, geen enkele breuk.
+
+### Bekend, bewust buiten scope van deze golf
+
+- Discord/Twitch/Google/Battle.net kunnen nog niet écht tegen de live provider getest worden
+  in deze sandbox (geen uitgaand verkeer naar willekeurige domeinen) — de redirect-opbouw, de
+  encryptie-roundtrip en de callback-dispatch zijn wel volledig live geverifieerd.
+- Geen "meerdere Battle.net-regio's tegelijk"-ondersteuning (één module-instantie = één regio,
+  zoals in het instellingenscherm ook uitgelegd wordt).
+
+---
+
 ## [1.19.0] — 2026-09-29 — Wave 9: vier losse gaten parallel gedicht — $_ENV['APP_URL'], thema-kleuren, News-categorieën, contact-meldingsadres
 
 Aanleiding: "geef een overzicht van wat nog te doen is" + "iedereen aan het werk" — na het

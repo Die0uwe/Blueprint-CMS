@@ -281,6 +281,12 @@ final class Router
         // vroege laag die nu ook echt iets doet.
         $this->get('/admin/marketplace',                      'CommunityFusion\Modules\Marketplace\MarketplaceController@index',     $perm('marketplace.view'));
         $this->get('/admin/marketplace/package/{slug:[a-z0-9-]+}', 'CommunityFusion\Modules\Marketplace\MarketplaceController@detail',  $perm('marketplace.view'));
+        // Golf 10 (OAuth-providers): generiek instellingenscherm dat het
+        // 'settings'-schema uit modules/{slug}/module.json rendert — zie
+        // ModuleSettingsController voor waarom dit scherm er vóór deze golf
+        // nooit was (client_id/secret moesten met kale SQL ingevuld worden).
+        $this->get('/admin/marketplace/package/{slug:[a-z0-9-]+}/instellingen',  'CommunityFusion\Modules\Marketplace\ModuleSettingsController@edit',   $perm('marketplace.install'));
+        $this->post('/admin/marketplace/package/{slug:[a-z0-9-]+}/instellingen', 'CommunityFusion\Modules\Marketplace\ModuleSettingsController@update', $perm('marketplace.install'));
         $this->post('/admin/marketplace/install',             'CommunityFusion\Modules\Marketplace\MarketplaceController@install',   $perm('marketplace.install'));
         $this->post('/admin/marketplace/upload',              'CommunityFusion\Modules\Marketplace\MarketplaceController@upload',    $perm('marketplace.install'));
         $this->post('/admin/marketplace/uninstall',           'CommunityFusion\Modules\Marketplace\MarketplaceController@uninstall', $perm('marketplace.install'));
@@ -302,8 +308,12 @@ final class Router
         $this->get('/admin/{path:[a-z0-9\/-]+}', 'CommunityFusion\Modules\Settings\AdminController@handle', $perm('admin.access'));
 
         // ── OAuth Callbacks ─────────────────────────────────────────────
-        $this->get('/auth/discord/callback', 'CommunityFusion\Modules\Users\OAuthController@discordCallback');
-        $this->get('/auth/twitch/callback',  'CommunityFusion\Modules\Users\OAuthController@twitchCallback');
+        // Golf 10: Google + Battle.net toegevoegd naast de bestaande Discord/
+        // Twitch dispatchers — zelfde delegatiepatroon (zie OAuthController).
+        $this->get('/auth/discord/callback',   'CommunityFusion\Modules\Users\OAuthController@discordCallback');
+        $this->get('/auth/twitch/callback',    'CommunityFusion\Modules\Users\OAuthController@twitchCallback');
+        $this->get('/auth/google/callback',    'CommunityFusion\Modules\Users\OAuthController@googleCallback');
+        $this->get('/auth/battlenet/callback', 'CommunityFusion\Modules\Users\OAuthController@battlenetCallback');
     }
 }
 

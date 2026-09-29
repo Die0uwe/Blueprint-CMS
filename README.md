@@ -14,7 +14,7 @@ GPL-3.0-or-later
 [![PHP](https://img.shields.io/badge/PHP-8.3%2B-777BB4?style=flat-square&logo=php)](https://php.net)
 [![MariaDB](https://img.shields.io/badge/MariaDB-10.11%2B-003545?style=flat-square&logo=mariadb)](https://mariadb.org)
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.19.0-brightgreen?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-1.20.0-brightgreen?style=flat-square)](CHANGELOG.md)
 [![CI](https://img.shields.io/github/actions/workflow/status/Die0uwe/bluprint-cms/ci.yml?branch=main&style=flat-square&label=CI)](.github/workflows/ci.yml)
 
 *Geïnspireerd door PHP-Fusion · Down Under Fusion · ImpressCMS*
@@ -153,6 +153,7 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 | **S9-audit** | ✅ v1.9.0 | Wave 0 gap-analyse tegen de echte repo, WP-code verwijderd, CI/tests toegevoegd, JWT/APP_KEY gescheiden, Discord-registratie, upload-handler, Forum/Blog/Downloads/Contact core-modules, installer Step5 dynamisch |
 | **S9-audit²** | ✅ v1.10.0–v1.11.0 | Wave 2: `/admin` permissie-gating, echte Mailer, News/Pages admin-CRUD, `migrate`/`module:install` CLI-commando's — en een kritieke `LIMIT`/`OFFSET`-bug gevonden door voor het eerst tegen een echte MariaDB-server te testen (zie CHANGELOG v1.11.0) |
 | **S9-audit³** | ✅ v1.12.0–v1.19.0 | Wave 3–9: eerste échte end-to-end boot (2 fatale autoload-bugs gevonden), `/admin/users`, Forum live-verificatie + bordbeheer, de laatste 5 placeholder-schermen (Roles/Menus/Logs/Themes/Media — **alle 6 oorspronkelijke placeholder-schermen uit v1.10.0 zijn hiermee vervangen**), het Blokkensysteem (Kernprincipe #3), dat sinds Sprint 1 nog nooit had gewerkt, `/admin/settings` (sitenaam/MOTD/favicon/taal/tijdzone), en tot slot vier losse gaten in één golf: een `$_ENV['APP_URL']`-bug die OAuth-login kon breken, een thema-wissel die letterlijk niets deed, News-categoriebeheer en een instelbaar contact-meldingsadres. Zie CHANGELOG v1.12.0–v1.19.0. |
+| **Golf 10** | ✅ v1.20.0 | OAuth-login met Google, Discord, Battle.net en Twitch — generiek instellingenscherm (`/admin/marketplace/package/{slug}/instellingen`) dat werkt voor elke module met een `settings`-schema, échte encryptie voor opgeslagen secrets (`Core\Security\Crypto`, was voorheen een dode `'encrypted'`-kolomwaarde), en twee nieuwe modules (Google, Battle.net). Zie CHANGELOG v1.20.0. |
 | **S10** | 📋 Gepland | YouTube + Kick integratie |
 | **S11** | 📋 Gepland | Media-galerij (los van de generieke upload-handler) |
 | **S12** | 📋 Gepland | Premium ecosysteem + licenties + betalingen |
@@ -176,7 +177,7 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 
 ---
 
-## ⚠️ Bekende beperkingen (stand v1.19.0)
+## ⚠️ Bekende beperkingen (stand v1.20.0)
 
 Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben opgelost — zie
 `docs/wave-0-gap-analysis.md` en `CHANGELOG.md` voor de volledige context per punt.
@@ -284,6 +285,24 @@ Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben o
 > -scherm. Alle vier live getest tegen een verse installatie. Zie CHANGELOG v1.19.0 voor het
 > volledige verhaal, inclusief hoe de twee subagent-opgeleverde delta's gereviewd en
 > samengevoegd zijn vóór de gezamenlijke live-testronde.
+>
+> **v1.20.0: OAuth-login met Google/Discord/Battle.net/Twitch, plus een generiek
+> instellingenscherm dat dat soort providerconfiguratie voor het eerst überhaupt beheersbaar
+> maakt vanuit de admin-UI.** Vóór deze golf was er geen enkele plek om een `client_id`/
+> `client_secret` in te vullen zonder rechtstreeks in `cf_settings` te SQL'en — nu leest
+> `/admin/marketplace/package/{slug}/instellingen` het `settings`-schema uit elke module's
+> `module.json` en rendert er automatisch een formulier voor, met per provider de exacte
+> uitleg waar je de sleutels vandaan haalt en welke redirect-URI je moet whitelisten. Tijdens
+> het bouwen kwamen twee bugs in dezelfde familie aan het licht: `cf_settings.type =
+> 'encrypted'` bestond al in het schema maar werd nergens gebruikt (een secret zou dus in
+> platte tekst zijn opgeslagen), en Discord/Twitch's eigen `getSetting()` zou zo'n
+> versleutelde waarde straks ONVERTAALD naar de provider gestuurd hebben. Beide gefixt via een
+> nieuwe gedeelde `Core\Security\Crypto`-klasse (AES-256-GCM), en live bevestigd met een
+> volledige save→DB→redirect-round-trip. Twee nieuwe modules (Google, Battle.net) zijn door
+> twee parallelle subagents gebouwd naar het bestaande Discord-patroon; Twitch kreeg zijn tot
+> nu toe ontbrekende "inloggen met"-flow (had alleen "koppelen"). Zie CHANGELOG v1.20.0 voor
+> de volledige details, inclusief een derde ontdekte bug (de Marketplace "Geïnstalleerd"-tab
+> track niet dezelfde modules als `Application::loadModules()` daadwerkelijk gebruikt).
 
 - ~~`/admin`-routes zijn niet permissie-gated~~ — **opgelost in v1.10.0.** Zie CHANGELOG:
   `PermissionMiddleware` + `admin.access`/`settings.edit`/`blocks.manage`/`marketplace.*`.
@@ -341,6 +360,21 @@ Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben o
   artikelen in plaats van ze te blokkeren of te verwijderen. Zie CHANGELOG v1.19.0.
 - ~~Contactformulier had geen instelbaar meldingen-e-mailadres~~ — **opgelost in v1.19.0.**
   Nieuw veld in het (sinds v1.18.0 echte) `/admin/settings`-scherm. Zie CHANGELOG v1.19.0.
+- ~~Alleen inloggen met Discord (koppelen), geen Google/Battle.net, geen "inloggen met
+  Twitch"~~ — **opgelost in v1.20.0.** Alle vier providers werken nu voor zowel login/
+  accountaanmaak als koppelen aan een bestaand account.
+- ~~Geen enkele admin-UI om een module's `client_id`/`client_secret` in te vullen — alleen
+  via kale SQL op `cf_settings`~~ — **opgelost in v1.20.0.** Generiek instellingenscherm
+  (`/admin/marketplace/package/{slug}/instellingen`) leest elke module's `module.json`-schema.
+- ~~`cf_settings.type = 'encrypted'` bestond in het schema maar werd nooit gebruikt — een
+  opgeslagen client_secret zou in platte tekst hebben gestaan~~ — **opgelost in v1.20.0.**
+  Nieuwe gedeelde `Core\Security\Crypto`-klasse (AES-256-GCM); `SettingsRepository` en
+  Discord/Twitch's `getSetting()` versleutelen/ontsleutelen nu écht. Zie CHANGELOG v1.20.0
+  voor waarom dit pas tijdens het bouwen van het instellingenscherm aan het licht kwam.
+- Nog niet live tegen echte Discord/Twitch/Google/Battle.net-app-registraties te verifiëren
+  in deze sandbox (geen uitgaand verkeer naar willekeurige domeinen) — de redirect-opbouw,
+  encryptie-roundtrip en callback-dispatch zijn wel volledig live geverifieerd (zie
+  CHANGELOG v1.20.0).
 - **Module-specifieke extra tabellen** (bv. `cf_discord_role_mapping`) worden niet direct
   aangemaakt wanneer je een module in installer-stap 5 selecteert — de installer laadt bewust
   geen framework-klassen. Ze ontstaan zodra een beheerder de module later via

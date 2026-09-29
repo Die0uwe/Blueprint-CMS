@@ -91,6 +91,58 @@ final class OAuthController
     }
 
     /**
+     * Google OAuth callback. Golf 10.
+     */
+    public function googleCallback(Request $request): Response
+    {
+        $code  = $request->query('code', '');
+        $error = $request->query('error', '');
+
+        if (!empty($error)) {
+            return Response::redirect('/?error=google_' . urlencode($error));
+        }
+        if (empty($code)) {
+            return Response::redirect('/?error=google_no_code');
+        }
+
+        $googleController = $this->loadModuleController(
+            'CommunityFusion\\Modules\\Google\\GoogleOAuthController'
+        );
+
+        if ($googleController) {
+            return $googleController->callback($request);
+        }
+
+        return Response::redirect('/?error=google_module_not_installed');
+    }
+
+    /**
+     * Battle.net OAuth callback. Golf 10.
+     */
+    public function battlenetCallback(Request $request): Response
+    {
+        $code  = $request->query('code', '');
+        $error = $request->query('error', '');
+
+        if (!empty($error)) {
+            return Response::redirect('/?error=battlenet_' . urlencode($error));
+        }
+        if (empty($code)) {
+            return Response::redirect('/?error=battlenet_no_code');
+        }
+
+        $battlenetController = $this->loadModuleController(
+            'CommunityFusion\\Modules\\BattleNet\\BattleNetOAuthController'
+        );
+
+        if ($battlenetController) {
+            return $battlenetController->callback($request);
+        }
+
+        return Response::redirect('/?error=battlenet_module_not_installed');
+    }
+
+    /**
      * Probeer een module controller te instantiëren via autoloader.
      */
     private function loadModuleController(string $class): ?object

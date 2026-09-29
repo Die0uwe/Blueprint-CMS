@@ -51,6 +51,8 @@
     $icons = [
         'discord'          => '🎮',
         'twitch'           => '📺',
+        'google'           => '🔑',
+        'battlenet'        => '🌀',
         'guild-management' => '⚔️',
         'minecraft'        => '🟫',
         'fivem'            => '🚓',
