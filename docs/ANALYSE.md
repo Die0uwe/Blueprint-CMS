@@ -5,7 +5,27 @@ GPL-3.0-or-later
 ============================================================================
 -->
 
-# 📊 Blueprint CMS — Analyse Rapport v1.7.0
+> ## 🗄️ GEARCHIVEERD — historisch document, niet de actuele status
+>
+> Dit rapport is een momentopname van **v1.7.0 (2026-06-06)** — vóór Sprints 9-13, vóór de
+> Wave 0-9 audits, vóór v1.20-1.25. De cijfers en conclusies hieronder (bestandstellingen,
+> "0 issues resterend", enz.) kloppen niet meer met de huidige codebase (inmiddels 11+
+> community/gaming-modules, i18n, forum, media-gallery, OAuth, en meerdere gevonden-en-gefixte
+> kritieke bugs die dit rapport nog niet kende). Het "98/100"-cijfer hieronder was destijds al
+> een zelfgerapporteerde regex-telling, nooit tegen echte tests gedraaid — zie README.md sectie
+> "🔐 Security" voor die disclaimer.
+>
+> **Voor de actuele stand van zaken:** zie de roadmap-tabel en "⚠️ Bekende beperkingen"-sectie
+> in [README.md](../README.md), en [CHANGELOG.md](../CHANGELOG.md) voor de volledige,
+> chronologische geschiedenis van elke wijziging, bug en fix sindsdien (met name de
+> S9-audit-golven, v1.20-1.25, en de zes-koppige totale-codebase-audit in v1.25.5).
+>
+> Dit document blijft staan als historisch referentiepunt (hoe zag Sprint 1-8 eruit), niet
+> als actuele documentatie.
+
+---
+
+# 📊 Blueprint CMS — Analyse Rapport v1.7.0 *(gearchiveerd — zie banner hierboven)*
 
 > Volledige statische code analyse na Sprint 8 — alle 169 bestanden geïnspecteerd.
 > Laatste update: 2026-06-06

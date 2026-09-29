@@ -1,8 +1,19 @@
 {
-    "name": "communityfusion/cms",
-    "description": "Community Fusion CMS — PHP 8.3+ modulair gaming/community CMS",
+    "name": "dieouwe/blueprint-cms",
+    "description": "Blueprint CMS (voorheen Community Fusion CMS) — PHP 8.3+ modulair gaming/community CMS",
     "type": "project",
     "license": "GPL-3.0-or-later",
+    "homepage": "https://github.com/Die0uwe/Blueprint-CMS",
+    "authors": [
+        {
+            "name": "DieOuwe",
+            "homepage": "https://www.dieouwe.nl"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/Die0uwe/Blueprint-CMS/issues",
+        "source": "https://github.com/Die0uwe/Blueprint-CMS"
+    },
     "require": {
         "php": ">=8.3",
         "twig/twig": "^3.0",
