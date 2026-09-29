@@ -15,7 +15,7 @@ $actionUrl    = $isEdit ? '/admin/roles/' . (int) $role['id'] . '/bewerk' : '/ad
 $rolePermIds  = $rolePermIds ?? [];
 ?>
 <!DOCTYPE html>
-<html lang="nl">
+<html lang="<?= htmlspecialchars(\CommunityFusion\Core\I18n\Trans::locale(), ENT_QUOTES) ?>">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">

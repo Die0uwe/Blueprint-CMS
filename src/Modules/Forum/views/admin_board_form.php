@@ -10,7 +10,7 @@ $isEdit    = $board !== null;
 $actionUrl = $isEdit ? '/admin/forum/boards/' . (int) $board['id'] . '/bewerk' : '/admin/forum/boards';
 ?>
 <!DOCTYPE html>
-<html lang="nl">
+<html lang="<?= htmlspecialchars(\CommunityFusion\Core\I18n\Trans::locale(), ENT_QUOTES) ?>">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">

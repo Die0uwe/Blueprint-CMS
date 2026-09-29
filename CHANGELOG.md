@@ -18,6 +18,126 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ---
 
+## [1.24.0] — 2026-09-29 — S13: Multi-language / i18n
+
+Aanleiding: "s13 en dan inventariseren en de debug" — na S11 (Media-galerij) werd S12
+(Premium ecosysteem) expliciet uitgesteld ("premium is nu niet belangerijk") ten gunste van
+S13 (i18n), met een post-sprint inventarisatie- en debugronde erna gepland.
+
+### Nieuw — `src/Core/I18n/`, `lang/`
+
+- **`Translator`** (`src/Core/I18n/Translator.php`) — platte PHP-array-vertaalbestanden
+  (`lang/{locale}.php`, dot-notation sleutels zoals `admin.sidebar.dashboard`) i.p.v. een
+  databasetabel of .po/.mo: geen eigen CRUD-admin-UI nodig om strings te beheren, profiteert
+  van OPcache net als `config/config.php`, en is git-diffable. `SUPPORTED = ['nl','en','de']`
+  — bewust gelijk aan wat `installer/templates/step3.php` al langer aanbood (`/admin/settings`
+  accepteerde tot nu toe alleen nl/en, zie de bugfix hieronder). Ontbrekende sleutels vallen
+  terug op `nl` (de taal waarin dit project native geschreven is), en als zelfs dat ontbreekt
+  wordt de kale sleutel teruggegeven — nooit een lege string of fatale fout.
+- **`lang/nl.php` / `lang/en.php` / `lang/de.php`** — `common`, `nav`, `auth.login.*`,
+  `auth.register.*`, `profile.*`, `admin.sidebar.*`, `admin.settings.*`, `admin.dashboard.*`.
+  `nl.php` is de bron van waarheid (meest compleet); `en`/`de` spiegelen dezelfde sleutels.
+- **`Trans`** (`src/Core/I18n/Trans.php`) — statische facade voor de ~30 raw-PHP admin-schermen
+  (die geen Twig/container-scope hebben), naar hetzelfde patroon als `CsrfProtection::field()`.
+  `Trans::get($key)`/`Trans::t($key)` voor vertalingen, en `Trans::locale()` (nieuw, tijdens de
+  live-testronde toegevoegd) zodat elk admin-scherm zijn `<html lang="…">` mechanisch kan
+  laten kloppen zonder een aparte Translator-lookup per view.
+- **Locale-resolutievolgorde** (`Application::boot()`): 1) `$_SESSION['locale']` (expliciete
+  keuze, werkt ook voor gasten) → 2) ingelogde `cf_users.locale` → 3) `cf_settings`
+  `core.default_locale` (sitestandaard) → 4) hardcoded `'nl'`. Elke stap apart in een
+  try/catch, consistent met het bestaande pre-install-veiligheidspatroon in `boot()`.
+- **Twig-integratie** (`ThemeManager::setTranslator()`) — `{{ trans('key') }}`-functie en
+  `'key'|trans`-filter, plus de globals `locale` en `supported_locales`.
+- **Publieke taalwisselaar** — `GET /taal/{locale}` (`Modules\I18n\LanguageController`), werkt
+  voor gasten via de sessie, met CSRF-vrije maar wél beveiligde redirect: `safeRedirectTarget()`
+  vertrouwt uitsluitend het *pad* van de `Referer`-header (nooit scheme/host) en weigert een
+  redirect terug naar `/taal/` zelf (loop-preventie), met `/` als fallback.
+- **Per-gebruiker taalvoorkeur** — `POST /profiel/taal` (`ProfileController::updateLanguage()`)
+  schrijft naar `cf_users.locale` én direct naar `$_SESSION['locale']`, zodat de wijziging al
+  op dezelfde pagina-load zichtbaar is i.p.v. te wachten op de volgende Translator-resolutie.
+- **`.cf-lang-switch`-styling** in `blueprint.css` — de header-taalwisselaar (NL/EN/DE, actieve
+  taal gemarkeerd) had tot nu toe geen eigen stijl.
+
+### Conversie naar `trans()`/`Trans::get()`
+
+`layout.twig`, `auth/login.twig`, `auth/register.twig`, `users/profile.twig` (beide thema's,
+byte-identiek gesynchroniseerd), de gedeelde `Shared/views/admin_sidebar.php`-partial, en het
+admin-dashboard (`Settings/views/dashboard.php` — inclusief het dedupliceren van zijn tot nu
+toe *handmatig gekopieerde* sidebar-markup naar diezelfde gedeelde partial, wat de i18n-
+conversie van die sidebar gratis meenam). Daarnaast: `<html lang="nl">` mechanisch vervangen
+door `Trans::locale()` in alle 26 overige raw-PHP `/admin/*`-schermen (News, Pages, Users,
+Roles, Forum, Gallery, Media, Themes, Menus, Logs, Marketplace, Blocks, Settings). De
+sitebrede navigatie miste bovendien al sinds S11 een link naar `/galerij` (de module bestond,
+maar was via de UI onbereikbaar) — nu toegevoegd in `layout.twig`.
+
+**Bewust niet geconverteerd (eerlijk gedocumenteerd, zie ook README "Bekende beperkingen"):**
+losse tekst-labels ín de ~26 admin-schermen buiten dashboard/sidebar (stat-cards, tabelkoppen,
+formulierlabels, enz. — alleen hun `<html lang>` is gefixt), de installer (draait vóór er een
+sessie/database is om een locale uit op te lossen) en de losse game/streamer-modules
+(`modules/warcraft`, `modules/minecraft`, enz. — hun eigen templates).
+
+### Bugfix — `Settings\AdminController::updateSettings()` (locale-whitelist)
+
+`default_locale` accepteerde hardcoded alleen `['nl', 'en']`, terwijl de installer al langer
+nl/en/de aanbood — een sitebeheerder kon dus nooit Duits als sitestandaard instellen zonder
+rechtstreeks in `cf_settings` te SQL'en. Nu `in_array($locale, Translator::SUPPORTED, true)`.
+
+### Bugfix — `Router::compilePattern()` brace-quantifier in een route-constraint (gevonden tijdens live-testen)
+
+De taalwisselaar-route was aanvankelijk geregistreerd als `/taal/{locale:[a-z]{2}}`. Elke
+andere geconstrainde route in dit bestand gebruikt uitsluitend `[...]+`-vormen — met reden:
+`compilePattern()`'s eigen placeholder-regex (`/\{(\w+)(?::([^}]+))?\}/`) knipt de constraint
+af bij de **eerste** `}`, dus een `{n}`-quantifier ín de constraint zelf breekt de
+gecompileerde regex stil kapot (de route matchte daardoor helemaal niets — `GET /taal/en` gaf
+een kale 404). Ontdekt via de live-testronde van deze sprint, exact dezelfde categorie fout
+als de kapotte `schema.sql`-import die Sprint 11 blokkeerde: onzichtbaar bij lezen, meteen
+zichtbaar bij een echte request. Fix: `/taal/{locale:[a-z]+}` (de daadwerkelijke validatie
+tegen `Translator::SUPPORTED` gebeurt toch al in `LanguageController::switch()`). **Nog niet
+opgelost:** `compilePattern()` zelf blijft deze algemene beperking houden voor elke toekomstige
+route die een brace-quantifier in een constraint gebruikt — meegenomen naar de inventarisatie-
+/debugronde die na deze sprint volgt.
+
+### Bugfix — root `.htaccess` herschreef ook `/installer/` naar `public/` (gevonden tijdens live-testen)
+
+De root-`.htaccess` herschreef *elke* request ongeconditioneerd naar `public/$1` — inclusief
+`/installer/`, dat bewust NAAST `public/` staat (architectuurspec §2.2). In een echte
+Apache-deployment zou de door README gedocumenteerde installatie-URL (`http://jouwsite.nl/installer/`)
+dus altijd op een 404 zijn gestuit, omdat `public/installer/` niet bestaat. Gevonden tijdens het
+opzetten van deze sprint se live-testomgeving (een `RewriteRule (.*) public/$1`-loop die eerder
+nooit tegen een echte `.htaccess`-parserende server was getest — eerdere waves testten altijd
+rechtstreeks tegen `public/` of `installer/`, nooit via deze root-`.htaccess`). Fix: twee
+`RewriteCond`-regels die een bestaand bestand/map ongemoeid laten vóór de onvoorwaardelijke
+herschrijving naar `public/`.
+
+### Overig
+
+- Footer-crediet "Slayer Alliance" → **ScriptSpace** (`https://www.scriptspace.nl`, de site
+  vanwaar deze CMS gehost wordt en draait) in beide thema's én de installer-footer.
+
+### Live-testverificatie (scripted install tegen een echte MariaDB-server, PHP built-in server)
+
+- Gast-taalwisselaar: `/taal/en` en `/taal/de` zetten de sessie en veranderen zowel
+  `<html lang>` als alle `trans()`-tekst direct (`Nieuws`→`News`/`Neuigkeiten`, sidebar-
+  secties `Uiterlijk`→`Appearance`, enz.); `/taal/nl` schakelt terug.
+- Prioriteitsketen end-to-end bevestigd: sessie-override > ingelogde `cf_users.locale` >
+  site-`default_locale` > `'nl'` — inclusief een verse login (géén sessie-override) die
+  meteen de zojuist via `/profiel/taal` opgeslagen DB-voorkeur toont, en een site-
+  `default_locale`-wijziging naar `de` via `/admin/settings` die onmiddellijk zichtbaar is
+  voor een geheel nieuwe, niet-ingelogde bezoeker.
+- `/admin/settings`'s taal-dropdown biedt nu daadwerkelijk nl/en/de en de POST slaat `de`
+  correct op (whitelist-bugfix hierboven).
+- Beveiliging: een ongeldige locale (`/taal/xx`) wordt geweigerd zonder de sessie te wijzigen;
+  de loop-preventie (Referer terug naar `/taal/`) valt terug op `/`; de Referer-pad-only-
+  bescherming laat nooit een cross-origin redirect toe (een externe Referer levert hooguit een
+  lokaal pad op, nooit het externe domein).
+- Ontbrekende-sleutel-fallback bevestigd via een losstaande Translator-aanroep: een niet-
+  bestaande sleutel geeft de kale sleutel terug, nooit een fatale fout of lege string.
+- 28-routes regressiesweep (publiek + admin, ingelogd) zonder nieuwe breuken.
+- Testomgeving nadien volledig opgeruimd: testdatabase/-gebruiker gedropt, `config/config.php`
+  en `installer/.installed` verwijderd (beide toch al git-genegeerd).
+
+---
+
 ## [1.23.0] — 2026-09-29 — S11: Media-galerij (los van de generieke upload-handler)
 
 Aanleiding: "s11" — het volgende item op de roadmap na S10 (YouTube + Kick). Een échte

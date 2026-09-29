@@ -10,7 +10,7 @@ $typeIcons  = ['module' => '⚙️', 'theme' => '🎨', 'block' => '🧩'];
 $typeColors = ['module' => '#6c3df4', 'theme' => '#f59e0b', 'block' => '#1D9E75'];
 ?>
 <!DOCTYPE html>
-<html lang="nl">
+<html lang="<?= htmlspecialchars(\CommunityFusion\Core\I18n\Trans::locale(), ENT_QUOTES) ?>">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Marketplace — Blueprint CMS Admin</title>

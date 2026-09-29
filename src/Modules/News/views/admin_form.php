@@ -11,7 +11,7 @@ $isEdit    = $article !== null;
 $action    = $isEdit ? '/admin/news/' . (int) $article['id'] . '/bewerk' : '/admin/news';
 ?>
 <!DOCTYPE html>
-<html lang="nl">
+<html lang="<?= htmlspecialchars(\CommunityFusion\Core\I18n\Trans::locale(), ENT_QUOTES) ?>">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">

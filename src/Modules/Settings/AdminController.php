@@ -67,7 +67,13 @@ final class AdminController
         if ($siteName === '') {
             return Response::redirect('/admin/settings?error=' . urlencode('Sitenaam mag niet leeg zijn.'));
         }
-        if (!in_array($locale, ['nl', 'en'], true)) {
+        // S13 (Multi-language/i18n): was hardcoded ['nl','en'] — de installer
+        // (installer/templates/step3.php) bood al sinds Sprint 2 óók 'de' aan,
+        // dus een tijdens installatie gekozen Duitse site zou bij de eerstvolgende
+        // /admin/settings-opslag stilzwijgend terugvallen op 'nl'. Nu gelijk aan
+        // Translator::SUPPORTED, de enige echte bron van waarheid voor welke
+        // talen dit project daadwerkelijk vertaalbestanden heeft (lang/*.php).
+        if (!in_array($locale, \CommunityFusion\Core\I18n\Translator::SUPPORTED, true)) {
             $locale = 'nl';
         }
         // Leeg mag (dan valt ContactController terug op het standaard

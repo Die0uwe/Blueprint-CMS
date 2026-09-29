@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ settings.locale|default('nl') }}">
+<html lang="{{ locale|default('nl') }}">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -49,21 +49,33 @@
       {% endif %}
     </a>
     <nav class="cf-nav">
-      <a href="/news" class="cf-nav-link">Nieuws</a>
-      <a href="/blog" class="cf-nav-link">Blog</a>
-      <a href="/forum" class="cf-nav-link">Forum</a>
-      <a href="/downloads" class="cf-nav-link">Downloads</a>
+      <a href="/news" class="cf-nav-link">{{ trans('nav.news') }}</a>
+      <a href="/blog" class="cf-nav-link">{{ trans('nav.blog') }}</a>
+      <a href="/forum" class="cf-nav-link">{{ trans('nav.forum') }}</a>
+      <a href="/downloads" class="cf-nav-link">{{ trans('nav.downloads') }}</a>
+      {# Ontbrak hier sinds S11 (Media-galerij) — de module/routes/views
+         bestonden al, maar niemand kon /galerij bereiken zonder de URL uit
+         het hoofd te typen. Gevonden tijdens de S13-conversie van dit
+         bestand. #}
+      <a href="/galerij" class="cf-nav-link">{{ trans('nav.gallery') }}</a>
       {% for page in menu_pages %}
         <a href="/page/{{ page.slug }}" class="cf-nav-link">{{ page.title }}</a>
       {% endfor %}
-      <a href="/contact" class="cf-nav-link">Contact</a>
+      <a href="/contact" class="cf-nav-link">{{ trans('nav.contact') }}</a>
     </nav>
     <div class="cf-header-actions">
+      {# S13 (Multi-language/i18n) — publieke taalwisselaar, werkt ook voor
+         gasten (sessie-override, zie LanguageController::switch()). #}
+      <div class="cf-lang-switch">
+        {% for l in supported_locales %}
+          <a href="/taal/{{ l }}" class="{{ l == locale ? 'active' : '' }}">{{ l|upper }}</a>
+        {% endfor %}
+      </div>
       {% if auth.check() %}
-        <a href="/admin" class="cf-btn-sm">Admin</a>
-        <a href="/logout" class="cf-btn-sm cf-btn-ghost">Uitloggen</a>
+        <a href="/admin" class="cf-btn-sm">{{ trans('nav.admin') }}</a>
+        <a href="/logout" class="cf-btn-sm cf-btn-ghost">{{ trans('nav.logout') }}</a>
       {% else %}
-        <a href="/login" class="cf-btn-sm">Inloggen</a>
+        <a href="/login" class="cf-btn-sm">{{ trans('nav.login') }}</a>
       {% endif %}
     </div>
   </div>
@@ -131,7 +143,7 @@
     <p>© {{ "now"|date("Y") }} {{ settings.site_name|default('Blueprint CMS') }}</p>
     <p class="cf-footer-links">
       <a href="https://www.dieouwe.nl">DieOuwe</a> ·
-      <a href="https://www.slayeralliance.com">Slayer Alliance</a> ·
+      <a href="https://www.scriptspace.nl">ScriptSpace</a> ·
       <a href="https://github.com/Die0uwe/Bluprint-CMS">GitHub</a>
     </p>
   </div>

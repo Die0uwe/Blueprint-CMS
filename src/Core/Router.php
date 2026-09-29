@@ -161,6 +161,18 @@ final class Router
         $this->post('/register', 'CommunityFusion\Modules\Users\AuthController@register');
         $this->get('/profiel',          'CommunityFusion\Modules\Users\ProfileController@show',         $auth);
         $this->post('/profiel/avatar',  'CommunityFusion\Modules\Users\ProfileController@updateAvatar',  $auth);
+        $this->post('/profiel/taal',    'CommunityFusion\Modules\Users\ProfileController@updateLanguage', $auth);
+
+        // ── Taalwisselaar (S13 — Multi-language/i18n) — publiek, ook voor gasten ──
+        // LET OP: geen `{locale:[a-z]{2}}` — Router::compilePattern()'s eigen
+        // placeholder-regex knipt de constraint af bij de EERSTE `}`, dus een
+        // `{n}`-quantifier binnen de constraint zelf (zoals `{2}` hier) breekt
+        // de gecompileerde regex stil kapot (ontdekt via de S13 live-testronde:
+        // /taal/en gaf altijd een 404). Geen route in dit bestand gebruikt
+        // elders een brace-quantifier in een constraint — consistent met dat
+        // patroon volstaat `[a-z]+`; LanguageController::switch() valideert
+        // de waarde sowieso al tegen Translator::SUPPORTED.
+        $this->get('/taal/{locale:[a-z]+}', 'CommunityFusion\Modules\I18n\LanguageController@switch');
 
         // ── Media (uploads, buiten webroot — zie UploadManager) ─────────
         $this->get('/media/{path:[a-zA-Z0-9/_.-]+}', 'CommunityFusion\Modules\Media\MediaController@show');

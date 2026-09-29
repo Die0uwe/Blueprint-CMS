@@ -11,7 +11,7 @@ $typeColor  = $typeColors[$package['type'] ?? 'module'] ?? '#6c3df4';
 $tags       = json_decode($package['tags'] ?? '[]', true) ?? [];
 ?>
 <!DOCTYPE html>
-<html lang="nl">
+<html lang="<?= htmlspecialchars(\CommunityFusion\Core\I18n\Trans::locale(), ENT_QUOTES) ?>">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title><?= htmlspecialchars($package['name'] ?? '') ?> — Marketplace — Blueprint CMS</title>

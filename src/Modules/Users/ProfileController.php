@@ -47,6 +47,7 @@ final class ProfileController
         $html = $this->theme->render('users/profile.twig', [
             'page_title'  => 'Mijn profiel',
             'user'        => $this->auth->user(),
+            'language'    => $request->query('language'),
             'connections' => array_map(
                 fn(array $c) => [
                     'provider' => $c['provider'],
@@ -104,6 +105,38 @@ final class ProfileController
         }
 
         return Response::redirect('/profiel?avatar=updated');
+    }
+
+    /**
+     * POST /profiel/taal — S13 (Multi-language/i18n). Persistent, per-
+     * gebruiker taalvoorkeur, los van de publieke gast-taalwisselaar
+     * (`GET /taal/{locale}`, die alleen de sessie zet). Schrijft ook meteen
+     * naar `$_SESSION['locale']` zodat de wijziging direct op déze pagina-
+     * load al zichtbaar is, zonder te wachten op de volgende Translator-
+     * resolutie (die `cf_users.locale` pas bij de eerstvolgende request zou
+     * hebben gelezen — zie Application::boot()'s resolutievolgorde).
+     */
+    public function updateLanguage(Request $request): Response
+    {
+        if (!$this->auth->check()) {
+            return Response::redirect('/login?redirect=/profiel');
+        }
+
+        CsrfProtection::validateRequest();
+
+        $locale = (string) $request->input('locale', '');
+        if (!in_array($locale, \CommunityFusion\Core\I18n\Translator::SUPPORTED, true)) {
+            return Response::redirect('/profiel?error=' . urlencode('Onbekende taal.'));
+        }
+
+        $this->db->execute("UPDATE cf_users SET locale = ? WHERE id = ?", [$locale, $this->auth->id()]);
+
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        $_SESSION['locale'] = $locale;
+
+        return Response::redirect('/profiel?language=updated');
     }
 }
 

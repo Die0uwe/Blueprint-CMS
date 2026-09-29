@@ -2,7 +2,7 @@
 {% block content %}
 <div style="max-width:480px;margin:3rem auto;">
   <div class="cf-card">
-    <div class="cf-card-header">✨ Nieuw Account</div>
+    <div class="cf-card-header">✨ {{ trans('auth.register.title') }}</div>
     <div class="cf-card-body">
       {% if errors is defined %}
         <div class="cf-alert cf-alert-error">{% for e in errors %}<div>{{ e }}</div>{% endfor %}</div>
@@ -10,25 +10,25 @@
       <form method="POST" action="/register">
         {{ csrf_field()|raw }}
         <div class="cf-form-group">
-          <label class="cf-label">Gebruikersnaam</label>
+          <label class="cf-label">{{ trans('auth.register.username_label') }}</label>
           <input class="cf-input" type="text" name="username" required>
         </div>
         <div class="cf-form-group">
-          <label class="cf-label">E-mailadres</label>
+          <label class="cf-label">{{ trans('auth.register.email_label') }}</label>
           <input class="cf-input" type="email" name="email" required>
         </div>
         <div class="cf-form-group">
-          <label class="cf-label">Wachtwoord</label>
+          <label class="cf-label">{{ trans('auth.register.password_label') }}</label>
           <input class="cf-input" type="password" name="password" minlength="8" required>
         </div>
         <div class="cf-form-group">
-          <label class="cf-label">Bevestig Wachtwoord</label>
+          <label class="cf-label">{{ trans('auth.register.password_confirm_label') }}</label>
           <input class="cf-input" type="password" name="password_confirm" required>
         </div>
-        <button type="submit" class="cf-btn" style="width:100%;justify-content:center;">Account Aanmaken →</button>
+        <button type="submit" class="cf-btn" style="width:100%;justify-content:center;">{{ trans('auth.register.submit') }}</button>
       </form>
       <p style="text-align:center;margin-top:1rem;font-size:.85rem;color:var(--muted);">
-        Al een account? <a href="/login">Inloggen</a>
+        {{ trans('auth.register.have_account') }} <a href="/login">{{ trans('auth.register.login_link') }}</a>
       </p>
     </div>
   </div>

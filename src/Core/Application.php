@@ -166,6 +166,62 @@ final class Application
             return new ThemeManager(CF_ROOT . '/themes', $theme);
         });
 
+        // Translator (S13 — Multi-language/i18n). Resolutievolgorde, hoogste
+        // prioriteit eerst:
+        //   1. $_SESSION['locale'] — expliciete keuze van DEZE bezoeker via de
+        //      publieke taalwisselaar (GET /taal/{locale}, zie Router), werkt
+        //      ook voor gasten zonder account.
+        //   2. cf_users.locale van de ingelogde gebruiker — het profielscherm
+        //      (POST /profiel/taal) schrijft hier ook naar $_SESSION['locale']
+        //      bij het opslaan, dus dit pad is vooral de fallback ná een
+        //      cross-device login zonder dat de sessie ooit expliciet gezet is.
+        //   3. cf_settings('core','default_locale') — de site-brede standaard
+        //      uit /admin/settings.
+        //   4. 'nl' — harde fallback vóór installatie of bij lege database.
+        // Elke stap zit in dezelfde try/catch-per-stap-stijl als de rest van
+        // boot() vóór installatie (cf_settings/cf_users bestaan dan nog niet).
+        $this->container->singleton(\CommunityFusion\Core\I18n\Translator::class, function() {
+            $locale = null;
+
+            if (session_status() === PHP_SESSION_NONE) {
+                // AuthManager start de sessie normaal (zie startSecureSession()),
+                // maar Translator kan vóór AuthManager geresolved worden —
+                // resolve 'm hier alvast zodat $_SESSION altijd beschikbaar is.
+                try {
+                    $this->container->make(\CommunityFusion\Core\Auth\AuthManager::class);
+                } catch (\Throwable) {}
+            }
+
+            $sessionLocale = $_SESSION['locale'] ?? null;
+            if (is_string($sessionLocale) && in_array($sessionLocale, \CommunityFusion\Core\I18n\Translator::SUPPORTED, true)) {
+                $locale = $sessionLocale;
+            }
+
+            if ($locale === null) {
+                try {
+                    $auth = $this->container->make(\CommunityFusion\Core\Auth\AuthManager::class);
+                    if ($auth->check()) {
+                        $userLocale = $auth->user()['locale'] ?? null;
+                        if (is_string($userLocale) && in_array($userLocale, \CommunityFusion\Core\I18n\Translator::SUPPORTED, true)) {
+                            $locale = $userLocale;
+                        }
+                    }
+                } catch (\Throwable) {}
+            }
+
+            if ($locale === null) {
+                try {
+                    $settingsRepo = $this->container->make(\CommunityFusion\Modules\Settings\SettingsRepository::class);
+                    $siteLocale   = $settingsRepo->get('core', 'default_locale');
+                    if (is_string($siteLocale) && in_array($siteLocale, \CommunityFusion\Core\I18n\Translator::SUPPORTED, true)) {
+                        $locale = $siteLocale;
+                    }
+                } catch (\Throwable) {}
+            }
+
+            return new \CommunityFusion\Core\I18n\Translator($locale ?? 'nl');
+        });
+
         // Uploads — schrijft altijd buiten webroot naar storage/uploads/
         $this->container->singleton(\CommunityFusion\Core\Storage\UploadManager::class, function() use ($config) {
             return new \CommunityFusion\Core\Storage\UploadManager(
@@ -281,6 +337,15 @@ final class Application
 
             $settingsRepo = $this->container->make(\CommunityFusion\Modules\Settings\SettingsRepository::class);
             $theme->addGlobal('settings', $settingsRepo->getGroup('core'));
+
+            // S13 (Multi-language/i18n) — registreert de `trans()`-Twig-functie
+            // en `|trans`-filter (zie ThemeManager::setTranslator()) en zet de
+            // opgeloste bezoekerstaal als `locale`-global, o.a. gebruikt door
+            // layout.twig's <html lang="{{ locale }}">.
+            $translator = $this->container->make(\CommunityFusion\Core\I18n\Translator::class);
+            $theme->setTranslator($translator);
+            $theme->addGlobal('locale', $translator->locale());
+            $theme->addGlobal('supported_locales', \CommunityFusion\Core\I18n\Translator::SUPPORTED);
 
             $pageRepo = $this->container->make(\CommunityFusion\Modules\Pages\PageRepository::class);
             $theme->addGlobal('menu_pages', $pageRepo->getMenuPages());

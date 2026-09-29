@@ -2,9 +2,17 @@
 // ============================================================================
 // Copyright (C) 2026  DieOuwe — GPL-3.0-or-later
 // ============================================================================
+// S13 (Multi-language/i18n) — sidebar was hier tot nu toe handmatig
+// gedupliceerd i.p.v. de gedeelde Shared/views/admin_sidebar.php partial te
+// includen (zie het kop-commentaar in dat bestand, dat dit al als goede
+// vervolgstap noemde). Nu wél de partial: dat scheelt de dubbele markup EN
+// levert de i18n-conversie van de sidebar hier gratis mee.
+use CommunityFusion\Core\I18n\Trans;
+
+$activeNav = 'dashboard';
 ?>
 <!DOCTYPE html>
-<html lang="nl">
+<html lang="<?= htmlspecialchars(Trans::locale(), ENT_QUOTES) ?>">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -142,82 +150,15 @@
 <body>
 <div class="admin-wrap">
 
-  <!-- Sidebar -->
-  <aside class="admin-sidebar">
-    <div class="admin-logo">🔮 Blueprint CMS</div>
-    <nav class="admin-nav">
-
-      <div class="admin-nav-section">Content</div>
-      <a href="/admin" class="admin-nav-link active">
-        <span class="nav-icon">📊</span> Dashboard
-      </a>
-      <a href="/admin/news" class="admin-nav-link">
-        <span class="nav-icon">📰</span> Nieuws
-      </a>
-      <a href="/admin/pages" class="admin-nav-link">
-        <span class="nav-icon">📄</span> Pagina's
-      </a>
-      <a href="/admin/media" class="admin-nav-link">
-        <span class="nav-icon">🖼️</span> Media
-      </a>
-
-      <div class="admin-nav-section">Community</div>
-      <a href="/admin/users" class="admin-nav-link">
-        <span class="nav-icon">👥</span> Gebruikers
-      </a>
-      <a href="/admin/roles" class="admin-nav-link">
-        <span class="nav-icon">🔑</span> Rollen
-      </a>
-      <a href="/forum" class="admin-nav-link">
-        <span class="nav-icon">💬</span> Forum
-      </a>
-      <a href="/admin/contact" class="admin-nav-link">
-        <span class="nav-icon">✉️</span> Contact
-      </a>
-
-      <div class="admin-nav-section">Uiterlijk</div>
-      <a href="/admin/blocks" class="admin-nav-link">
-        <span class="nav-icon">🧩</span> Blokken
-      </a>
-      <a href="/admin/themes" class="admin-nav-link">
-        <span class="nav-icon">🎨</span> Thema's
-      </a>
-      <a href="/admin/menus" class="admin-nav-link">
-        <span class="nav-icon">🔗</span> Menu's
-      </a>
-
-      <div class="admin-nav-section">Systeem</div>
-      <a href="/admin/modules" class="admin-nav-link">
-        <span class="nav-icon">⚙️</span> Modules
-      </a>
-      <a href="/admin/settings" class="admin-nav-link">
-        <span class="nav-icon">🛠️</span> Instellingen
-      </a>
-      <a href="/admin/logs" class="admin-nav-link">
-        <span class="nav-icon">📋</span> Logs
-      </a>
-      <a href="/admin/marketplace" class="admin-nav-link">
-        <span class="nav-icon">🏪</span> Marketplace
-      </a>
-
-    </nav>
-    <div style="padding:1rem;border-top:1px solid var(--border);">
-      <a href="/" class="admin-nav-link">
-        <span class="nav-icon">🌐</span> Bekijk Site
-      </a>
-      <a href="/logout" class="admin-nav-link">
-        <span class="nav-icon">👋</span> Uitloggen
-      </a>
-    </div>
-  </aside>
+  <?php include __DIR__ . '/../../Shared/views/admin_sidebar.php'; ?>
 
   <!-- Main -->
   <div class="admin-main">
     <header class="admin-topbar">
-      <h1>Dashboard</h1>
+      <h1><?= htmlspecialchars(Trans::get('admin.dashboard.title')) ?></h1>
       <div style="display:flex;gap:.8rem;align-items:center;">
         <span style="font-size:.8rem;color:var(--muted);">Blueprint CMS v1.0.0</span>
-        <a href="/admin/settings" class="cf-btn-sm">⚙️ Instellingen</a>
+        <a href="/admin/settings" class="cf-btn-sm">⚙️ <?= htmlspecialchars(Trans::get('admin.dashboard.settings_btn')) ?></a>
       </div>
     </header>
 
@@ -227,101 +168,105 @@
       <div class="stat-grid">
         <div class="stat-card">
           <div>
-            <div class="stat-label">Gebruikers</div>
+            <div class="stat-label"><?= htmlspecialchars(Trans::get('admin.dashboard.stat_users')) ?></div>
             <div class="stat-value">—</div>
-            <div class="stat-change">Geregistreerd</div>
+            <div class="stat-change"><?= htmlspecialchars(Trans::get('admin.dashboard.stat_users_sub')) ?></div>
           </div>
           <div class="stat-icon">👥</div>
         </div>
         <div class="stat-card">
           <div>
-            <div class="stat-label">Nieuws Artikelen</div>
+            <div class="stat-label"><?= htmlspecialchars(Trans::get('admin.dashboard.stat_news')) ?></div>
             <div class="stat-value">—</div>
-            <div class="stat-change">Gepubliceerd</div>
+            <div class="stat-change"><?= htmlspecialchars(Trans::get('admin.dashboard.stat_news_sub')) ?></div>
           </div>
           <div class="stat-icon">📰</div>
         </div>
         <div class="stat-card">
           <div>
-            <div class="stat-label">Pagina's</div>
+            <div class="stat-label"><?= htmlspecialchars(Trans::get('admin.dashboard.stat_pages')) ?></div>
             <div class="stat-value">—</div>
-            <div class="stat-change">Actief</div>
+            <div class="stat-change"><?= htmlspecialchars(Trans::get('admin.dashboard.stat_pages_sub')) ?></div>
           </div>
           <div class="stat-icon">📄</div>
         </div>
         <div class="stat-card">
           <div>
-            <div class="stat-label">Modules</div>
+            <div class="stat-label"><?= htmlspecialchars(Trans::get('admin.dashboard.stat_modules')) ?></div>
             <div class="stat-value">4</div>
-            <div class="stat-change">Actief</div>
+            <div class="stat-change"><?= htmlspecialchars(Trans::get('admin.dashboard.stat_modules_sub')) ?></div>
           </div>
           <div class="stat-icon">🧩</div>
         </div>
       </div>
 
       <!-- Quick actions -->
-      <h2 style="font-size:1rem;font-weight:700;margin-bottom:1rem;color:var(--muted);">⚡ Snelle Acties</h2>
+      <h2 style="font-size:1rem;font-weight:700;margin-bottom:1rem;color:var(--muted);">⚡ <?= htmlspecialchars(Trans::get('admin.dashboard.quick_actions')) ?></h2>
       <div class="quick-actions">
         <a href="/admin/news/create" class="quick-btn">
-          <span class="qb-icon">✍️</span> Nieuw Artikel
+          <span class="qb-icon">✍️</span> <?= htmlspecialchars(Trans::get('admin.dashboard.action_new_article')) ?>
         </a>
         <a href="/admin/pages/create" class="quick-btn">
-          <span class="qb-icon">📄</span> Nieuwe Pagina
+          <span class="qb-icon">📄</span> <?= htmlspecialchars(Trans::get('admin.dashboard.action_new_page')) ?>
         </a>
         <a href="/admin/users" class="quick-btn">
-          <span class="qb-icon">👤</span> Gebruikers
+          <span class="qb-icon">👤</span> <?= htmlspecialchars(Trans::get('admin.dashboard.action_users')) ?>
         </a>
         <a href="/admin/blocks" class="quick-btn">
-          <span class="qb-icon">🧩</span> Blokken
+          <span class="qb-icon">🧩</span> <?= htmlspecialchars(Trans::get('admin.dashboard.action_blocks')) ?>
         </a>
         <a href="/admin/modules" class="quick-btn">
-          <span class="qb-icon">⚙️</span> Modules
+          <span class="qb-icon">⚙️</span> <?= htmlspecialchars(Trans::get('admin.dashboard.action_modules')) ?>
         </a>
         <a href="/admin/themes" class="quick-btn">
-          <span class="qb-icon">🎨</span> Thema's
+          <span class="qb-icon">🎨</span> <?= htmlspecialchars(Trans::get('admin.dashboard.action_themes')) ?>
         </a>
         <a href="/admin/marketplace" class="quick-btn">
-          <span class="qb-icon">🏪</span> Marketplace
+          <span class="qb-icon">🏪</span> <?= htmlspecialchars(Trans::get('admin.dashboard.action_marketplace')) ?>
         </a>
         <a href="/admin/logs" class="quick-btn">
-          <span class="qb-icon">📋</span> Logs
+          <span class="qb-icon">📋</span> <?= htmlspecialchars(Trans::get('admin.dashboard.action_logs')) ?>
         </a>
       </div>
 
       <!-- 2-kolom: Recente activiteit + systeem status -->
       <div class="two-col">
         <div>
-          <h2 style="font-size:1rem;font-weight:700;margin-bottom:1rem;color:var(--muted);">📋 Recente Activiteit</h2>
+          <h2 style="font-size:1rem;font-weight:700;margin-bottom:1rem;color:var(--muted);">📋 <?= htmlspecialchars(Trans::get('admin.dashboard.recent_activity')) ?></h2>
           <div class="activity-feed">
             <div class="activity-item">
               <span class="activity-icon">🔮</span>
-              <span>Blueprint CMS v1.0.0 geïnstalleerd</span>
-              <span class="activity-time">Nu</span>
+              <span><?= htmlspecialchars(Trans::get('admin.dashboard.activity_installed')) ?></span>
+              <span class="activity-time"><?= htmlspecialchars(Trans::get('admin.dashboard.activity_now')) ?></span>
             </div>
             <div class="activity-item">
               <span class="activity-icon">👤</span>
-              <span>Admin account aangemaakt</span>
-              <span class="activity-time">Zojuist</span>
+              <span><?= htmlspecialchars(Trans::get('admin.dashboard.activity_admin_created')) ?></span>
+              <span class="activity-time"><?= htmlspecialchars(Trans::get('admin.dashboard.activity_just_now')) ?></span>
             </div>
             <div class="activity-item">
               <span class="activity-icon">🗄️</span>
-              <span>Database schema geïmporteerd</span>
-              <span class="activity-time">Zojuist</span>
+              <span><?= htmlspecialchars(Trans::get('admin.dashboard.activity_schema_imported')) ?></span>
+              <span class="activity-time"><?= htmlspecialchars(Trans::get('admin.dashboard.activity_just_now')) ?></span>
             </div>
           </div>
         </div>
 
         <div>
-          <h2 style="font-size:1rem;font-weight:700;margin-bottom:1rem;color:var(--muted);">💻 Systeem Status</h2>
+          <h2 style="font-size:1rem;font-weight:700;margin-bottom:1rem;color:var(--muted);">💻 <?= htmlspecialchars(Trans::get('admin.dashboard.system_status')) ?></h2>
           <div class="cf-card">
             <div class="cf-card-body">
               <?php
               $checks = [
-                ['PHP Versie',    PHP_VERSION,                         true],
-                ['Database',      'MariaDB / MySQL',                   true],
-                ['Cache',         'File driver actief',                true],
-                ['Queue',         'Database driver actief',            true],
-                ['Debug Mode',    ini_get('display_errors') ? 'AAN' : 'UIT', !ini_get('display_errors')],
+                [Trans::get('admin.dashboard.check_php_version'), PHP_VERSION, true],
+                [Trans::get('admin.dashboard.check_database'),    Trans::get('admin.dashboard.check_database_val'), true],
+                [Trans::get('admin.dashboard.check_cache'),       Trans::get('admin.dashboard.check_cache_val'),    true],
+                [Trans::get('admin.dashboard.check_queue'),       Trans::get('admin.dashboard.check_queue_val'),    true],
+                [
+                    Trans::get('admin.dashboard.check_debug_mode'),
+                    ini_get('display_errors') ? Trans::get('admin.dashboard.check_debug_on') : Trans::get('admin.dashboard.check_debug_off'),
+                    !ini_get('display_errors'),
+                ],
               ];
               foreach ($checks as [$label, $val, $ok]):
               ?>

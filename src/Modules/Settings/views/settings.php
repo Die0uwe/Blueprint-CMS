@@ -22,7 +22,7 @@ $timezone     = $core['timezone'] ?? 'Europe/Amsterdam';
 $notifyEmail  = $contact['notify_email'] ?? '';
 ?>
 <!DOCTYPE html>
-<html lang="nl">
+<html lang="<?= htmlspecialchars(\CommunityFusion\Core\I18n\Trans::locale(), ENT_QUOTES) ?>">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -105,11 +105,15 @@ $notifyEmail  = $contact['notify_email'] ?? '';
 
           <div style="display:flex;gap:1rem;">
             <div class="cf-form-group" style="flex:1;">
-              <label class="cf-label">Standaardtaal</label>
+              <label class="cf-label"><?= \CommunityFusion\Core\I18n\Trans::get('admin.settings.language_label') ?></label>
               <select name="default_locale" class="cf-input">
                 <option value="nl" <?= $locale === 'nl' ? 'selected' : '' ?>>Nederlands</option>
                 <option value="en" <?= $locale === 'en' ? 'selected' : '' ?>>English</option>
+                <option value="de" <?= $locale === 'de' ? 'selected' : '' ?>>Deutsch</option>
               </select>
+              <p style="color:var(--text-dim);font-size:.78rem;margin:.35rem 0 0;">
+                <?= \CommunityFusion\Core\I18n\Trans::get('admin.settings.language_hint') ?>
+              </p>
             </div>
             <div class="cf-form-group" style="flex:1;">
               <label class="cf-label">Tijdzone</label>

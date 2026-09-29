@@ -2,20 +2,20 @@
 {% block content %}
 <div style="max-width:420px;margin:3rem auto;">
   <div class="cf-card">
-    <div class="cf-card-header">🔐 Inloggen</div>
+    <div class="cf-card-header">🔐 {{ trans('auth.login.title') }}</div>
     <div class="cf-card-body">
       {% if error is defined %}<div class="cf-alert cf-alert-error">{{ error }}</div>{% endif %}
       <form method="POST" action="/login">
         {{ csrf_field()|raw }}
         <div class="cf-form-group">
-          <label class="cf-label">Gebruikersnaam of E-mail</label>
+          <label class="cf-label">{{ trans('auth.login.identifier_label') }}</label>
           <input class="cf-input" type="text" name="identifier" required autofocus>
         </div>
         <div class="cf-form-group">
-          <label class="cf-label">Wachtwoord</label>
+          <label class="cf-label">{{ trans('auth.login.password_label') }}</label>
           <input class="cf-input" type="password" name="password" required>
         </div>
-        <button type="submit" class="cf-btn" style="width:100%;justify-content:center;">Inloggen →</button>
+        <button type="submit" class="cf-btn" style="width:100%;justify-content:center;">{{ trans('auth.login.submit') }}</button>
       </form>
 
       {# Golf 10 — OAuth-providers: elke knop hieronder gaat naar de
@@ -24,24 +24,24 @@
          provider die niet als module actief is, geeft via de centrale
          Users\OAuthController nette redirect met ?error=..._module_not_installed
          i.p.v. een kale 404 — de knoppen mogen dus altijd getoond worden. #}
-      <div style="text-align:center;margin:1rem 0;color:var(--muted);font-size:.8rem;">of</div>
+      <div style="text-align:center;margin:1rem 0;color:var(--muted);font-size:.8rem;">{{ trans('auth.login.or') }}</div>
       <div style="display:flex;flex-direction:column;gap:.5rem;">
         <a href="/auth/discord/login" class="cf-btn" style="width:100%;justify-content:center;background:#5865F2;color:#fff;">
-          🎮 Inloggen met Discord
+          🎮 {{ trans('auth.login.with_discord') }}
         </a>
         <a href="/auth/twitch/login" class="cf-btn" style="width:100%;justify-content:center;background:#9146FF;color:#fff;">
-          📺 Inloggen met Twitch
+          📺 {{ trans('auth.login.with_twitch') }}
         </a>
         <a href="/auth/google/login" class="cf-btn" style="width:100%;justify-content:center;background:#fff;color:#1f1f1f;border:1px solid var(--border);">
-          🔑 Inloggen met Google
+          🔑 {{ trans('auth.login.with_google') }}
         </a>
         <a href="/auth/battlenet/login" class="cf-btn" style="width:100%;justify-content:center;background:#148eff;color:#fff;">
-          🌀 Inloggen met Battle.net
+          🌀 {{ trans('auth.login.with_battlenet') }}
         </a>
       </div>
 
       <p style="text-align:center;margin-top:1rem;font-size:.85rem;color:var(--muted);">
-        Nog geen account? <a href="/register">Registreren</a> — of gebruik een van de knoppen hierboven, dan wordt er automatisch één aangemaakt.
+        {{ trans('auth.login.no_account') }} <a href="/register">{{ trans('auth.login.register_link') }}</a> {{ trans('auth.login.register_hint') }}
       </p>
     </div>
   </div>

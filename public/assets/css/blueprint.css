@@ -133,7 +133,40 @@ img { max-width: 100%; }
   background: rgba(255,255,255,.06);
 }
 
-.cf-header-actions { display: flex; gap: .5rem; margin-left: auto; flex-shrink: 0; }
+.cf-header-actions { display: flex; gap: .5rem; margin-left: auto; flex-shrink: 0; align-items: center; }
+
+/* ── Publieke taalwisselaar (S13 — Multi-language/i18n) ────────────────────
+   layout.twig rendert hier één link per Translator::SUPPORTED-locale (NL/EN/
+   DE); .active markeert de huidige (server-side via `l == locale` in Twig).
+   Tot nu toe stond deze markup er zonder eigen stijl — viel terug op de
+   browser-default voor onbekende classes (leesbaar maar rommelig naast de
+   .cf-btn-sm's ernaast). */
+.cf-lang-switch {
+  display: flex;
+  gap: .2rem;
+  padding: .2rem;
+  border-radius: 6px;
+  background: rgba(255,255,255,.04);
+  border: 1px solid var(--border);
+  margin-right: .3rem;
+}
+.cf-lang-switch a {
+  padding: .3rem .5rem;
+  border-radius: 4px;
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  color: var(--text-dim);
+  transition: color .2s, background .2s;
+}
+.cf-lang-switch a:hover {
+  color: var(--text);
+  background: rgba(255,255,255,.08);
+}
+.cf-lang-switch a.active {
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+}
 
 /* ── Header/Topmenu blok-zones (v1.17.0) ───────────────────────────────────
    #cf-header zelf heeft een vaste hoogte, dus deze twee zones staan er los-

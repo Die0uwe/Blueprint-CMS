@@ -1,4 +1,17 @@
-# Redirect alles naar public/
+# Redirect alles naar public/ — BEHALVE een bestaand bestand/map buiten
+# public/ (met name installer/, dat bewust NAAST public/ staat, zie de
+# architectuurspec §2.2: "Éénmalige web-installer" — public/index.php
+# redirect naar /installer/ zolang config/config.php nog niet bestaat).
+# Zonder deze twee RewriteCond-regels herschrijft de vorige, ongeconditio-
+# neerde variant OOK /installer/ naar public/installer/, dat niet bestaat
+# → 404 op precies de URL die README.md als installatie-instructie geeft.
+# Gevonden tijdens de S13 live-testronde (i18n-sprint) — zelfde categorie
+# fout als de kapotte schema.sql-import die Sprint 11 blokkeerde: een
+# deploy-blokkerende bug die nooit opviel omdat lokaal testen altijd
+# rechtstreeks tegen public/ of installer/ draaide, nooit via deze .htaccess.
 RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
 RewriteRule ^$ public/ [L]
 RewriteRule (.*) public/$1 [L]

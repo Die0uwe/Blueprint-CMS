@@ -26,6 +26,8 @@
 
 $activeNav ??= '';
 
+use CommunityFusion\Core\I18n\Trans;
+
 $navItem = static function (string $key, string $href, string $icon, string $label) use ($activeNav): void {
     $active = $activeNav === $key ? ' active' : '';
     echo '<a href="' . htmlspecialchars($href, ENT_QUOTES) . '" class="admin-nav-link' . $active . '">'
@@ -37,42 +39,42 @@ $navItem = static function (string $key, string $href, string $icon, string $lab
   <div class="admin-logo">🔮 Blueprint CMS</div>
   <nav class="admin-nav">
 
-    <div class="admin-nav-section">Content</div>
+    <div class="admin-nav-section"><?= htmlspecialchars(Trans::get('admin.sidebar.section_content')) ?></div>
     <?php
-    $navItem('dashboard', '/admin', '📊', 'Dashboard');
-    $navItem('news', '/admin/news', '📰', 'Nieuws');
-    $navItem('pages', '/admin/pages', '📄', "Pagina's");
-    $navItem('media', '/admin/media', '🖼️', 'Media');
-    $navItem('gallery', '/admin/gallery', '📷', 'Galerij');
+    $navItem('dashboard', '/admin', '📊', Trans::get('admin.sidebar.dashboard'));
+    $navItem('news', '/admin/news', '📰', Trans::get('admin.sidebar.news'));
+    $navItem('pages', '/admin/pages', '📄', Trans::get('admin.sidebar.pages'));
+    $navItem('media', '/admin/media', '🖼️', Trans::get('admin.sidebar.media'));
+    $navItem('gallery', '/admin/gallery', '📷', Trans::get('admin.sidebar.gallery'));
     ?>
 
-    <div class="admin-nav-section">Community</div>
+    <div class="admin-nav-section"><?= htmlspecialchars(Trans::get('admin.sidebar.section_community')) ?></div>
     <?php
-    $navItem('users', '/admin/users', '👥', 'Gebruikers');
-    $navItem('roles', '/admin/roles', '🔑', 'Rollen');
-    $navItem('forum', '/admin/forum/boards', '💬', 'Forumborden');
-    $navItem('contact', '/admin/contact', '✉️', 'Contact');
+    $navItem('users', '/admin/users', '👥', Trans::get('admin.sidebar.users'));
+    $navItem('roles', '/admin/roles', '🔑', Trans::get('admin.sidebar.roles'));
+    $navItem('forum', '/admin/forum/boards', '💬', Trans::get('admin.sidebar.forum'));
+    $navItem('contact', '/admin/contact', '✉️', Trans::get('admin.sidebar.contact'));
     ?>
 
-    <div class="admin-nav-section">Uiterlijk</div>
+    <div class="admin-nav-section"><?= htmlspecialchars(Trans::get('admin.sidebar.section_appearance')) ?></div>
     <?php
-    $navItem('blocks', '/admin/blocks', '🧩', 'Blokken');
-    $navItem('themes', '/admin/themes', '🎨', "Thema's");
-    $navItem('menus', '/admin/menus', '🔗', "Menu's");
+    $navItem('blocks', '/admin/blocks', '🧩', Trans::get('admin.sidebar.blocks'));
+    $navItem('themes', '/admin/themes', '🎨', Trans::get('admin.sidebar.themes'));
+    $navItem('menus', '/admin/menus', '🔗', Trans::get('admin.sidebar.menus'));
     ?>
 
-    <div class="admin-nav-section">Systeem</div>
+    <div class="admin-nav-section"><?= htmlspecialchars(Trans::get('admin.sidebar.section_system')) ?></div>
     <?php
-    $navItem('modules', '/admin/modules', '⚙️', 'Modules');
-    $navItem('settings', '/admin/settings', '🛠️', 'Instellingen');
-    $navItem('logs', '/admin/logs', '📋', 'Logs');
-    $navItem('marketplace', '/admin/marketplace', '🏪', 'Marketplace');
+    $navItem('modules', '/admin/modules', '⚙️', Trans::get('admin.sidebar.modules'));
+    $navItem('settings', '/admin/settings', '🛠️', Trans::get('admin.sidebar.settings'));
+    $navItem('logs', '/admin/logs', '📋', Trans::get('admin.sidebar.logs'));
+    $navItem('marketplace', '/admin/marketplace', '🏪', Trans::get('admin.sidebar.marketplace'));
     ?>
 
   </nav>
   <div style="padding:1rem;border-top:1px solid var(--border);">
-    <a href="/" class="admin-nav-link"><span class="nav-icon">🌐</span> Bekijk Site</a>
-    <a href="/logout" class="admin-nav-link"><span class="nav-icon">👋</span> Uitloggen</a>
+    <a href="/" class="admin-nav-link"><span class="nav-icon">🌐</span> <?= htmlspecialchars(Trans::get('admin.sidebar.view_site')) ?></a>
+    <a href="/logout" class="admin-nav-link"><span class="nav-icon">👋</span> <?= htmlspecialchars(Trans::get('admin.sidebar.logout')) ?></a>
   </div>
 </aside>
 

@@ -121,6 +121,25 @@ final class ThemeManager
         $this->twig->addGlobal($name, $value);
     }
 
+    /**
+     * Registreert de `trans()`-functie en `|trans`-filter (S13 —
+     * Multi-language/i18n), beide gedelegeerd naar dezelfde
+     * `Core\I18n\Translator`-instantie die Application::boot() per-request
+     * al heeft opgelost (bezoekerstaal, zie Translator's docblok voor de
+     * resolutievolgorde). Twee syntaxen voor hetzelfde, naar smaak van de
+     * template: `{{ trans('nav.news') }}` of `{{ 'nav.news'|trans }}`, beide
+     * met optionele `:placeholder`-vervangingen als tweede argument.
+     */
+    public function setTranslator(\CommunityFusion\Core\I18n\Translator $translator): void
+    {
+        $this->twig->addFunction(new \Twig\TwigFunction('trans', function(string $key, array $replace = []) use ($translator): string {
+            return $translator->trans($key, $replace);
+        }));
+        $this->twig->addFilter(new \Twig\TwigFilter('trans', function(string $key, array $replace = []) use ($translator): string {
+            return $translator->trans($key, $replace);
+        }));
+    }
+
     private function registerFunctions(): void
     {
         // {{ asset('css/style.css') }} → /assets/css/style.css

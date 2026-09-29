@@ -14,7 +14,7 @@ GPL-3.0-or-later
 [![PHP](https://img.shields.io/badge/PHP-8.3%2B-777BB4?style=flat-square&logo=php)](https://php.net)
 [![MariaDB](https://img.shields.io/badge/MariaDB-10.11%2B-003545?style=flat-square&logo=mariadb)](https://mariadb.org)
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.23.0-brightgreen?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-1.24.0-brightgreen?style=flat-square)](CHANGELOG.md)
 [![CI](https://img.shields.io/github/actions/workflow/status/Die0uwe/bluprint-cms/ci.yml?branch=main&style=flat-square&label=CI)](.github/workflows/ci.yml)
 
 *Geïnspireerd door PHP-Fusion · Down Under Fusion · ImpressCMS*
@@ -162,8 +162,9 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 | **Golf 10a** | ✅ v1.21.0 | YouTube-module — 4 blocks (kanaal, laatste video's, live-status, playlist), quota-bewuste API-client. Zie CHANGELOG v1.21.0. |
 | **S10** | ✅ v1.22.0 | Kick-integratie — live-status/kijkers/stream-embed via een publiek kanaal-endpoint (geen sleutel/OAuth nodig, zie CHANGELOG v1.22.0 voor de afweging tegen Kick's officiële Developer API). **Hiermee is S10 (YouTube + Kick) volledig afgerond.** |
 | **S11** | ✅ v1.23.0 | Media-galerij — albums (`cf_categories`, `type=gallery`) met foto/video-upload, GD-miniaturen, publieke doorbladering + lightbox (beide thema's), sidebar-widget. Hergebruikt de bestaande `/media/{path}`-serveer-route i.p.v. een nieuwe. Zie CHANGELOG v1.23.0. |
+| **S13** | ✅ v1.24.0 | Multi-language/i18n — `Translator` (nl/en/de), publieke + per-gebruiker + site-standaard taalwisseling met volledige prioriteitsketen, `trans()`/`Trans::get()` op de hoogst-verkeer schermen. **S12 (Premium ecosysteem) is bewust vóór S13 geplaatst uitgesteld** ("premium is nu niet belangerijk"). Zie CHANGELOG v1.24.0. |
 | **S12** | 📋 Gepland | Premium ecosysteem + licenties + betalingen |
-| **S13** | 📋 Gepland | Multi-language / i18n volledige implementatie |
+| **Inventarisatie + debug** | 📋 Gepland | Projectbrede gaten-inventarisatie en debugronde, direct na S13 |
 
 ---
 
@@ -183,7 +184,7 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 
 ---
 
-## ⚠️ Bekende beperkingen (stand v1.23.0)
+## ⚠️ Bekende beperkingen (stand v1.24.0)
 
 Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben opgelost — zie
 `docs/wave-0-gap-analysis.md` en `CHANGELOG.md` voor de volledige context per punt.
@@ -338,6 +339,28 @@ Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben o
 > in de picker, via de echte store-flow geplaatst, nette graceful-degradation op de homepage,
 > settingsscherm-roundtrip correct, 19-routes regressiesweep zonder breuken. Zie CHANGELOG
 > v1.22.0.
+>
+> **v1.24.0: Multi-language/i18n (S13) — en twee losstaande, deploy-relevante bugs gevonden
+> tijdens het opzetten van de live-testomgeving zelf, vóór er zelfs maar één taalwisseling
+> getest was.** (1) De taalwisselaar-route (`/taal/{locale:[a-z]{2}}`) gaf een kale 404 op
+> élke aanroep: `Router::compilePattern()`'s eigen placeholder-regex knipt een constraint af
+> bij de eerste `}`, dus een `{n}`-quantifier ín een route-constraint breekt de gecompileerde
+> regex stil — geen enkele andere route in dit bestand gebruikt die vorm, en nu deze ook niet
+> meer (`[a-z]+`). De onderliggende beperking in `compilePattern()` zelf blijft staan voor een
+> toekomstige route die dezelfde vorm gebruikt. (2) De root-`.htaccess` herschreef *elke*
+> request ongeconditioneerd naar `public/$1` — óók `/installer/`, dat bewust naast `public/`
+> staat, waardoor de installatie-URL uit dit README (`/installer/`) in een echte Apache-
+> deployment altijd op een 404 zou zijn gestuit. Beide alleen zichtbaar geworden omdat deze
+> sprint voor het eerst een scripted install draaide tegen een PHP built-in server mét een
+> `.htaccess`-nabootsende router, i.p.v. rechtstreeks tegen `public/`. Daarna volledig
+> geverifieerd: gast- én ingelogde-gebruiker-taalwisseling, de volledige vier-staps-
+> prioriteitsketen (sessie > gebruiker > sitestandaard > `nl`), de `/admin/settings`
+> taal-whitelist-bugfix (accepteerde tot nu toe alleen nl/en, nooit de al langer door de
+> installer aangeboden `de`), ontbrekende-sleutel-fallback, open-redirect-/loop-preventie op
+> de taalwisselaar, en een 28-routes regressiesweep. **Bewust niet meegenomen:** de meeste
+> losse tekstlabels ín de ~26 admin-schermen (buiten sidebar/dashboard — alleen hun
+> `<html lang>` is gefixt), de installer zelf, en de losse game/streamer-modules. Zie
+> CHANGELOG v1.24.0 voor het volledige verhaal.
 
 - ~~`/admin`-routes zijn niet permissie-gated~~ — **opgelost in v1.10.0.** Zie CHANGELOG:
   `PermissionMiddleware` + `admin.access`/`settings.edit`/`blocks.manage`/`marketplace.*`.

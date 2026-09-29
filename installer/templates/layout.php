@@ -265,7 +265,7 @@ $stepContent = __DIR__ . '/step' . $currentStep . '.php';
 
   <p style="text-align:center;color:var(--muted);font-size:.75rem;margin-top:1.5rem;">
     © 2026 <a href="https://www.dieouwe.nl" style="color:var(--accent2);text-decoration:none;">DieOuwe</a>
-    · <a href="https://www.slayeralliance.com" style="color:var(--accent2);text-decoration:none;">Slayer Alliance</a>
+    · <a href="https://www.scriptspace.nl" style="color:var(--accent2);text-decoration:none;">ScriptSpace</a>
     · Blueprint CMS v1.0.0 · GPL-3.0
   </p>
 
