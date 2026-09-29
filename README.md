@@ -16,12 +16,12 @@ GPL-3.0-or-later
 [![PHP](https://img.shields.io/badge/PHP-8.3%2B-777BB4?style=flat-square&logo=php)](https://php.net)
 [![MariaDB](https://img.shields.io/badge/MariaDB-10.11%2B-003545?style=flat-square&logo=mariadb)](https://mariadb.org)
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.25.9-brightgreen?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-1.26.0-brightgreen?style=flat-square)](CHANGELOG.md)
 [![CI](https://img.shields.io/github/actions/workflow/status/Die0uwe/bluprint-cms/ci.yml?branch=main&style=flat-square&label=CI)](.github/workflows/ci.yml)
 
 *Geïnspireerd door PHP-Fusion · Down Under Fusion · ImpressCMS*
 
-[📊 Analyse Rapport](docs/ANALYSE.md) · [🔍 Wave 0/1 Gap-analyse](docs/wave-0-gap-analysis.md) · [🖼️ Frontpage Mockup](docs/MOCKUP-FRONTPAGE.html) · [🏗️ Architectuur](docs/assets/architecture.md)
+[📊 Analyse Rapport](docs/ANALYSE.md) · [🔍 Wave 0/1 Gap-analyse](docs/wave-0-gap-analysis.md) · [🗺️ Stappenplan/Roadmap](docs/ROADMAP.md) · [🖼️ Frontpage Mockup](docs/MOCKUP-FRONTPAGE.html) · [🏗️ Architectuur](docs/assets/architecture.md)
 
 </div>
 
@@ -175,6 +175,7 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 | **HOOG: stored XSS via blog** | ✅ v1.25.7 | Nog een audit-vondst: elk geregistreerd lid (geen contentpermissie nodig, alleen `$auth`) kon `<script>` in een blogpost zetten die onversleuteld uitvoerde voor elke bezoeker — `blog/show.twig` gebruikte `|raw` op ledencontent, waar News/Pages dat bewust alleen doen voor admin/moderator-content. Nieuwe `nl2br`-Twig-filter (zelf-escapend) i.p.v. `|raw`. Live getest: `<script>`-payload komt geëscaped op de pagina terecht, geen uitvoerbare tag. Zie CHANGELOG v1.25.7. |
 | **HOOG: cache-driver `redis` crashte** | ✅ v1.25.8 | Architectuur-deelaudit vond dat `CacheManager` een niet-bestaande `RedisCache`-klasse instantieerde zodra `cache.driver=redis` in `config.php` stond (het voorbeeld-commentaar suggereerde dat als geldige optie) — kale fatal error op elke request. Nu een duidelijke `RuntimeException` i.p.v. de crash; `file`-driver (de enige echt geïmplementeerde) ongewijzigd. Zie CHANGELOG v1.25.8. |
 | **KRITIEK: guild/ollama-adminpanels open voor elk lid** | ✅ v1.25.9 | Een gerichte security-herscan vond een vierde instantie van dezelfde bugklasse (module declareert een permissie, niets zaait die ooit in `cf_permissions`): `guild.manage`/`ollama.admin` bestonden nergens, dus draaiden hun admin-routes alleen op `AuthMiddleware` — elk lid kon guild-aanmeldingen goed-/afkeuren en Ollama-host/systeemprompt overschrijven (opstap naar SSRF). Permissies geseed + routes op `PermissionMiddleware` gezet; ook rate limiting toegevoegd aan de voorheen onbeperkte publieke `/api/ollama/*`-endpoints. Live getest: exploit geblokkeerd (403), legitiem gebruik intact. Zie CHANGELOG v1.25.9. |
+| **Stappenplan/Roadmap** | ✅ v1.26.0 | Vierde en laatste onderdeel van de sessie-opdracht: `docs/ROADMAP.md` — samenvatting van alle v1.25.x-fixes, de resterende audit-backlog per domein (Security/Architectuur/Database/Frontend-i18n) geprioriteerd op ernst, en een gefaseerd vervolgtraject (fundament verstevigen → S12 Premium → Rust/Ark heroverwegen). Zie CHANGELOG v1.26.0. |
 
 ---
 
@@ -194,7 +195,7 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 
 ---
 
-## ⚠️ Bekende beperkingen (stand v1.25.9)
+## ⚠️ Bekende beperkingen (stand v1.26.0)
 
 Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben opgelost — zie
 `docs/wave-0-gap-analysis.md` en `CHANGELOG.md` voor de volledige context per punt.
@@ -486,6 +487,17 @@ Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben o
 > `/api/ollama/*`-endpoints (bewust géén inlogvereiste — de chat-widget is ook voor
 > niet-ingelogde bezoekers bedoeld). Live getest: `member` krijgt `403` op beide exploitpogingen
 > (DB-status ongewijzigd), `admin` behoudt volledige toegang. Zie CHANGELOG v1.25.9.
+>
+> **v1.26.0: het stappenplan.** Het vierde en laatste onderdeel van de sessie-opdracht —
+> `docs/ROADMAP.md` bundelt wat hierboven al staat (v1.25.5–v1.25.9) met de resterende
+> audit-backlog die bewust niet in de fix-ronde meeging: geen login-brute-force-bescherming,
+> rate limiting die bijna geen publieke POST-route dekt, CSRF-gat op OAuth-disconnect
+> (Security); een volledig ongebruikt queue-systeem en inconsistente error-handling
+> (Architectuur); geen ALTER-capable migratierunner en een cascade-landmine op
+> `cf_forum_topics.author_id` (Database); i18n-dekking in slechts ~4 van 25 templates en een
+> `gaming-dark`-thema zonder eigen templates (Frontend). Geen van deze is deze sessie gefixt —
+> ze staan expliciet als geprioriteerde backlog in het stappenplan, met een voorgestelde fasering
+> voor de volgende ontwikkelronde. Zie CHANGELOG v1.26.0 en `docs/ROADMAP.md`.
 
 - ~~`/admin`-routes zijn niet permissie-gated~~ — **opgelost in v1.10.0.** Zie CHANGELOG:
   `PermissionMiddleware` + `admin.access`/`settings.edit`/`blocks.manage`/`marketplace.*`.
@@ -635,9 +647,9 @@ GPL-3.0-or-later — © 2026 [DieOuwe](https://www.dieouwe.nl) / [Slayer Allianc
 
 <!--
 ╔══════════════════════════════════════════════════════════════════════╗
-║  File: README.md | Role: Docs | Version: 1.25.9                      ║
-║  Updated: 2026-09-29 — KRITIEK: guild/ollama-adminpanels stonden open ║
-║           voor elk lid (permissies nooit geseed) — gefixt + rate     ║
-║           limiting op /api/ollama/*. Zie ook v1.25.5/v1.25.7/v1.25.8.║
+║  File: README.md | Role: Docs | Version: 1.26.0                      ║
+║  Updated: 2026-09-29 — Stappenplan: docs/ROADMAP.md toegevoegd, het   ║
+║           vierde en laatste onderdeel van de sessie-opdracht. Bundelt║
+║           v1.25.5-v1.25.9 + de resterende audit-backlog + fasering.  ║
 ╚══════════════════════════════════════════════════════════════════════╝
 -->

@@ -18,6 +18,44 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ---
 
+## [1.26.0] — 2026-09-29 — Stappenplan: roadmap voor resterende audit-bevindingen + verdere CMS-ontwikkeling
+
+Aanleiding: de oorspronkelijke opdracht voor deze sessie was viervoudig — (1) een totale
+codebase-analyse via parallelle deelaudits, (2) "de GitHub compleet maken", (3) de installer
+werkend houden/bevestigen, en (4) **"maak dan een stappenplan hoe verder te gaan met de cms en
+uitbreiding ervan"**. De eerste drie zijn afgerond via v1.25.4–v1.25.9 (zie die entries); dit is
+het vierde en laatste onderdeel.
+
+### 📄 Nieuw: `docs/ROADMAP.md`
+
+Een stappenplan dat:
+
+- **Samenvat wat al gefixt is** deze sessie (v1.25.5 KRITIEK rol-priority-escalatie, v1.25.6
+  "GitHub compleet", v1.25.7 HOOG stored-XSS, v1.25.8 HOOG cache-crash, v1.25.9 KRITIEK
+  guild/ollama-permissies) met verwijzing naar de bijbehorende CHANGELOG-entries.
+- **Alle resterende audit-bevindingen** (die bewust niet meegenomen zijn in de fix-ronde, om de
+  scope behapbaar te houden) samenbrengt in vier domeintabellen — Beveiliging (login-
+  brute-force-bescherming ontbreekt, rate limiting dekt bijna geen enkele publieke
+  POST-route, CSRF ontbreekt op OAuth-disconnect), Architectuur (queue-systeem volledig
+  ongebruikte scaffolding, geen circular-dependency-guard in de DI-container, inconsistente
+  error-handling), Database (geen echte ALTER-capable migratierunner — de belangrijkste
+  structurele blocker voor updates op een live site, een cascade-landmine op
+  `cf_forum_topics.author_id`, ontbrekende FK's op `cf_guild_applications`) en Frontend/i18n
+  (i18n-dekking nog zeer beperkt — `trans()` in slechts ~4 van 25 templates, `gaming-dark`-thema
+  zonder echte eigen templates, mobiele navigatie die zonder vervanging verdwijnt).
+- **Een gefaseerd vervolgtraject** voorstelt: Fase 0 (bovenstaande backlog, geprioriteerd op
+  ernst × misbruikgemak), Fase 1 (fundament verstevigen — migratierunner, rate limiting/
+  brute-force, i18n — vóór nieuwe features), Fase 2 (S12 Premium ecosysteem alsnog oppakken, nu
+  de schema-basis solide genoeg is voor betaalstromen), Fase 3 (Rust/Ark heroverwegen, alleen bij
+  concrete vraag), plus doorlopende items die niet fase-gebonden zijn (thema-consistentie,
+  architectuur-opruiming).
+
+Geen codewijzigingen in deze entry — uitsluitend het plannings-/documentatiedeliverable dat de
+sessie afrondt. `docs/ROADMAP.md` is ook gespiegeld naar het gekoppelde claude.ai-project, zoals
+eerder al met `docs/wave-0-gap-analysis.md` gebeurde.
+
+---
+
 ## [1.25.9] — 2026-09-29 — KRITIEK: elk lid kon guild-aanmeldingen goedkeuren en Ollama-instellingen overschrijven
 
 Aanleiding: een gerichte Security-herscan (follow-up op de zes-koppige totale-codebase-audit,
