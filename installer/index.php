@@ -24,6 +24,21 @@ if (InstallerCore::isCompleted()) {
     exit;
 }
 
+// Welkomstscherm vóór stap 1 — een bezoeker die nog nooit op "Installatie
+// starten" heeft geklikt (geen ?step=-parameter, geen POST, geen lopende
+// sessie) krijgt eerst dit tussenscherm met logo/uitleg/link te zien i.p.v.
+// meteen middenin de serverchecklist van stap 1 te landen. Zodra ze
+// doorklikken (link naar ?step=1) of al bezig waren, slaan we dit over.
+$hasStepParam = isset($_GET['step']);
+$isPost       = $_SERVER['REQUEST_METHOD'] === 'POST';
+if (!$hasStepParam && !$isPost && empty($_SESSION['installer']['started'])) {
+    include __DIR__ . '/templates/welcome.php';
+    exit;
+}
+if ($hasStepParam || $isPost) {
+    $_SESSION['installer']['started'] = true;
+}
+
 $step    = (int) ($_GET['step'] ?? InstallerCore::getCurrentStep());
 $step    = max(1, min(5, $step));
 $errors  = [];

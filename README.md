@@ -7,14 +7,16 @@ GPL-3.0-or-later
 
 <div align="center">
 
-# 🔮 Blueprint CMS
+<img src="public/assets/img/logo-256.png" alt="Blueprint CMS" width="120" height="120">
+
+# Blueprint CMS
 
 **Modulair PHP 8.3+ Community CMS voor gaming, streamers & gilden**
 
 [![PHP](https://img.shields.io/badge/PHP-8.3%2B-777BB4?style=flat-square&logo=php)](https://php.net)
 [![MariaDB](https://img.shields.io/badge/MariaDB-10.11%2B-003545?style=flat-square&logo=mariadb)](https://mariadb.org)
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.25.2-brightgreen?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-1.25.3-brightgreen?style=flat-square)](CHANGELOG.md)
 [![CI](https://img.shields.io/github/actions/workflow/status/Die0uwe/bluprint-cms/ci.yml?branch=main&style=flat-square&label=CI)](.github/workflows/ci.yml)
 
 *Geïnspireerd door PHP-Fusion · Down Under Fusion · ImpressCMS*
@@ -166,6 +168,7 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 | **S12** | 📋 Gepland | Premium ecosysteem + licenties + betalingen |
 | **Inventarisatie + debug** | ✅ v1.25.0 | Projectbrede audit (2 onafhankelijke passes) + fix- en live-testronde: 2× privilege-escalatie (`/admin/users`, `/admin/roles`), JSON-request-bodies die nergens werden uitgelezen (Blokken-admin/Marketplace/Ollama-chat allemaal stuk), 3 module-adminpanels (Guild/Warcraft/Ollama) volledig onbereikbaar door een routing-volgordebug, login-CSRF op `/api/v1/auth/login`, en meer. Zie CHANGELOG v1.25.0. |
 | **Deploy-fix: installer** | ✅ v1.25.1–1.25.2 | De installer bleek op een echte server (buiten de test-omgeving) onbereikbaar — bij `DocumentRoot=public/` (het door dit document aanbevolen model) zelfs een oneindige redirect-loop. Front controller `require`t de installer nu rechtstreeks i.p.v. te redirecten, en de root-`.htaccess` blokkeert `.env`/`config`/`vendor`/etc. expliciet i.p.v. impliciet door te laten — al blokkeerde die lijst in de eerste versie per ongeluk óók `/installer/` zelf ("Forbidden"), gefixt in v1.25.2. Getest via beide document-root-modellen, inclusief een volledige installatie-run door elk. Zie CHANGELOG v1.25.1/v1.25.2. |
+| **Branding: logo + welkomstscherm** | ✅ v1.25.3 | Officieel logo verwerkt (`public/assets/img/`), plus een welkomstscherm vóór stap 1 van de installer (logo, uitleg, link om te starten). Logo ook terug te zien in de installer-header, de sitebrede header van beide thema's, en als standaard-favicon na installatie. Zie CHANGELOG v1.25.3. |
 
 ---
 
@@ -185,7 +188,7 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 
 ---
 
-## ⚠️ Bekende beperkingen (stand v1.25.2)
+## ⚠️ Bekende beperkingen (stand v1.25.3)
 
 Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben opgelost — zie
 `docs/wave-0-gap-analysis.md` en `CHANGELOG.md` voor de volledige context per punt.
@@ -412,6 +415,15 @@ Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben o
 > gehaald — er zit geen geheim achter, `installer/index.php` beschermt zichzelf al na
 > installatie. Opnieuw live getest, inclusief een volledige installatie-run via exact de
 > `/installer/?step=N`-URL's onder `DocumentRoot=projectroot`. Zie CHANGELOG v1.25.2.
+>
+> **v1.25.3: logo verwerkt + welkomstscherm vóór de installer.** Het officiële logo staat nu in
+> `public/assets/img/` en is verwerkt op de plekken waar het zichtbaar effect heeft: een nieuw
+> welkomstscherm (`installer/templates/welcome.php`) dat vóór stap 1 toont — logo, korte uitleg,
+> knop om te starten — de installer-wizard-header zelf, de sitebrede header van beide thema's,
+> en als standaard-favicon (`core.site_icon`) die Step5.php nu meteen seedt i.p.v. leeg te laten
+> tot een beheerder er zelf een uploadt. In de installer zelf staat het logo als data-URI ingebed
+> (niet gelinkt), want die draait vóórdat zeker is dat `/assets/` via de actieve document root
+> bereikbaar is. Zie CHANGELOG v1.25.3.
 
 - ~~`/admin`-routes zijn niet permissie-gated~~ — **opgelost in v1.10.0.** Zie CHANGELOG:
   `PermissionMiddleware` + `admin.access`/`settings.edit`/`blocks.manage`/`marketplace.*`.
@@ -555,9 +567,9 @@ GPL-3.0-or-later — © 2026 [DieOuwe](https://www.dieouwe.nl) / [Slayer Allianc
 
 <!--
 ╔══════════════════════════════════════════════════════════════════════╗
-║  File: README.md | Role: Docs | Version: 1.25.2                      ║
-║  Updated: 2026-09-29 — v1.25.1 loste installer-redirect-loop op maar ║
-║           blokkeerde zelf per ongeluk /installer/ ("Forbidden");     ║
-║           v1.25.2 haalt installer uit de .htaccess-blokkeerlijst     ║
+║  File: README.md | Role: Docs | Version: 1.25.3                      ║
+║  Updated: 2026-09-29 — Logo verwerkt (public/assets/img/) + nieuw    ║
+║           welkomstscherm vóór installer-stap 1; logo ook in de       ║
+║           installer-header, sitebrede header en standaard-favicon    ║
 ╚══════════════════════════════════════════════════════════════════════╝
 -->

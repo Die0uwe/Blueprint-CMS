@@ -4,6 +4,12 @@
 // ============================================================================
 
 $stepContent = __DIR__ . '/step' . $currentStep . '.php';
+
+// Zelfde data-URI-aanpak als welcome.php — zie het commentaar daar.
+$logoFile = CF_ROOT . '/public/assets/img/logo-64.png';
+$logoData = is_file($logoFile)
+    ? 'data:image/png;base64,' . base64_encode((string) file_get_contents($logoFile))
+    : '';
 ?>
 <!DOCTYPE html>
 <html lang="nl">
@@ -210,7 +216,14 @@ $stepContent = __DIR__ . '/step' . $currentStep . '.php';
 
   <!-- Logo -->
   <div class="logo">
-    <h1>🔮 Blueprint CMS</h1>
+    <h1>
+      <?php if ($logoData !== ''): ?>
+        <img src="<?= htmlspecialchars($logoData) ?>" alt="" style="height:1.4em;width:1.4em;vertical-align:-.28em;margin-right:.15em;">
+      <?php else: ?>
+        🔮
+      <?php endif; ?>
+      Blueprint CMS
+    </h1>
     <p>Installatie wizard — v1.0.0</p>
   </div>
 

@@ -43,7 +43,10 @@
 <header id="cf-header">
   <div class="cf-container">
     <a href="/" class="cf-logo-wrap">
-      <span class="cf-logo">🔮 {{ settings.site_name|default('Blueprint CMS') }}</span>
+      <span class="cf-logo-row">
+        <img src="{{ asset('img/logo-64.png') }}" alt="" class="cf-logo-icon">
+        <span class="cf-logo">{{ settings.site_name|default('Blueprint CMS') }}</span>
+      </span>
       {% if settings.site_motd is defined and settings.site_motd %}
         <span class="cf-motd">{{ settings.site_motd }}</span>
       {% endif %}

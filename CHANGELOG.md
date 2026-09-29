@@ -18,6 +18,47 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ---
 
+## [1.25.3] — 2026-09-29 — Logo + welkomstscherm vóór de installer
+
+Aanleiding: gebruiker leverde het officiële Blueprint CMS-logo aan met het verzoek om, vóórdat
+de installer-wizard start, eerst een informatief tussenscherm te tonen (met het logo en een
+link om door te klikken), en het logo verder te verwerken waar het zinnig is.
+
+### ✨ Nieuw
+
+- **Welkomstscherm vóór stap 1.** Een verse bezoeker die de site voor het eerst opent (geen
+  `?step=`-parameter, nog geen sessie) ziet nu eerst `installer/templates/welcome.php`: logo,
+  een korte uitleg van wat de installer gaat doen, een featurelijstje, en een knop
+  "Installatie starten →" die naar stap 1 linkt. Doorklikken zet
+  `$_SESSION['installer']['started']`, dus een latere `?step=`-loze herlaad (bv. de gebruiker
+  wist de querystring handmatig) valt terug op de huidige stap, niet opnieuw op dit scherm.
+  `InstallerCore::isCompleted()`s bestaande gedrag (na installatie altijd doorsturen naar `/`)
+  blijft ervoor staan, dus dit scherm is sowieso nooit zichtbaar op een al-geïnstalleerde site.
+- **Logo-bestanden toegevoegd** onder `public/assets/img/`: `logo.png` (bronbestand, hoge
+  resolutie), `logo-256.png` (UI-gebruik), `logo-64.png` (header-icoon) en `favicon-32.png`.
+- **Logo verwerkt waar het paste:**
+  - Welkomstscherm en de installer-wizard-header (stap 1–5) — als data-URI ingebed (niet als
+    `<img src="/assets/...">` gelinkt), omdat dit draait vóórdat zeker is dat `/assets/`
+    via de actieve document root bereikbaar is — precies de klasse fouten die v1.25.1/v1.25.2
+    al kostte. Dependency-vrij, zoals de rest van de installer.
+  - Sitebrede header in beide thema's (`cf-logo-wrap`) — het logo staat nu naast de sitenaam
+    i.p.v. alleen de 🔮-emoji. Los van `.cf-logo` gehouden (nieuwe `.cf-logo-icon`/
+    `.cf-logo-row`-classes), want `.cf-logo` gebruikt `-webkit-text-fill-color: transparent`
+    voor de gradient-tekst — op een `<img>` gezet zou dat 'm gewoon onzichtbaar maken.
+  - Standaard-favicon: Step5.php seedt voortaan `core.site_icon` met
+    `/assets/img/favicon-32.png` zodra de installatie afrondt. Voorheen bleef die instelling
+    leeg totdat een beheerder er zelf handmatig een uploadde via `/admin/settings` — een verse
+    site toonde dus een lege/gebroken favicon-tag totdat iemand daaraan dacht.
+  - README.md — logo bovenaan.
+
+Live getest: het welkomstscherm toont bij het eerste bezoek, de doorklik-link werkt en het
+"onthouden dat er al gestart is"-gedrag klopt (herhaald bezoek zonder querystring valt niet
+terug naar het welkomstscherm), een volledige installatie is opnieuw doorlopen, en ná
+installatie tonen zowel de favicon-tag als het header-logo het juiste, nu bereikbare bestand
+(`/assets/img/favicon-32.png` resp. `/assets/img/logo-64.png`, beide 200 OK).
+
+---
+
 ## [1.25.2] — 2026-09-29 — "Forbidden" op /installer/ — eigen v1.25.1-fix zat nog in de weg
 
 Aanleiding: direct na v1.25.1 live-melding "Forbidden / you don't have permission to access

@@ -46,6 +46,13 @@ try {
         ['core', 'site_url',  $site['siteUrl']],
         ['core', 'default_locale', $site['locale']],
         ['core', 'timezone', $site['timezone']],
+        // Standaard-favicon: zonder deze rij toont een verse site een leeg
+        // <link rel="icon" href="">, want site_icon werd voorheen alleen
+        // gezet zodra een beheerder er zelf een uploadde via
+        // /admin/settings. Het bijgeleverde logo staat sowieso al in
+        // public/assets/img/, dus die meteen als startwaarde meegeven kost
+        // niets en de beheerder kan 'm later gewoon overschrijven.
+        ['core', 'site_icon', '/assets/img/favicon-32.png'],
     ];
 
     $stmt = $pdo->prepare("INSERT INTO cf_settings (`group`,`key`,`value`) VALUES (?,?,?)

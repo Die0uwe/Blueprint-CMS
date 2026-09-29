@@ -99,6 +99,22 @@ img { max-width: 100%; }
   flex-shrink: 0;
 }
 
+.cf-logo-row {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+}
+
+/* Logo-icoon (v1.25.3) — staat los van .cf-logo zelf omdat die laatste
+   -webkit-text-fill-color: transparent gebruikt voor de gradient-tekst;
+   dat op een <img> zetten zou 'm gewoon onzichtbaar maken. */
+.cf-logo-icon {
+  height: 1.7rem;
+  width: 1.7rem;
+  display: block;
+  flex-shrink: 0;
+}
+
 .cf-logo {
   font-size: 1.2rem;
   font-weight: 800;
