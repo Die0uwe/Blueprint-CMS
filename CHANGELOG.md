@@ -18,6 +18,52 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ---
 
+## [1.26.1] — 2026-09-30 — HOOG: kale witte pagina i.p.v. installer wanneer `composer install` niet is uitgevoerd
+
+Aanleiding: een gebruiker meldde dat de projectmap na upload naar hosting "leeg" leek — geen
+index, geen verwijzing naar de installer, en de installer "startte niet". Onderzocht en
+gereproduceerd: `public/index.php` deed `require_once CF_ROOT . '/vendor/autoload.php';` als
+allereerste regel, vóórdat de installer-dispatch-logica erna ooit bereikt werd. Als
+`composer install` nog niet is uitgevoerd — heel gebruikelijk bij een kale GitHub-ZIP-download
+geüpload naar shared hosting zonder SSH-toegang, of gewoon vergeten — crasht PHP hier op elke
+request. Met `display_errors=Off` (de standaard op praktisch elke productie-host) levert dat
+géén foutmelding op, alleen een volledig leeg wit scherm: geen installer, geen enkele aanwijzing
+wat er mis is. Met `display_errors=On` lekt het in plaats daarvan het volledige serverpad.
+
+### 🟠 De bug
+
+`public/index.php:16` (vóór deze fix): een onvoorwaardelijke `require_once` van
+`vendor/autoload.php`, zonder enige `file_exists()`-check. Dit bestand wordt nooit door dit
+project gecommit (terecht — `vendor/` staat in `.gitignore`), maar niets ving het geval op waar
+het simpelweg (nog) niet bestaat op de server. Voor een CMS dat zichzelf adverteert als
+"installeren binnen enkele minuten... zonder programmeerkennis" is een onherkenbare witte pagina
+op de allereerste stap een harde blocker.
+
+### 🔧 Fix
+
+Een expliciete `file_exists()`-check vóór de require. Ontbreekt `vendor/autoload.php`, dan toont
+`public/index.php` nu een duidelijke, Nederlandstalige HTML-pagina (HTTP 500, geen kale fatal
+error) met twee concrete vervolgstappen: `composer install --no-dev --optimize-autoloader`
+draaien via SSH als die beschikbaar is, of — voor pure FTP/bestandsbeheer-hosting zonder
+terminal — dat commando lokaal draaien en de hele projectmap (inclusief de dan aangemaakte
+`vendor/`-map) in één keer uploaden. Bestaat `vendor/autoload.php` wél, dan verandert er niets
+aan het bestaande gedrag.
+
+### ✅ Live getest
+
+Twee scenario's tegen de PHP-ingebouwde server, `public/` als document root:
+
+- **`vendor/autoload.php` ontbreekt:** request naar `/` geeft `HTTP 500` + de nieuwe
+  uitlegpagina (geverifieerd op inhoud en dat er geen kale PHP-fatal in de server-log staat).
+- **`vendor/autoload.php` bestaat** (stub voor deze regressietest, geen volledige framework-
+  boot nodig om dit specifieke pad te bevestigen): request naar `/` bereikt ongewijzigd de
+  installer-dispatch-logica (`HTTP 200`) — geen regressie op de bestaande, al eerder (v1.25.1/
+  v1.25.2) geverifieerde installer-flow.
+
+Testomgevingen nadien volledig opgeruimd.
+
+---
+
 ## [1.26.0] — 2026-09-29 — Stappenplan: roadmap voor resterende audit-bevindingen + verdere CMS-ontwikkeling
 
 Aanleiding: de oorspronkelijke opdracht voor deze sessie was viervoudig — (1) een totale

@@ -16,7 +16,7 @@ GPL-3.0-or-later
 [![PHP](https://img.shields.io/badge/PHP-8.3%2B-777BB4?style=flat-square&logo=php)](https://php.net)
 [![MariaDB](https://img.shields.io/badge/MariaDB-10.11%2B-003545?style=flat-square&logo=mariadb)](https://mariadb.org)
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.26.0-brightgreen?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-1.26.1-brightgreen?style=flat-square)](CHANGELOG.md)
 [![CI](https://img.shields.io/github/actions/workflow/status/Die0uwe/bluprint-cms/ci.yml?branch=main&style=flat-square&label=CI)](.github/workflows/ci.yml)
 
 *Geïnspireerd door PHP-Fusion · Down Under Fusion · ImpressCMS*
@@ -104,6 +104,12 @@ cp .env.example .env
 # Navigeer naar http://jouwsite.nl/installer/
 ```
 
+> ⚠️ **Alleen FTP/bestandsbeheer, geen SSH-toegang?** `composer install` kan dan niet op de
+> server zelf draaien. Draai dat commando lokaal op je eigen computer, in dezelfde projectmap,
+> vóór het uploaden — en upload daarna de hele map in één keer, **inclusief** de dan aangemaakte
+> `vendor/`-map. Sla je die map per ongeluk over, dan toont de site sinds v1.26.1 een duidelijke
+> uitlegpagina in plaats van een leeg wit scherm.
+
 ---
 
 ## 🧩 Modules (11 beschikbaar)
@@ -176,6 +182,7 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 | **HOOG: cache-driver `redis` crashte** | ✅ v1.25.8 | Architectuur-deelaudit vond dat `CacheManager` een niet-bestaande `RedisCache`-klasse instantieerde zodra `cache.driver=redis` in `config.php` stond (het voorbeeld-commentaar suggereerde dat als geldige optie) — kale fatal error op elke request. Nu een duidelijke `RuntimeException` i.p.v. de crash; `file`-driver (de enige echt geïmplementeerde) ongewijzigd. Zie CHANGELOG v1.25.8. |
 | **KRITIEK: guild/ollama-adminpanels open voor elk lid** | ✅ v1.25.9 | Een gerichte security-herscan vond een vierde instantie van dezelfde bugklasse (module declareert een permissie, niets zaait die ooit in `cf_permissions`): `guild.manage`/`ollama.admin` bestonden nergens, dus draaiden hun admin-routes alleen op `AuthMiddleware` — elk lid kon guild-aanmeldingen goed-/afkeuren en Ollama-host/systeemprompt overschrijven (opstap naar SSRF). Permissies geseed + routes op `PermissionMiddleware` gezet; ook rate limiting toegevoegd aan de voorheen onbeperkte publieke `/api/ollama/*`-endpoints. Live getest: exploit geblokkeerd (403), legitiem gebruik intact. Zie CHANGELOG v1.25.9. |
 | **Stappenplan/Roadmap** | ✅ v1.26.0 | Vierde en laatste onderdeel van de sessie-opdracht: `docs/ROADMAP.md` — samenvatting van alle v1.25.x-fixes, de resterende audit-backlog per domein (Security/Architectuur/Database/Frontend-i18n) geprioriteerd op ernst, en een gefaseerd vervolgtraject (fundament verstevigen → S12 Premium → Rust/Ark heroverwegen). Zie CHANGELOG v1.26.0. |
+| **HOOG: witte pagina i.p.v. installer** | ✅ v1.26.1 | Gebruikersmelding: na upload naar hosting leek de site "leeg", geen installer bereikbaar. Root cause: `public/index.php` deed een onvoorwaardelijke `require` van `vendor/autoload.php`, vóór de installer-dispatch — ontbrak die map (composer install nooit gedraaid, gangbaar bij een kale ZIP-upload zonder SSH), dan crashte élke request met een volledig leeg wit scherm en geen enkele aanwijzing. Nu een duidelijke Nederlandstalige uitlegpagina met concrete vervolgstappen (SSH of lokaal composer install + upload). Live getest: beide scenario's (ontbrekend/aanwezig) gedragen zich correct. Zie CHANGELOG v1.26.1. |
 
 ---
 
@@ -195,7 +202,7 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 
 ---
 
-## ⚠️ Bekende beperkingen (stand v1.26.0)
+## ⚠️ Bekende beperkingen (stand v1.26.1)
 
 Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben opgelost — zie
 `docs/wave-0-gap-analysis.md` en `CHANGELOG.md` voor de volledige context per punt.
@@ -498,6 +505,18 @@ Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben o
 > `gaming-dark`-thema zonder eigen templates (Frontend). Geen van deze is deze sessie gefixt —
 > ze staan expliciet als geprioriteerde backlog in het stappenplan, met een voorgestelde fasering
 > voor de volgende ontwikkelronde. Zie CHANGELOG v1.26.0 en `docs/ROADMAP.md`.
+>
+> **v1.26.1: HOOG — witte pagina i.p.v. installer wanneer `composer install` niet is
+> uitgevoerd.** Een gebruiker meldde dat de site na upload naar hosting "leeg" leek, zonder
+> installer. Root cause: `public/index.php` deed een onvoorwaardelijke `require` van
+> `vendor/autoload.php` vóór de installer-dispatch — ontbreekt die map (heel gebruikelijk bij
+> een kale GitHub-ZIP zonder `composer install`, bijvoorbeeld op shared hosting zonder
+> SSH-toegang), dan crashte élke request meteen, en met `display_errors=Off` (de standaard op
+> praktisch elke productie-host) zonder enige zichtbare foutmelding. Nu een `file_exists()`-check
+> met een duidelijke Nederlandstalige uitlegpagina (concrete vervolgstappen voor zowel
+> SSH-toegang als pure FTP-hosting) i.p.v. de kale crash. Live getest: beide scenario's
+> (`vendor/` ontbrekend/aanwezig) gedragen zich correct, geen regressie op de bestaande
+> installer-flow. Zie CHANGELOG v1.26.1.
 
 - ~~`/admin`-routes zijn niet permissie-gated~~ — **opgelost in v1.10.0.** Zie CHANGELOG:
   `PermissionMiddleware` + `admin.access`/`settings.edit`/`blocks.manage`/`marketplace.*`.
@@ -647,9 +666,9 @@ GPL-3.0-or-later — © 2026 [DieOuwe](https://www.dieouwe.nl) / [Slayer Allianc
 
 <!--
 ╔══════════════════════════════════════════════════════════════════════╗
-║  File: README.md | Role: Docs | Version: 1.26.0                      ║
-║  Updated: 2026-09-29 — Stappenplan: docs/ROADMAP.md toegevoegd, het   ║
-║           vierde en laatste onderdeel van de sessie-opdracht. Bundelt║
-║           v1.25.5-v1.25.9 + de resterende audit-backlog + fasering.  ║
+║  File: README.md | Role: Docs | Version: 1.26.1                      ║
+║  Updated: 2026-09-30 — HOOG: witte pagina i.p.v. installer wanneer   ║
+║           vendor/autoload.php ontbreekt (composer install niet       ║
+║           gedraaid) — nu een duidelijke uitlegpagina i.p.v. crash.  ║
 ╚══════════════════════════════════════════════════════════════════════╝
 -->
