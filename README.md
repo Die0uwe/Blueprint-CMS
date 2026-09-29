@@ -16,7 +16,7 @@ GPL-3.0-or-later
 [![PHP](https://img.shields.io/badge/PHP-8.3%2B-777BB4?style=flat-square&logo=php)](https://php.net)
 [![MariaDB](https://img.shields.io/badge/MariaDB-10.11%2B-003545?style=flat-square&logo=mariadb)](https://mariadb.org)
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.25.3-brightgreen?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-1.25.4-brightgreen?style=flat-square)](CHANGELOG.md)
 [![CI](https://img.shields.io/github/actions/workflow/status/Die0uwe/bluprint-cms/ci.yml?branch=main&style=flat-square&label=CI)](.github/workflows/ci.yml)
 
 *Geïnspireerd door PHP-Fusion · Down Under Fusion · ImpressCMS*
@@ -169,6 +169,7 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 | **Inventarisatie + debug** | ✅ v1.25.0 | Projectbrede audit (2 onafhankelijke passes) + fix- en live-testronde: 2× privilege-escalatie (`/admin/users`, `/admin/roles`), JSON-request-bodies die nergens werden uitgelezen (Blokken-admin/Marketplace/Ollama-chat allemaal stuk), 3 module-adminpanels (Guild/Warcraft/Ollama) volledig onbereikbaar door een routing-volgordebug, login-CSRF op `/api/v1/auth/login`, en meer. Zie CHANGELOG v1.25.0. |
 | **Deploy-fix: installer** | ✅ v1.25.1–1.25.2 | De installer bleek op een echte server (buiten de test-omgeving) onbereikbaar — bij `DocumentRoot=public/` (het door dit document aanbevolen model) zelfs een oneindige redirect-loop. Front controller `require`t de installer nu rechtstreeks i.p.v. te redirecten, en de root-`.htaccess` blokkeert `.env`/`config`/`vendor`/etc. expliciet i.p.v. impliciet door te laten — al blokkeerde die lijst in de eerste versie per ongeluk óók `/installer/` zelf ("Forbidden"), gefixt in v1.25.2. Getest via beide document-root-modellen, inclusief een volledige installatie-run door elk. Zie CHANGELOG v1.25.1/v1.25.2. |
 | **Branding: logo + welkomstscherm** | ✅ v1.25.3 | Officieel logo verwerkt (`public/assets/img/`), plus een welkomstscherm vóór stap 1 van de installer (logo, uitleg, link om te starten). Logo ook terug te zien in de installer-header, de sitebrede header van beide thema's, en als standaard-favicon na installatie. Zie CHANGELOG v1.25.3. |
+| **CI-fix: composer.json** | ✅ v1.25.4 | GitHub Actions faalde op elke push (`composer install` kon niet oplossen): `firebase/php-jwt ^6.0` was volledig geblokkeerd door een security-advisory, `league/route ^5.0` conflicteerde met de vereiste `psr/container`/`psr/simple-cache`-versies, en `league/container`/`league/event`/`monolog/monolog`/`ramsey/uuid` bleken (opnieuw geverifieerd) ongebruikt. Alle zes verwijderd uit `require`; alleen aantoonbaar-gebruikte packages blijven over. Zie CHANGELOG v1.25.4. |
 
 ---
 
@@ -188,7 +189,7 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 
 ---
 
-## ⚠️ Bekende beperkingen (stand v1.25.3)
+## ⚠️ Bekende beperkingen (stand v1.25.4)
 
 Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben opgelost — zie
 `docs/wave-0-gap-analysis.md` en `CHANGELOG.md` voor de volledige context per punt.
@@ -424,6 +425,14 @@ Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben o
 > tot een beheerder er zelf een uploadt. In de installer zelf staat het logo als data-URI ingebed
 > (niet gelinkt), want die draait vóórdat zeker is dat `/assets/` via de actieve document root
 > bereikbaar is. Zie CHANGELOG v1.25.3.
+>
+> **v1.25.4: CI-pipeline weer groen.** `composer install` faalde op elke push — `firebase/php-jwt`
+> was volledig onoplosbaar (alle v6.x-releases geblokkeerd door security-advisory PKSA-y2cr-5h3j-g3ys,
+> pas gefixt in v7.0.0) en `league/route ^5.0` conflicteerde met de vereiste `psr/container`/
+> `psr/simple-cache`-versies. Beide, plus vier andere nooit-gebruikte packages
+> (`league/container`, `league/event`, `monolog/monolog`, `ramsey/uuid`), verwijderd uit
+> `composer.json`. Geen enkele class verandert — puur een opschoning van dode/kapotte
+> dependency-declaraties. Zie CHANGELOG v1.25.4.
 
 - ~~`/admin`-routes zijn niet permissie-gated~~ — **opgelost in v1.10.0.** Zie CHANGELOG:
   `PermissionMiddleware` + `admin.access`/`settings.edit`/`blocks.manage`/`marketplace.*`.
@@ -567,9 +576,10 @@ GPL-3.0-or-later — © 2026 [DieOuwe](https://www.dieouwe.nl) / [Slayer Allianc
 
 <!--
 ╔══════════════════════════════════════════════════════════════════════╗
-║  File: README.md | Role: Docs | Version: 1.25.3                      ║
-║  Updated: 2026-09-29 — Logo verwerkt (public/assets/img/) + nieuw    ║
-║           welkomstscherm vóór installer-stap 1; logo ook in de       ║
-║           installer-header, sitebrede header en standaard-favicon    ║
+║  File: README.md | Role: Docs | Version: 1.25.4                      ║
+║  Updated: 2026-09-29 — CI-pipeline gefixt: 6 ongebruikte/kapotte     ║
+║           composer.json-dependencies verwijderd (firebase/php-jwt,   ║
+║           league/*, monolog, ramsey/uuid). Zie ook v1.25.3: logo     ║
+║           verwerkt + welkomstscherm vóór installer-stap 1.           ║
 ╚══════════════════════════════════════════════════════════════════════╝
 -->

@@ -18,6 +18,58 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ---
 
+## [1.25.4] — 2026-09-29 — CI kapot: composer.json vroeg om zes ongebruikte/onoplosbare packages
+
+Aanleiding: gebruiker plakte de GitHub Actions-foutmelding van de CI-pipeline (PHP 8.3 én 8.4
+jobs, beide rood op de `composer install`-stap, nog vóórdat er ook maar één test kon draaien).
+
+**Root cause:** `composer.json` `require` vroeg om zes packages die stuk voor stuk problematisch
+óf overbodig bleken:
+
+- `firebase/php-jwt: ^6.0` — **onoplosbaar.** Composer kan geen enkele v6.x-release
+  installeren: alle releases van v6.0.0 t/m v6.11.1 zijn geblokkeerd door een
+  security-advisory (`PKSA-y2cr-5h3j-g3ys`, ook bekend als GHSA-2x45-7fc3-mxwq — een
+  "weak encryption"-probleem, CWE-326, pas gefixt in v7.0.0). `^6.0` in composer.json kan dus
+  per definitie nooit meer oplossen.
+- `league/route: ^5.0` — **conflicteert.** v5.x vereist `psr/container: ^1.0` en
+  `psr/simple-cache: ^1.0`, terwijl root expliciet `psr/container: ^2.0` en
+  `psr/simple-cache: ^3.0` vraagt (nodig voor `src/Core/Cache/*` en `src/Core/Container.php`,
+  die wél echt gebruikt worden). Onoplosbare versie-tegenspraak.
+- `league/container`, `league/event`, `monolog/monolog`, `ramsey/uuid` — **ongebruikt.**
+  Geverifieerd met een volledige grep over `src/`, `modules/`, `cli/`, `tests/`: geen enkele
+  `use`-statement of namespace-verwijzing naar een van deze vier pakketten. Al genoemd als
+  "bewust buiten scope" in de v1.25.0-changelog-entry, maar toen niet daadwerkelijk uit
+  composer.json verwijderd.
+
+`firebase/php-jwt` bleek bij nader inzien óók ongebruikt: `src/Core/Auth/JWTManager.php`
+implementeert HS256 JWT-signing zelf, met `hash_hmac('sha256', ...)` en een eigen
+base64url-encode/decode — geen `Firebase\JWT`-namespace-verwijzing waar dan ook in de codebase.
+
+### 🔧 Fix
+
+`require` teruggebracht tot exact wat er echt gebruikt wordt:
+
+```diff
+- "firebase/php-jwt": "^6.0",
+- "league/container": "^4.0",
+- "league/event": "^3.0",
+- "league/route": "^5.0",
+  "psr/simple-cache": "^3.0",
+  "psr/container": "^2.0",
+- "monolog/monolog": "^3.0",
+  "vlucas/phpdotenv": "^5.0",
+- "ramsey/uuid": "^4.0"
+```
+
+Blijft over: `twig/twig`, `psr/simple-cache`, `psr/container`, `vlucas/phpdotenv` — stuk voor
+stuk aantoonbaar in gebruik (Twig-templates via `ThemeManager`, PSR-16-cache via
+`FileCache`/`CacheManager`, PSR-11-container via `src/Core/Container.php`, `.env`-laden via
+`vlucas/phpdotenv`). Geen enkele class in de codebase verandert door deze wijziging — puur
+opschonen van dode/kapotte dependency-declaraties. `composer validate --strict` en
+`json_decode()` beide schoon getest op het resulterende bestand.
+
+---
+
 ## [1.25.3] — 2026-09-29 — Logo + welkomstscherm vóór de installer
 
 Aanleiding: gebruiker leverde het officiële Blueprint CMS-logo aan met het verzoek om, vóórdat
