@@ -142,6 +142,10 @@ final class Router
         $this->get('/downloads/{slug:[a-z0-9-]+}/bestand',     'CommunityFusion\Modules\Downloads\DownloadsController@download');
         $this->get('/downloads/{slug:[a-z0-9-]+}',             'CommunityFusion\Modules\Downloads\DownloadsController@show');
 
+        // ── Galerij (S11 — publieke kant; admin-CRUD staat verderop) ────
+        $this->get('/galerij',                  'CommunityFusion\Modules\Gallery\GalleryController@index');
+        $this->get('/galerij/{slug:[a-z0-9-]+}', 'CommunityFusion\Modules\Gallery\GalleryController@album');
+
         // ── Contact ─────────────────────────────────────────────────────
         $this->get('/contact',   'CommunityFusion\Modules\Contact\ContactController@form');
         $this->post('/contact',  'CommunityFusion\Modules\Contact\ContactController@store');
@@ -250,6 +254,16 @@ final class Router
         // ── Media (Wave 5 — scant storage/uploads/ + storage/downloads/) ─
         $this->get('/admin/media',              'CommunityFusion\Modules\Media\MediaAdminController@index',  $perm('media.manage'));
         $this->post('/admin/media/verwijderen', 'CommunityFusion\Modules\Media\MediaAdminController@delete', $perm('media.manage'));
+
+        // ── Galerij-beheer (S11 — albums = cf_categories(type=gallery)) ─
+        $this->get('/admin/gallery',                                 'CommunityFusion\Modules\Gallery\GalleryAdminController@index',      $perm('gallery.manage'));
+        $this->get('/admin/gallery/nieuw',                            'CommunityFusion\Modules\Gallery\GalleryAdminController@createForm', $perm('gallery.manage'));
+        $this->post('/admin/gallery',                                 'CommunityFusion\Modules\Gallery\GalleryAdminController@store',      $perm('gallery.manage'));
+        $this->get('/admin/gallery/{id:[0-9]+}/beheer',               'CommunityFusion\Modules\Gallery\GalleryAdminController@manage',     $perm('gallery.manage'));
+        $this->post('/admin/gallery/{id:[0-9]+}/bewerk',              'CommunityFusion\Modules\Gallery\GalleryAdminController@update',     $perm('gallery.manage'));
+        $this->post('/admin/gallery/{id:[0-9]+}/verwijder',           'CommunityFusion\Modules\Gallery\GalleryAdminController@delete',     $perm('gallery.manage'));
+        $this->post('/admin/gallery/{id:[0-9]+}/upload',              'CommunityFusion\Modules\Gallery\GalleryAdminController@upload',     $perm('gallery.manage'));
+        $this->post('/admin/gallery/items/{itemId:[0-9]+}/verwijder', 'CommunityFusion\Modules\Gallery\GalleryAdminController@deleteItem', $perm('gallery.manage'));
 
         // ── Overige admin-sidebar links (Wave 2) ────────────────────────────
         // /admin/modules dupliceerde in de praktijk /admin/marketplace (module-

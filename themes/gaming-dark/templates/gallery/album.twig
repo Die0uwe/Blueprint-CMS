@@ -1,0 +1,112 @@
+{% extends 'layout.twig' %}
+{% block content %}
+<div class="cf-page-header">
+  <div class="cf-breadcrumb"><a href="/">Home</a> → <a href="/galerij">Galerij</a> → {{ album.name }}</div>
+  <h1>📷 {{ album.name }}</h1>
+  {% if album.description %}<p style="color:var(--muted);">{{ album.description }}</p>{% endif %}
+</div>
+
+{% if can_manage %}
+<div style="margin-bottom:1rem;">
+  <a href="/admin/gallery/{{ album.id }}/beheer" class="cf-btn">⚙️ Album beheren</a>
+</div>
+{% endif %}
+
+<div class="cf-gallery-items-grid">
+  {% for item in items %}
+  <a href="#" class="cf-gallery-item"
+     data-lightbox="{{ item.media_type }}"
+     data-src="/media/{{ item.file_path }}"
+     data-title="{{ item.title|default(item.original_filename) }}"
+     data-author="{{ item.display_name|default(item.username) }}"
+     data-date="{{ item.created_at|date('d M Y') }}"
+     data-description="{{ item.description|default('') }}">
+    {% if item.media_type == 'image' and item.thumbnail_path %}
+      <img src="/media/{{ item.thumbnail_path }}" alt="{{ item.title|default(item.original_filename) }}" loading="lazy">
+    {% else %}
+      <div class="cf-gallery-video-placeholder">▶️</div>
+    {% endif %}
+    {% if item.title %}<span class="cf-gallery-item-title">{{ item.title }}</span>{% endif %}
+  </a>
+  {% else %}
+  <p style="color:var(--muted);">Dit album bevat nog geen foto's of video's.</p>
+  {% endfor %}
+</div>
+
+{% if pagination.total > 1 %}
+<div style="display:flex;gap:.5rem;justify-content:center;margin-top:1.5rem;">
+  {% for p in 1..pagination.total %}
+    <a href="/galerij/{{ album.slug }}?page={{ p }}" class="cf-btn-sm {{ p == pagination.current ? '' : 'cf-btn-ghost' }}">{{ p }}</a>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div id="cf-gallery-lightbox" class="cf-gallery-lightbox" hidden>
+  <button type="button" class="cf-gallery-lightbox-close" aria-label="Sluiten">✕</button>
+  <div class="cf-gallery-lightbox-body">
+    <div class="cf-gallery-lightbox-media"></div>
+    <div class="cf-gallery-lightbox-meta">
+      <h3 class="cf-gallery-lightbox-title"></h3>
+      <p class="cf-gallery-lightbox-description"></p>
+      <div class="cf-gallery-lightbox-sub"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  // Eenvoudige, framework-loze lightbox — geen externe library nodig voor
+  // "klik op miniatuur → toon groot". Video-items krijgen een native
+  // <video controls>-element i.p.v. een <img>.
+  var lightbox = document.getElementById('cf-gallery-lightbox');
+  if (!lightbox) return;
+
+  var mediaEl = lightbox.querySelector('.cf-gallery-lightbox-media');
+  var titleEl = lightbox.querySelector('.cf-gallery-lightbox-title');
+  var descEl  = lightbox.querySelector('.cf-gallery-lightbox-description');
+  var subEl   = lightbox.querySelector('.cf-gallery-lightbox-sub');
+  var closeEl = lightbox.querySelector('.cf-gallery-lightbox-close');
+
+  function open(item) {
+    mediaEl.innerHTML = '';
+    if (item.dataset.lightbox === 'video') {
+      var video = document.createElement('video');
+      video.src = item.dataset.src;
+      video.controls = true;
+      video.autoplay = true;
+      mediaEl.appendChild(video);
+    } else {
+      var img = document.createElement('img');
+      img.src = item.dataset.src;
+      img.alt = item.dataset.title || '';
+      mediaEl.appendChild(img);
+    }
+    titleEl.textContent = item.dataset.title || '';
+    descEl.textContent  = item.dataset.description || '';
+    descEl.hidden = !item.dataset.description;
+    subEl.textContent = 'door ' + item.dataset.author + ' · ' + item.dataset.date;
+    lightbox.hidden = false;
+  }
+
+  function close() {
+    lightbox.hidden = true;
+    mediaEl.innerHTML = '';
+  }
+
+  document.querySelectorAll('.cf-gallery-item').forEach(function (el) {
+    el.addEventListener('click', function (e) {
+      e.preventDefault();
+      open(el);
+    });
+  });
+
+  closeEl.addEventListener('click', close);
+  lightbox.addEventListener('click', function (e) {
+    if (e.target === lightbox) close();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !lightbox.hidden) close();
+  });
+})();
+</script>
+{% endblock %}

@@ -18,6 +18,108 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ---
 
+## [1.23.0] — 2026-09-29 — S11: Media-galerij (los van de generieke upload-handler)
+
+Aanleiding: "s11" — het volgende item op de roadmap na S10 (YouTube + Kick). Een échte
+media-galerij (albums met foto's en video's, upload, miniaturen, publieke doorbladering),
+expliciet te onderscheiden van twee dingen die er oppervlakkig op leken maar het niet waren:
+`UploadManager` (de generieke bestandsopslag-utility — valideert en bewaart, maar toont niets)
+en het bestaande `/admin/media`-scherm (een bestandshuishouding-scanner over `storage/`, geen
+galerij met albums, miniaturen of een publieke pagina).
+
+### Nieuw — `src/Modules/Gallery/`
+
+- **Albums = `cf_categories` met `type='gallery'`** — zelfde hergebruikpatroon als Forumborden
+  (`type=forum`) en Nieuwscategorieën (`type=news`): geen nieuwe albumtabel nodig, wel een eigen
+  `cf_gallery_items`-tabel (bestand, miniatuur, afmetingen, auteur, soft-delete).
+- **`GalleryRepository`** — albums/items, publiek + admin, met dezelfde cache-op-schrijven-
+  invalideren-conventie als de rest van het project.
+- **`GalleryThumbnailer`** — vanaf nul geschreven GD-miniaturenmaker (er bestond nog NERGENS
+  beeldbewerkingscode in dit project, ook niet bij avatars). Witte ondergrond i.p.v. zwart
+  (voorkomt lelijke randen bij transparante PNG/GIF-bronnen), max. 480px, beeldverhouding
+  behouden. Alleen voor afbeeldingen — video's krijgen bewust GEEN miniatuur (zou `ffmpeg` of een
+  vergelijkbare frame-decoder vereisen, een procesafhankelijkheid die dit project nergens anders
+  heeft en niet betrouwbaar is op gedeelde hosting); video-items tonen een vaste ▶️-placeholder.
+- **`GalleryController`** (publiek) — `/galerij` (albumindex) en `/galerij/{slug}` (album met
+  paginering), met een lichtgewicht, framework-loze lightbox (vanilla JS, geen library) voor
+  foto's én video's (native `<video controls>`).
+- **`GalleryAdminController`** (staff, `gallery.manage`) — album-CRUD naar het bewezen
+  `BoardAdminController`-patroon inclusief cascade-bescherming (`countItemsInAlbum() > 0` blokkeert
+  verwijderen, met de FK's `ON DELETE CASCADE` als laatste vangnet, nooit als bedoeld pad), plus
+  upload/verwijderen van items (multipart, media-type gedetecteerd via bestandsextensie na échte
+  MIME-sniffing door `UploadManager`).
+- **`GalleryLatestBlock`** (`gallery-latest`) — sidebar-widget met de laatst geüploade
+  AFBEELDINGEN (bewust geen video's — zie hierboven), zelfde registratiepatroon als
+  `NewsBlock`/`StatsBlock` in `Application.php`.
+- Publieke Twig-templates in **beide** thema's (`default` én `gaming-dark`, identiek gehouden,
+  zoals bij Downloads/Forum al de conventie was).
+
+### Bestandsopslag: hergebruik van de bestaande `/media/{path}`-route
+
+Galerijbestanden landen onder `storage/uploads/gallery/` — dus binnen de map die de bestaande,
+al langer draaiende `GET /media/{path}` (`MediaController`) al serveert. Er was dus GEEN nieuwe
+serveer-route nodig; alleen `mp4`/`webm` toegevoegd aan `MediaController::CONTENT_TYPES` voor de
+juiste `Content-Type`-header bij video. `UploadManager` kreeg een `ALLOWED_GALLERY`-whitelist
+(afbeeldingen + mp4/webm — bewust geen avi/mov/mkv, i.v.m. brede `<video>`-compatibiliteit zonder
+transcoderen) en een `forGallery()`-factory, naar het `forDownloads()`-patroon.
+
+### Bugfix — `/admin/media` zou galerijbestanden als "ongebruikt" hebben bestempeld
+
+Gevonden tijdens het ontwerp (vóór livetest, dus nooit in productie geraakt): de bestaande
+bestandshuishouding-scanner (`MediaAdminController`) kruiste geüploade bestanden alleen tegen
+`cf_users.avatar_url` en `cf_downloads.file_path` — een gloednieuwe galerijfoto zou daardoor als
+"ongebruikt, veilig te verwijderen" zijn getoond. Opgelost door ook `cf_gallery_items.file_path`
+en `.thumbnail_path` mee te tellen, vóórdat dit ooit een echte upload trof.
+
+### Bugfix — dubbel geneste opslagpaden tijdens livetest ontdekt en gecorrigeerd
+
+De eerste implementatie construeerde `GalleryAdminController`'s eigen `UploadManager`-instantie
+geworteld op `storage/uploads/gallery/` (naar analogie met Downloads' eigen `storage/downloads/`-
+root), maar gaf `store()` daarna óók nog eens `'gallery'` als submap mee — resultaat:
+`storage/uploads/gallery/gallery/xxx.jpg`. Ontdekt bij de eerste live upload-test (het bestand kwam
+niet aan waar `/media/{path}` het verwachtte). Root-oorzaak: Gallery hergebruikt bewust de gedeelde
+`/media/{path}`-serveer-route (zie hierboven), dus de `UploadManager`-instantie moet — anders dan
+Downloads, die een eigen, aparte serveer-route heeft — geworteld zijn op `storage/uploads/` (net
+als de DI-singleton voor avatars), met `'gallery'` alleen als submap-parameter. Gecorrigeerd vóór
+commit; live opnieuw geverifieerd met een echte upload (zie hieronder).
+
+### Bugfix — `schema.sql`-import brak op een puntkomma binnen een `COMMENT`-string
+
+`InstallerCore::importSchema()` splitst statements op een kale `explode(';', ...)` (met een eigen,
+al langer bekende beperking — zie het commentaar daar over regel-comments). Een `COMMENT`-string in
+de nieuwe `cf_gallery_items`-tabel bevatte zelf een `;` ("Relatief pad; alleen gevuld voor..."),
+wat de CREATE TABLE-statement middendoor brak bij elke verse installatie. Gevonden bij de eerste
+scripted install van deze wave, vóór enige andere test kon draaien. Gecorrigeerd (komma i.p.v.
+puntkomma) — dit had zonder livetest elke fresh install van het hele project gebroken, niet
+alleen S11.
+
+### Live getest (scripted install, DB `bluprint_gallery`, PHP dev-server)
+
+Album aanmaken/bewerken/verwijderen; upload van een écht gegenereerde JPEG (GD, 1200×800) —
+miniatuur correct gegenereerd op 480×320 (beeldverhouding behouden), breedte/hoogte correct in de
+DB; upload van een écht gegenereerde MP4 (`ffmpeg`) — correct opgeslagen als `media_type=video`
+zonder miniatuur, correct geserveerd met `Content-Type: video/mp4`; cascade-bescherming (album met
+items → 302 + foutmelding, niet verwijderd; leeg album → verwijderd); fysieke bestanden
+daadwerkelijk van schijf verdwenen na item-verwijdering; `/admin/media` toont galerijbestanden nu
+correct als "nog in gebruik"; `GalleryLatestBlock` geplaatst via de echte `/admin/blocks`-flow en
+correct gerenderd op de homepage-sidebar met de echte miniatuur; publieke albumpagina + lightbox
+correct in zowel het `default`- als het `gaming-dark`-thema; 20+ routes regressie-geveegd,
+serverlog volledig schoon (geen enkele PHP error/warning/notice). Testomgeving nadien opgeruimd
+(DB, `vendor/`, `config/config.php`, testbestanden).
+
+### Bekende beperkingen
+
+- Alleen staff met `gallery.manage` kan albums/items beheren — geen lid-uploads of
+  moderatiewachtrij in deze wave (zelfde "staff-curated" model als Downloads/News).
+- Video-items hebben geen miniatuur (vaste ▶️-placeholder) — zie de ontwerpkeuze hierboven.
+- Geen per-item zichtbaarheids-toggle in de UI (`is_published` bestaat in het schema voor
+  toekomstig gebruik; S11-upload is altijd direct zichtbaar, verwijderen is het enige
+  zichtbaarheidscommando).
+- Maximale video-uploadgrootte 25MB (ruimer dan de 5MB voor afbeeldingen) — geen transcodering of
+  compressie; alleen mp4/webm worden geaccepteerd.
+
+---
+
 ## [1.22.0] — 2026-09-29 — S10 (vervolg): Kick-integratie (live-status, kijkers, stream-embed)
 
 Aanleiding: "ja kick eerst aub" — de tweede en laatste van de twee S10-integraties uit de

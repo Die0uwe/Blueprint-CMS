@@ -39,6 +39,15 @@ final class MediaController
         'png'  => 'image/png',
         'gif'  => 'image/gif',
         'webp' => 'image/webp',
+        // S11 (Media-galerij): video-items uit storage/uploads/gallery/
+        // lopen via deze zelfde /media/{path}-route (resolve() checkt alleen
+        // padcontainment, geen MIME-whitelist — zie UploadManager::resolve()),
+        // dus de twee door UploadManager::forGallery() toegestane
+        // videoformaten moeten ook hier een Content-Type krijgen, anders
+        // serveert dit ze als generieke download i.p.v. inline af te spelen
+        // in een <video>-tag.
+        'mp4'  => 'video/mp4',
+        'webm' => 'video/webm',
     ];
 
     public function __construct(

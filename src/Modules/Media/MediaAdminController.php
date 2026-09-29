@@ -26,8 +26,10 @@ use CommunityFusion\Core\Storage\UploadManager;
  * instantie en ruimere MIME-whitelist). Dit scherm scant beide mappen
  * rechtstreeks op de schijf — er was nog geen centrale registry van
  * geüploade bestanden — en kruist elk bestand tegen de tabellen die
- * ernaar kunnen verwijzen (cf_users.avatar_url, cf_downloads.file_path)
- * zodat een admin nooit per ongeluk een bestand verwijdert dat nog in
+ * ernaar kunnen verwijzen (cf_users.avatar_url, cf_downloads.file_path,
+ * en sinds S11 ook cf_gallery_items.file_path/thumbnail_path — de
+ * Media-galerij slaat zijn bestanden ook onder storage/uploads/gallery/
+ * op) zodat een admin nooit per ongeluk een bestand verwijdert dat nog in
  * gebruik is. Permissie: media.manage.
  */
 final class MediaAdminController
@@ -52,10 +54,26 @@ final class MediaAdminController
             static fn($u) => preg_replace('#^/media/#', '', (string) $u),
             array_column($usedAvatars, 'avatar_url')
         );
+        // S11 (Media-galerij): galerij-bestanden (origineel + thumbnail)
+        // landen ook onder storage/uploads/ (subdir 'gallery/'), dus zonder
+        // deze twee kolommen hier mee te tellen zou dit scherm elke net
+        // geüploade foto/video als "ongebruikt" bestempelen en een beheerder
+        // zou 'm hier per ongeluk kunnen verwijderen — zelfde soort gat als
+        // avatars/downloads hierboven al dichtten, nu voor de galerij.
+        $usedGalleryFiles = $this->db->fetchAll(
+            "SELECT file_path, thumbnail_path FROM cf_gallery_items WHERE deleted_at IS NULL"
+        );
+        $usedGallery = [];
+        foreach ($usedGalleryFiles as $row) {
+            $usedGallery[] = $row['file_path'];
+            if (!empty($row['thumbnail_path'])) {
+                $usedGallery[] = $row['thumbnail_path'];
+            }
+        }
         $usedDownloads = $this->db->fetchAll("SELECT DISTINCT file_path FROM cf_downloads WHERE deleted_at IS NULL");
         $usedDownloads = array_column($usedDownloads, 'file_path');
 
-        $uploadsFiles   = $this->scanArea(CF_ROOT . '/storage/uploads', $usedAvatars);
+        $uploadsFiles   = $this->scanArea(CF_ROOT . '/storage/uploads', [...$usedAvatars, ...$usedGallery]);
         $downloadsFiles = $this->scanArea(CF_ROOT . '/storage/downloads', $usedDownloads);
 
         $totalBytes = array_sum(array_column($uploadsFiles, 'size')) + array_sum(array_column($downloadsFiles, 'size'));
@@ -106,6 +124,12 @@ final class MediaAdminController
     {
         if ($area === 'uploads') {
             $row = $this->db->fetchOne("SELECT id FROM cf_users WHERE avatar_url = ?", ['/media/' . $path]);
+            if ($row !== null) return true;
+
+            $row = $this->db->fetchOne(
+                "SELECT id FROM cf_gallery_items WHERE (file_path = ? OR thumbnail_path = ?) AND deleted_at IS NULL",
+                [$path, $path]
+            );
             return $row !== null;
         }
         if ($area === 'downloads') {

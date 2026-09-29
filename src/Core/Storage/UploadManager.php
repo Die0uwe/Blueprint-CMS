@@ -57,6 +57,18 @@ final class UploadManager
         'text/plain'                   => 'txt',
     ];
 
+    /**
+     * @var array<string, string> Whitelist voor de Media-galerij (S11):
+     * dezelfde afbeeldingstypen als hierboven, plus de twee breed
+     * ondersteunde web-videoformaten. Bewust GEEN andere videocodecs
+     * (avi/mov/mkv) — die spelen niet overal af in een <video>-tag zonder
+     * transcodering, wat buiten scope valt (zie GalleryThumbnailer.php).
+     */
+    private const ALLOWED_GALLERY = self::ALLOWED_IMAGES + [
+        'video/mp4'  => 'mp4',
+        'video/webm' => 'webm',
+    ];
+
     /** @var array<string, string> */
     private readonly array $allowed;
 
@@ -95,6 +107,14 @@ final class UploadManager
     public static function forDownloads(string $storagePath, int $maxBytes, bool $testMode = false): self
     {
         return new self($storagePath, $maxBytes, $testMode, self::ALLOWED_DOWNLOADS);
+    }
+
+    /**
+     * Fabrieksmethode voor de Media-galerij (S11): afbeeldingen + mp4/webm.
+     */
+    public static function forGallery(string $storagePath, int $maxBytes, bool $testMode = false): self
+    {
+        return new self($storagePath, $maxBytes, $testMode, self::ALLOWED_GALLERY);
     }
 
     /**

@@ -43,6 +43,7 @@ $navItem = static function (string $key, string $href, string $icon, string $lab
     $navItem('news', '/admin/news', '📰', 'Nieuws');
     $navItem('pages', '/admin/pages', '📄', "Pagina's");
     $navItem('media', '/admin/media', '🖼️', 'Media');
+    $navItem('gallery', '/admin/gallery', '📷', 'Galerij');
     ?>
 
     <div class="admin-nav-section">Community</div>

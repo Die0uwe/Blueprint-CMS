@@ -14,7 +14,7 @@ GPL-3.0-or-later
 [![PHP](https://img.shields.io/badge/PHP-8.3%2B-777BB4?style=flat-square&logo=php)](https://php.net)
 [![MariaDB](https://img.shields.io/badge/MariaDB-10.11%2B-003545?style=flat-square&logo=mariadb)](https://mariadb.org)
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.22.0-brightgreen?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-1.23.0-brightgreen?style=flat-square)](CHANGELOG.md)
 [![CI](https://img.shields.io/github/actions/workflow/status/Die0uwe/bluprint-cms/ci.yml?branch=main&style=flat-square&label=CI)](.github/workflows/ci.yml)
 
 *Geïnspireerd door PHP-Fusion · Down Under Fusion · ImpressCMS*
@@ -138,6 +138,7 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 | Blog | v1.9.0 | Eén blog per lid (`/blog/{username}/{slug}`), draft/published, `blog.moderate` voor moderatie |
 | Downloads | v1.9.0 | Bestandsbeheer via `UploadManager::forDownloads()` (zip/pdf/rar/7z/gz), `downloads.manage` |
 | Contact | v1.10.0 | Publiek formulier + CSRF + honeypot, admin-inbox, verstuurt meldingsmail via `Mailer` |
+| Gallery | v1.23.0 | Media-galerij — albums (`cf_categories`, `type=gallery`), foto/video-upload met GD-miniaturen, publieke doorbladering + lightbox (beide thema's), sidebar-widget, `gallery.manage`. Hergebruikt `/media/{path}` i.p.v. een eigen serveer-route. |
 
 ---
 
@@ -160,7 +161,7 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 | **Golf 10** | ✅ v1.20.0 | OAuth-login met Google, Discord, Battle.net en Twitch — generiek instellingenscherm (`/admin/marketplace/package/{slug}/instellingen`) dat werkt voor elke module met een `settings`-schema, échte encryptie voor opgeslagen secrets (`Core\Security\Crypto`, was voorheen een dode `'encrypted'`-kolomwaarde), en twee nieuwe modules (Google, Battle.net). Zie CHANGELOG v1.20.0. |
 | **Golf 10a** | ✅ v1.21.0 | YouTube-module — 4 blocks (kanaal, laatste video's, live-status, playlist), quota-bewuste API-client. Zie CHANGELOG v1.21.0. |
 | **S10** | ✅ v1.22.0 | Kick-integratie — live-status/kijkers/stream-embed via een publiek kanaal-endpoint (geen sleutel/OAuth nodig, zie CHANGELOG v1.22.0 voor de afweging tegen Kick's officiële Developer API). **Hiermee is S10 (YouTube + Kick) volledig afgerond.** |
-| **S11** | 📋 Gepland | Media-galerij (los van de generieke upload-handler) |
+| **S11** | ✅ v1.23.0 | Media-galerij — albums (`cf_categories`, `type=gallery`) met foto/video-upload, GD-miniaturen, publieke doorbladering + lightbox (beide thema's), sidebar-widget. Hergebruikt de bestaande `/media/{path}`-serveer-route i.p.v. een nieuwe. Zie CHANGELOG v1.23.0. |
 | **S12** | 📋 Gepland | Premium ecosysteem + licenties + betalingen |
 | **S13** | 📋 Gepland | Multi-language / i18n volledige implementatie |
 
@@ -182,7 +183,7 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 
 ---
 
-## ⚠️ Bekende beperkingen (stand v1.22.0)
+## ⚠️ Bekende beperkingen (stand v1.23.0)
 
 Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben opgelost — zie
 `docs/wave-0-gap-analysis.md` en `CHANGELOG.md` voor de volledige context per punt.
@@ -435,6 +436,15 @@ Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben o
   test niet kon zien. CI draait de echte suite (zie hierboven) zodra de eerste `composer install`
   het lockfile committed — op een server met normale internettoegang zou dat nu moeten werken,
   maar dat is in geen enkele sandbox tot nu toe zelf getest kunnen worden.
+- ~~Geen media-galerij — alleen de generieke `UploadManager` en het `/admin/media`-
+  huishoudscherm~~ — **opgelost in v1.23.0.** Albums, upload met GD-miniaturen, publieke
+  doorbladering + lightbox, sidebar-widget. Zie CHANGELOG v1.23.0.
+- **Media-galerij: alleen staff-curated**, geen lid-uploads of moderatiewachtrij (zelfde model
+  als Downloads/News) — geen per-item zichtbaarheids-toggle in de UI (`is_published` bestaat in
+  het schema, maar S11-upload is altijd direct zichtbaar).
+- **Media-galerij: video-items hebben geen miniatuur** (vaste ▶️-placeholder) — een echte
+  frame-thumbnail zou `ffmpeg` of een vergelijkbare decoder vereisen, een procesafhankelijkheid
+  die dit project bewust nergens anders heeft. Zie CHANGELOG v1.23.0.
 
 ---
 
@@ -471,8 +481,8 @@ GPL-3.0-or-later — © 2026 [DieOuwe](https://www.dieouwe.nl) / [Slayer Allianc
 
 <!--
 ╔══════════════════════════════════════════════════════════════════════╗
-║  File: README.md | Role: Docs | Version: 1.22.0                      ║
-║  Updated: 2026-09-29 — S10 afgerond: Kick-integratie (2 blocks) op  ║
-║           een publiek kanaal-endpoint, na Golf 10a (YouTube)         ║
+║  File: README.md | Role: Docs | Version: 1.23.0                      ║
+║  Updated: 2026-09-29 — S11 afgerond: Media-galerij (albums, upload,  ║
+║           GD-miniaturen, lightbox, sidebar-widget), na S10 (Kick)    ║
 ╚══════════════════════════════════════════════════════════════════════╝
 -->

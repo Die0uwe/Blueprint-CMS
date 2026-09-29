@@ -227,6 +227,14 @@ final class Application
         $this->container->make(\CommunityFusion\Core\Block\BlockRegistry::class)->register(
             new \CommunityFusion\Blocks\Types\AdBlock()
         );
+        // S11 (Media-galerij): zelfde registratiepatroon als NewsBlock/StatsBlock
+        // hierboven — GalleryRepository is zelf auto-wireable (Connection +
+        // CacheManager), dus container->make() lost 'm reflection-based op.
+        $this->container->make(\CommunityFusion\Core\Block\BlockRegistry::class)->register(
+            new \CommunityFusion\Blocks\Types\GalleryLatestBlock(
+                $this->container->make(\CommunityFusion\Modules\Gallery\GalleryRepository::class)
+            )
+        );
 
         // BlockRegistry::syncTypesToDatabase() bestond al sinds Sprint 1 maar werd
         // NERGENS aangeroepen — cf_block_types bleef daardoor altijd leeg, en

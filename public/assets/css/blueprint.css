@@ -610,3 +610,89 @@ img { max-width: 100%; }
 .cf-pkg-card:hover { transform: translateY(-2px); }
 .cf-install-btn { cursor:pointer; transition:all .2s; }
 .cf-install-btn:disabled { opacity:.5; cursor:not-allowed; }
+
+/* ── Media-galerij (S11) ────────────────────────────────────────────────── */
+/* Publieke albumindex (/galerij) */
+.cf-gallery-albums-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1.2rem; margin-top: 1rem;
+}
+.cf-gallery-album-card {
+  display: block; border: 1px solid var(--border); border-radius: var(--radius);
+  overflow: hidden; background: var(--surface); text-decoration: none; color: inherit;
+  transition: transform .15s, border-color .15s;
+}
+.cf-gallery-album-card:hover { transform: translateY(-2px); border-color: var(--accent); }
+.cf-gallery-album-cover { aspect-ratio: 4 / 3; background: var(--surface2); overflow: hidden; }
+.cf-gallery-album-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cf-gallery-album-cover-placeholder {
+  width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+  font-size: 2.5rem; color: var(--muted);
+}
+.cf-gallery-album-info { padding: .8rem 1rem; }
+.cf-gallery-album-info h3 { margin: 0 0 .25rem; font-size: 1rem; }
+.cf-gallery-album-info p { margin: 0 0 .4rem; color: var(--text-dim); font-size: .82rem; }
+.cf-gallery-album-count { font-size: .75rem; color: var(--muted); }
+
+/* Publiek album-item-rooster (/galerij/{slug}) */
+.cf-gallery-items-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: .9rem; margin-top: 1rem;
+}
+.cf-gallery-item {
+  position: relative; display: block; aspect-ratio: 1 / 1; border-radius: var(--radius);
+  overflow: hidden; background: var(--surface2); text-decoration: none;
+}
+.cf-gallery-item img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .2s; }
+.cf-gallery-item:hover img { transform: scale(1.04); }
+.cf-gallery-video-placeholder {
+  width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+  font-size: 2.2rem; color: var(--muted); background: var(--surface2);
+}
+.cf-gallery-item-title {
+  position: absolute; left: 0; right: 0; bottom: 0; padding: .4rem .55rem;
+  background: linear-gradient(to top, rgba(0,0,0,.75), transparent);
+  color: #fff; font-size: .78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* Lightbox */
+.cf-gallery-lightbox {
+  position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,.9);
+  display: flex; align-items: center; justify-content: center; padding: 2rem 1rem;
+}
+.cf-gallery-lightbox-close {
+  position: absolute; top: 1rem; right: 1.2rem; background: none; border: none;
+  color: #fff; font-size: 1.6rem; line-height: 1; cursor: pointer; z-index: 1;
+}
+.cf-gallery-lightbox-body {
+  max-width: 900px; width: 100%; max-height: 100%; overflow-y: auto;
+  display: flex; flex-direction: column; gap: .8rem;
+}
+.cf-gallery-lightbox-media img,
+.cf-gallery-lightbox-media video { width: 100%; max-height: 70vh; object-fit: contain; border-radius: var(--radius); }
+.cf-gallery-lightbox-meta { color: #fff; }
+.cf-gallery-lightbox-title { margin: 0 0 .3rem; font-size: 1.1rem; }
+.cf-gallery-lightbox-description { margin: 0 0 .3rem; color: rgba(255,255,255,.75); font-size: .85rem; }
+.cf-gallery-lightbox-sub { font-size: .75rem; color: rgba(255,255,255,.55); }
+
+/* Sidebar-widget (GalleryLatestBlock) */
+.cf-block-gallery-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: .4rem;
+}
+.cf-block-gallery-thumb { display: block; aspect-ratio: 1 / 1; border-radius: 4px; overflow: hidden; }
+.cf-block-gallery-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* Admin: item-thumbnail-rooster met verwijderknop (admin_album_manage.php) */
+.cf-gallery-admin-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 1rem; margin-top: 1rem;
+}
+.cf-gallery-admin-item { position: relative; border-radius: var(--radius); overflow: hidden; background: var(--surface2); }
+.cf-gallery-admin-item img { display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: cover; }
+.cf-gallery-admin-item .cf-gallery-video-placeholder { aspect-ratio: 1 / 1; }
+.cf-gallery-admin-item .cf-gallery-item-meta {
+  position: static; background: none; color: var(--text-dim);
+  padding: .4rem .5rem; font-size: .75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cf-gallery-admin-item form { padding: 0 .5rem .5rem; }
+.cf-gallery-admin-item .cf-btn-sm { width: 100%; text-align: center; }

@@ -1,0 +1,36 @@
+{% extends 'layout.twig' %}
+{% block content %}
+<div class="cf-page-header">
+  <div class="cf-breadcrumb"><a href="/">Home</a> → Galerij</div>
+  <h1>📷 Galerij</h1>
+</div>
+
+{% if can_manage %}
+<div style="margin-bottom:1rem;">
+  <a href="/admin/gallery" class="cf-btn">⚙️ Galerij beheren</a>
+</div>
+{% endif %}
+
+<div class="cf-gallery-albums-grid">
+  {% for album in albums %}
+  <a href="/galerij/{{ album.slug }}" class="cf-gallery-album-card">
+    <div class="cf-gallery-album-cover">
+      {% if album.cover_thumbnail %}
+        <img src="/media/{{ album.cover_thumbnail }}" alt="{{ album.name }}" loading="lazy">
+      {% elseif album.cover_media_type == 'video' %}
+        <div class="cf-gallery-album-cover-placeholder">▶️</div>
+      {% else %}
+        <div class="cf-gallery-album-cover-placeholder">📷</div>
+      {% endif %}
+    </div>
+    <div class="cf-gallery-album-info">
+      <h3>{{ album.name }}</h3>
+      {% if album.description %}<p>{{ album.description }}</p>{% endif %}
+      <span class="cf-gallery-album-count">{{ album.item_count }} item{{ album.item_count == 1 ? '' : 's' }}</span>
+    </div>
+  </a>
+  {% else %}
+  <p style="color:var(--muted);">Er zijn nog geen albums aangemaakt.</p>
+  {% endfor %}
+</div>
+{% endblock %}

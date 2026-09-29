@@ -529,3 +529,54 @@ CREATE TABLE IF NOT EXISTS `cf_audit_log` (
     KEY `idx_action` (`action`),
     KEY `idx_user` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================
+-- S11: Media-galerij (los van de generieke upload-handler)
+-- ============================================================
+-- Albums = cf_categories met type='gallery' — zelfde hergebruik-patroon als
+-- Forumborden (type='forum') en News-categorieën (type='news'), zie
+-- ForumRepository/CategoryAdminController. Items krijgen een eigen tabel
+-- omdat ze, anders dan een categorie, eigen bestands-/type-/auteurmetadata
+-- nodig hebben — zelfde reden waarom cf_downloads een eigen tabel is i.p.v.
+-- (her)gebruik van cf_categories.
+--
+-- `fk_gi_album` staat op ON DELETE CASCADE (net als cf_forum_topics.board_id)
+-- — GalleryAdminController blokkeert het verwijderen van een album met nog
+-- items erin actief in de applicatielaag (zelfde bescherming als
+-- BoardAdminController::delete()), dus deze cascade is een laatste vangnet,
+-- geen bedoeld gedrag.
+--
+-- `thumbnail_path` is alleen gevuld voor `media_type='image'` — video-items
+-- krijgen bewust geen thumbnail (geen ffmpeg/frame-extractie in dit project,
+-- zie GalleryThumbnailer.php); de publieke/admin-weergave valt voor video
+-- terug op een play-icoon-placeholder i.p.v. een miniatuur.
+CREATE TABLE IF NOT EXISTS `cf_gallery_items` (
+    `id`                 INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `album_id`           SMALLINT UNSIGNED NOT NULL COMMENT 'FK naar cf_categories.id (type=gallery)',
+    `author_id`          INT UNSIGNED NOT NULL,
+    `media_type`         ENUM('image','video') NOT NULL,
+    `title`              VARCHAR(255) NULL,
+    `description`        TEXT NULL,
+    `file_path`          VARCHAR(500) NOT NULL COMMENT 'Relatief pad binnen storage/uploads/gallery/',
+    `thumbnail_path`     VARCHAR(500) NULL COMMENT 'Relatief pad, alleen gevuld voor media_type=image',
+    `original_filename`  VARCHAR(255) NOT NULL,
+    `file_size`          INT UNSIGNED NOT NULL DEFAULT 0,
+    `width`              SMALLINT UNSIGNED NULL COMMENT 'Alleen voor afbeeldingen',
+    `height`             SMALLINT UNSIGNED NULL COMMENT 'Alleen voor afbeeldingen',
+    `is_published`       TINYINT(1) NOT NULL DEFAULT 1,
+    `created_at`         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `deleted_at`         DATETIME NULL,
+    PRIMARY KEY (`id`),
+    KEY `idx_album`     (`album_id`),
+    KEY `idx_published` (`is_published`),
+    CONSTRAINT `fk_gi_album`  FOREIGN KEY (`album_id`)  REFERENCES `cf_categories`(`id`) ON DELETE CASCADE,
+    CONSTRAINT `fk_gi_author` FOREIGN KEY (`author_id`) REFERENCES `cf_users`(`id`)      ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT IGNORE INTO `cf_permissions` (`name`, `group`, `description`) VALUES
+('gallery.manage', 'gallery', 'Albums aanmaken en foto''s/video''s uploaden of verwijderen');
+
+INSERT IGNORE INTO `cf_role_permissions` (`role_id`, `permission_id`)
+SELECT r.id, p.id FROM `cf_roles` r, `cf_permissions` p
+WHERE r.name = 'admin' AND p.name IN ('gallery.manage');
