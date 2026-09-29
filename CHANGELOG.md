@@ -18,6 +18,63 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ---
 
+## [1.25.1] — 2026-09-29 — Installer onbereikbaar bij upload naar een echte server
+
+Aanleiding: live-melding van de gebruiker na het uploaden van het project naar een echte
+server — "als ik het script upload naar server start de installer al niet". Op de PHP-
+ingebouwde-serveromgeving waarmee tot nu toe altijd is getest, viel dit niet op (daar werd
+altijd rechtstreeks tegen `public/` of de projectroot getest, nooit via een écht ingerichte
+webserver-`DocumentRoot` — precies dezelfde blinde vlek als de `.htaccess`-routingbug uit
+v1.25.0). Root cause en fix hieronder zijn ditmaal wél live getest via een PHP-ingebouwde
+server met TWEE apart nagebouwde `.htaccess`-emulerende routers — één per document-root-model
+— inclusief een volledige installatie-run (stap 1 t/m 5, met een echte MariaDB) door beide
+heen.
+
+### 🔴 Kritiek — installer altijd onbereikbaar (of erger: redirect-loop) op een echte server
+
+- **Root cause: architectuur-tegenspraak tussen `README.md` en de mappenstructuur.**
+  `README.md` §2.1 documenteert `public/` nadrukkelijk als het enige, bedoelde document root
+  ("Enige publieke map"), en `public/.htaccess` gaat daar ook van uit. Maar `installer/` staat
+  bewust NAAST `public/`, niet erin (zie de architectuurspec §2.2) — wat betekent dat onder het
+  door README zelf aanbevolen, veilige `DocumentRoot=public/`-model de map `installer/`
+  helemaal niet in de door de webserver bereikbare boom staat. De v1.25.0-fix aan de
+  root-`.htaccess` (die alléén relevant is bij het andere, minder ideale model
+  `DocumentRoot=projectroot`) loste dus maar de helft van het probleem op.
+  `public/index.php` deed vervolgens een `header('Location: /installer/')` — een URL die onder
+  `DocumentRoot=public/` simpelweg niet bestaat. Live bevestigd met een router die
+  `public/.htaccess` nabootst: dat gaf niet zomaar een 404, maar een oneindige **redirect-loop**
+  (`/` → 302 naar `/installer/` → front controller ziet nog steeds geen `config/config.php` →
+  weer 302 naar `/installer/` → …) — in een echte browser zichtbaar als
+  `ERR_TOO_MANY_REDIRECTS`, wat exact overeenkomt met "de installer start niet".
+  **Fix:** `public/index.php` stuurt niet langer een HTTP-redirect, maar `require`t het echte
+  `installer/index.php` rechtstreeks in-place. Dat bestand blijft op zijn eigen plek
+  (`CF_ROOT/installer/`) staan, dus zijn eigen padberekeningen (`dirname(__DIR__)` voor
+  `config/config.php` wegschrijven, `schema.sql` inlezen, `storage/`-checks) blijven kloppen
+  ongeacht vanaf welke document root het front-controllerbestand is aangeroepen — de
+  installer-forms posten toch al zonder `action`-attribuut (dus terug naar de huidige URL) en
+  de stap-navigatie gebruikt relatieve `?step=N`-redirects, dus dit is voor de browser volledig
+  transparant. `installer/index.php` kreeg een `defined('CF_ROOT')`-guard zodat de constante
+  niet dubbel wordt gedefinieerd wanneer het bestand zo wordt geïncluded i.p.v. rechtstreeks
+  aangeroepen. Live getest: een volledige installatie (stap 1–5, echte MariaDB-schema-import,
+  admin-account, `config/config.php` wegschrijven) succesvol doorlopen met de PHP-server
+  geconfigureerd als `DocumentRoot=public/` — zowel via `/` als via de door README
+  gedocumenteerde `/installer/`-URL. Na installatie serveert `/` gewoon de normale site (geen
+  loop, geen herhaalde installer).
+- **Bijkomend lek in de root-`.htaccess` gedicht.** Voor het andere document-root-model
+  (`DocumentRoot=projectroot`, bv. gedeelde hosting zonder eigen document-root-instelling) liet
+  de root-`.htaccess` van v1.25.0 ieder bestaand bestand/map ongefilterd door — inclusief
+  `.env`, `config/`, `storage/`, `vendor/` en `composer.json` — specifiek om `installer/`
+  rechtstreeks bereikbaar te houden. Nu de front controller de installer zelf dispatcht, is die
+  uitzondering niet meer nodig: de root-`.htaccess` blokkeert deze gevoelige paden nu expliciet
+  (dezelfde `[F,L]`-aanpak als `public/.htaccess` al gebruikte) en stuurt verder, zonder
+  uitzondering, alles via `public/`. Live bevestigd: `/.env`, `/config/config.php`,
+  `/composer.json` en directe toegang tot `/installer/index.php` geven nu allemaal 403 i.p.v.
+  de wachtwoorden/geheimen uit `.env` als platte tekst te serveren; een volledige installatie
+  via dit model (`DocumentRoot=projectroot`) is apart getest en werkt, inclusief normale
+  paginaverzoeken en statische assets (`/assets/css/...`) ná installatie.
+
+---
+
 ## [1.25.0] — 2026-09-29 — Post-S13 inventarisatie- en debugronde
 
 Aanleiding: tweede helft van "s13 en dan inventariseren en de debug" — na S13 (i18n, zie

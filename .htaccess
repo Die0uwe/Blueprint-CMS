@@ -1,17 +1,37 @@
-# Redirect alles naar public/ — BEHALVE een bestaand bestand/map buiten
-# public/ (met name installer/, dat bewust NAAST public/ staat, zie de
-# architectuurspec §2.2: "Éénmalige web-installer" — public/index.php
-# redirect naar /installer/ zolang config/config.php nog niet bestaat).
-# Zonder deze twee RewriteCond-regels herschrijft de vorige, ongeconditio-
-# neerde variant OOK /installer/ naar public/installer/, dat niet bestaat
-# → 404 op precies de URL die README.md als installatie-instructie geeft.
-# Gevonden tijdens de S13 live-testronde (i18n-sprint) — zelfde categorie
-# fout als de kapotte schema.sql-import die Sprint 11 blokkeerde: een
-# deploy-blokkerende bug die nooit opviel omdat lokaal testen altijd
-# rechtstreeks tegen public/ of installer/ draaide, nooit via deze .htaccess.
+# Deze .htaccess is alleen relevant wanneer een hostingpakket geen eigen
+# document root per site toelaat en de HELE projectmap (dus inclusief dit
+# bestand) als webroot wordt gebruikt. README.md §2.1 documenteert public/
+# als het bedoelde, veilige document root — als je hosting dat toelaat,
+# wijs je domein daar rechtstreeks naartoe en doet dit bestand niets (het
+# wordt dan nooit gelezen). Voor de andere, minder ideale situatie (bv.
+# gedeelde hosting waar je alleen in public_html/ kunt uploaden) zorgt dit
+# bestand ervoor dat de site ALSNOG op dezelfde, veilige manier draait.
+#
+# v1.25.1: eerder liet dit bestand ieder bestaand bestand/map ONGEFILTERD
+# door (RewriteCond ... -f/-d → geen rewrite), specifiek om installer/
+# rechtstreeks bereikbaar te houden (zie CHANGELOG v1.25.0-S13). Dat had
+# een groot lek als bijwerking: .env, config/, storage/ en composer.json
+# werden op exact dezelfde manier "gewoon een bestaand bestand" en waren
+# dus rechtstreeks op te vragen — .env bevat de database-wachtwoorden en
+# zou door Apache als platte tekst zijn geserveerd. Bovendien bleek de
+# hele aanpak overbodig: public/index.php dispatcht de installer nu zelf
+# (zie het commentaar daar), dus niets hoeft hier nog buiten public/ om
+# rechtstreeks bereikbaar te zijn. Alles gaat daarom nu, zonder
+# uitzondering, via public/ — precies zoals wanneer DocumentRoot=public/
+# al correct was ingesteld.
 RewriteEngine On
-RewriteCond %{REQUEST_FILENAME} -f [OR]
-RewriteCond %{REQUEST_FILENAME} -d
-RewriteRule ^ - [L]
+
+# Blokkeer gevoelige mappen/bestanden expliciet, mocht mod_rewrite om wat
+# voor reden dan ook niet actief zijn (defense in depth — de RewriteRule
+# hieronder zou dit toch al afvangen).
+RewriteRule ^(config|storage|vendor|installer|tests|cli|src|modules|themes|composer\.json|composer\.lock|\.env)(/|$) - [F,L]
+
+# Bestaande bestanden binnen public/ (assets, uploads) gewoon doorlaten;
+# public/.htaccess handelt die verder af.
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^public/ - [L]
+
+# Alles (incl. /installer/... en /) naar de front controller in public/ —
+# die beslist zelf of de installer moet draaien of de normale app.
 RewriteRule ^$ public/ [L]
 RewriteRule (.*) public/$1 [L]

@@ -14,7 +14,7 @@ GPL-3.0-or-later
 [![PHP](https://img.shields.io/badge/PHP-8.3%2B-777BB4?style=flat-square&logo=php)](https://php.net)
 [![MariaDB](https://img.shields.io/badge/MariaDB-10.11%2B-003545?style=flat-square&logo=mariadb)](https://mariadb.org)
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.25.0-brightgreen?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-1.25.1-brightgreen?style=flat-square)](CHANGELOG.md)
 [![CI](https://img.shields.io/github/actions/workflow/status/Die0uwe/bluprint-cms/ci.yml?branch=main&style=flat-square&label=CI)](.github/workflows/ci.yml)
 
 *Geïnspireerd door PHP-Fusion · Down Under Fusion · ImpressCMS*
@@ -165,6 +165,7 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 | **S13** | ✅ v1.24.0 | Multi-language/i18n — `Translator` (nl/en/de), publieke + per-gebruiker + site-standaard taalwisseling met volledige prioriteitsketen, `trans()`/`Trans::get()` op de hoogst-verkeer schermen. **S12 (Premium ecosysteem) is bewust vóór S13 geplaatst uitgesteld** ("premium is nu niet belangerijk"). Zie CHANGELOG v1.24.0. |
 | **S12** | 📋 Gepland | Premium ecosysteem + licenties + betalingen |
 | **Inventarisatie + debug** | ✅ v1.25.0 | Projectbrede audit (2 onafhankelijke passes) + fix- en live-testronde: 2× privilege-escalatie (`/admin/users`, `/admin/roles`), JSON-request-bodies die nergens werden uitgelezen (Blokken-admin/Marketplace/Ollama-chat allemaal stuk), 3 module-adminpanels (Guild/Warcraft/Ollama) volledig onbereikbaar door een routing-volgordebug, login-CSRF op `/api/v1/auth/login`, en meer. Zie CHANGELOG v1.25.0. |
+| **Deploy-fix: installer** | ✅ v1.25.1 | De installer bleek op een echte server (buiten de test-omgeving) onbereikbaar — bij `DocumentRoot=public/` (het door dit document aanbevolen model) zelfs een oneindige redirect-loop. Front controller `require`t de installer nu rechtstreeks i.p.v. te redirecten, en de root-`.htaccess` blokkeert voortaan `.env`/`config`/`vendor`/etc. expliciet i.p.v. impliciet door te laten. Getest via beide document-root-modellen, inclusief een volledige installatie-run door elk. Zie CHANGELOG v1.25.1. |
 
 ---
 
@@ -184,7 +185,7 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 
 ---
 
-## ⚠️ Bekende beperkingen (stand v1.25.0)
+## ⚠️ Bekende beperkingen (stand v1.25.1)
 
 Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben opgelost — zie
 `docs/wave-0-gap-analysis.md` en `CHANGELOG.md` voor de volledige context per punt.
@@ -384,6 +385,22 @@ Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben o
 > degradeerde zolang 'ie niet geïnstalleerd was, en wat opruiming van dode code. Alles live
 > getest tegen een echte, opnieuw opgebouwde MariaDB-installatie met twee admin-accounts van
 > verschillende `role priority`. Zie CHANGELOG v1.25.0 voor het volledige verhaal per punt.
+>
+> **v1.25.1: de installer bleek op een écht geüploade server niet te starten.** Alle eerdere
+> live-tests draaiden tegen de PHP-ingebouwde server met de projectroot als vertrekpunt — nooit
+> tegen een webserver met een écht ingestelde `DocumentRoot`, en dat bleek precies de blinde
+> vlek. Onder het door dit document zelf aanbevolen model (`DocumentRoot=public/`, zie §2.1)
+> stond `installer/` — bewust naast `public/`, niet erin — buiten de door de webserver
+> bereikbare boom. `public/index.php` deed daarna een `header('Location: /installer/')` naar
+> een URL die op zo'n server simpelweg niet bestaat; live nagebootst bleek dat geen 404 te
+> geven maar een **oneindige redirect-loop** (`ERR_TOO_MANY_REDIRECTS`) — exact het gemelde
+> "de installer start niet". Fix: de front controller `require`t `installer/index.php` nu
+> rechtstreeks in-place i.p.v. te redirecten (het bestand blijft op zijn eigen plek staan, dus
+> zijn eigen padberekeningen blijven kloppen), en de root-`.htaccess` (voor het andere,
+> minder ideale model `DocumentRoot=projectroot`) blokkeert `.env`/`config/`/`storage/`/
+> `vendor/`/`composer.json` nu expliciet i.p.v. — zoals voorheen, om `installer/` bereikbaar te
+> houden — alles ongefilterd door te laten. Beide document-root-modellen zijn hierna elk apart
+> met een volledige installatie-run (stap 1 t/m 5, echte MariaDB) getest. Zie CHANGELOG v1.25.1.
 
 - ~~`/admin`-routes zijn niet permissie-gated~~ — **opgelost in v1.10.0.** Zie CHANGELOG:
   `PermissionMiddleware` + `admin.access`/`settings.edit`/`blocks.manage`/`marketplace.*`.
@@ -527,9 +544,10 @@ GPL-3.0-or-later — © 2026 [DieOuwe](https://www.dieouwe.nl) / [Slayer Allianc
 
 <!--
 ╔══════════════════════════════════════════════════════════════════════╗
-║  File: README.md | Role: Docs | Version: 1.25.0                      ║
-║  Updated: 2026-09-29 — Post-S13 inventarisatie- en debugronde: 2x    ║
-║           privilege-escalatie, JSON-body-parsing, 3 onbereikbare     ║
-║           module-adminpanels (routing-volgorde), login-CSRF, meer    ║
+║  File: README.md | Role: Docs | Version: 1.25.1                      ║
+║  Updated: 2026-09-29 — Installer onbereikbaar (redirect-loop) bij    ║
+║           DocumentRoot=public/ op een echte server; front controller ║
+║           dispatcht installer nu direct i.p.v. te redirecten, root-  ║
+║           .htaccess blokkeert .env/config/vendor/etc. expliciet      ║
 ╚══════════════════════════════════════════════════════════════════════╝
 -->

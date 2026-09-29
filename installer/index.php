@@ -5,7 +5,14 @@
 
 declare(strict_types=1);
 
-define('CF_ROOT',      dirname(__DIR__));
+// CF_ROOT staat mogelijk al gedefinieerd wanneer dit bestand niet als
+// losse entry point wordt aangeroepen maar vanuit public/index.php wordt
+// geïncluded (zie het commentaar daar) — define() op een bestaande
+// constante geeft anders een "already defined"-warning (de waarde is
+// sowieso identiek: beide berekenen dirname() van de echte projectroot).
+if (!defined('CF_ROOT')) {
+    define('CF_ROOT', dirname(__DIR__));
+}
 define('INSTALLER_PATH', __DIR__);
 
 require_once __DIR__ . '/InstallerCore.php';
