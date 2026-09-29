@@ -16,7 +16,7 @@ GPL-3.0-or-later
 [![PHP](https://img.shields.io/badge/PHP-8.3%2B-777BB4?style=flat-square&logo=php)](https://php.net)
 [![MariaDB](https://img.shields.io/badge/MariaDB-10.11%2B-003545?style=flat-square&logo=mariadb)](https://mariadb.org)
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.25.6-brightgreen?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-1.25.7-brightgreen?style=flat-square)](CHANGELOG.md)
 [![CI](https://img.shields.io/github/actions/workflow/status/Die0uwe/bluprint-cms/ci.yml?branch=main&style=flat-square&label=CI)](.github/workflows/ci.yml)
 
 *Geïnspireerd door PHP-Fusion · Down Under Fusion · ImpressCMS*
@@ -172,6 +172,7 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 | **CI-fix: composer.json** | ✅ v1.25.4 | GitHub Actions faalde op elke push (`composer install` kon niet oplossen): `firebase/php-jwt ^6.0` was volledig geblokkeerd door een security-advisory, `league/route ^5.0` conflicteerde met de vereiste `psr/container`/`psr/simple-cache`-versies, en `league/container`/`league/event`/`monolog/monolog`/`ramsey/uuid` bleken (opnieuw geverifieerd) ongebruikt. Alle zes verwijderd uit `require`; alleen aantoonbaar-gebruikte packages blijven over. Zie CHANGELOG v1.25.4. |
 | **Totale codebase-audit + KRITIEK-fix** | ✅ v1.25.5 | Zes parallelle deelaudits (security, architectuur, database, frontend/i18n, module-volledigheid, documentatie). Belangrijkste vondst: rol-priority-escalatie in `/admin/roles` omzeilde de v1.25.0-privilege-fix volledig — een gewone `admin` kon zijn eigen rol een priority van 999 geven en zo alsnog zichzelf `super_admin` toekennen. Gefixt en live getest (exploit-poging geblokkeerd, legitiem gebruik werkt onveranderd). Overige audit-bevindingen staan als backlog in de roadmap hieronder. Zie CHANGELOG v1.25.5. |
 | **"GitHub compleet"** | ✅ v1.25.6 | Documentatie-audit opgevolgd: CHANGELOG-ordeningsbreuk gefixt (v1.0.0–v1.7.1 stond oplopend, nu aflopend zoals de rest), `docs/ANALYSE.md` gearchiveerd (was volledig verouderd, niet alleen het 98/100-cijfer), CONTRIBUTING.md/CODE_OF_CONDUCT.md/SECURITY.md + issue-/PR-templates toegevoegd, composer.json-metadata aangevuld (naam/homepage/authors/support). Zie CHANGELOG v1.25.6. |
+| **HOOG: stored XSS via blog** | ✅ v1.25.7 | Nog een audit-vondst: elk geregistreerd lid (geen contentpermissie nodig, alleen `$auth`) kon `<script>` in een blogpost zetten die onversleuteld uitvoerde voor elke bezoeker — `blog/show.twig` gebruikte `|raw` op ledencontent, waar News/Pages dat bewust alleen doen voor admin/moderator-content. Nieuwe `nl2br`-Twig-filter (zelf-escapend) i.p.v. `|raw`. Live getest: `<script>`-payload komt geëscaped op de pagina terecht, geen uitvoerbare tag. Zie CHANGELOG v1.25.7. |
 
 ---
 
@@ -191,7 +192,7 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 
 ---
 
-## ⚠️ Bekende beperkingen (stand v1.25.6)
+## ⚠️ Bekende beperkingen (stand v1.25.7)
 
 Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben opgelost — zie
 `docs/wave-0-gap-analysis.md` en `CHANGELOG.md` voor de volledige context per punt.
@@ -456,6 +457,15 @@ Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben o
 > `composer.json` kreeg `homepage`/`authors`/`support` en een package-naam die matcht met de
 > "Blueprint CMS"-branding (`dieouwe/blueprint-cms` i.p.v. het oude `communityfusion/cms` — de
 > PSR-4-namespace `CommunityFusion\` zelf is ongewijzigd). Zie CHANGELOG v1.25.6.
+>
+> **v1.25.7: HOOG — stored XSS via blogposts gefixt.** `blog/show.twig` gebruikte `|raw` op
+> blogpost-inhoud, en die route is alleen `$auth`-gated — elk geregistreerd lid, geen
+> contentpermissie zoals News (`news.create`) of Pages (`pages.manage`) wél hebben. Een lid kon
+> dus `<script>` in een post zetten die voor elke bezoeker (incl. beheerders) uitvoerde. Fix:
+> nieuwe zelf-escapende `nl2br`-Twig-filter i.p.v. `|raw` — News/Pages blijven bewust
+> ongewijzigd (daar is `|raw` terecht, vertrouwde rollen). Live getest: een
+> `<script>`-payload komt geëscaped op de pagina terecht (`&lt;script&gt;…`), regeleinden
+> blijven behouden als `<br />`. Zie CHANGELOG v1.25.7.
 
 - ~~`/admin`-routes zijn niet permissie-gated~~ — **opgelost in v1.10.0.** Zie CHANGELOG:
   `PermissionMiddleware` + `admin.access`/`settings.edit`/`blocks.manage`/`marketplace.*`.
@@ -605,10 +615,9 @@ GPL-3.0-or-later — © 2026 [DieOuwe](https://www.dieouwe.nl) / [Slayer Allianc
 
 <!--
 ╔══════════════════════════════════════════════════════════════════════╗
-║  File: README.md | Role: Docs | Version: 1.25.6                      ║
-║  Updated: 2026-09-29 — "GitHub compleet": CHANGELOG-ordening gefixt,  ║
-║           docs/ANALYSE.md gearchiveerd, CONTRIBUTING/CODE_OF_CONDUCT/║
-║           SECURITY.md + issue-/PR-templates toegevoegd, composer.json║
-║           metadata aangevuld. Zie ook v1.25.5 (KRITIEK security-fix).║
+║  File: README.md | Role: Docs | Version: 1.25.7                      ║
+║  Updated: 2026-09-29 — HOOG: stored XSS via blogposts gefixt (nl2br- ║
+║           filter i.p.v. |raw). Zie ook v1.25.6 ("GitHub compleet")   ║
+║           en v1.25.5 (KRITIEK rol-priority-escalatie).                ║
 ╚══════════════════════════════════════════════════════════════════════╝
 -->

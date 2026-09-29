@@ -157,6 +157,24 @@ final class ThemeManager
         $this->twig->addFunction(new \Twig\TwigFunction('csrf_field', function(): string {
             return \CommunityFusion\Core\Security\CsrfProtection::field();
         }));
+
+        // {{ post.content|nl2br }} — HOOG-bevinding uit de totale-codebase-
+        // audit (v1.25.5+): blog.show.twig gebruikte |raw op ledencontent
+        // (elk lid mag een blog-post maken, alleen $auth-middleware, geen
+        // permissiecheck — zie src/Core/Router.php) i.p.v. het admin/
+        // moderator-only content van News/Pages, waar |raw wél terecht is
+        // (news.create/pages.manage — vertrouwde rollen, bewuste rich-HTML-
+        // keuze). Resultaat: stored XSS — elk geregistreerd lid kon
+        // <script> in zijn blogpost zetten en die voerde onversleuteld uit
+        // voor iedere bezoeker (incl. beheerders) die de post bekeek. Deze
+        // filter doet zelf de escaping (htmlspecialchars) vóór de
+        // nl2br-conversie en is dus veilig ongeacht chain-positie — in
+        // tegenstelling tot Twig's eigen `escape|nl2br`-keten waarbij de
+        // volgorde er wél toe doet.
+        $this->twig->addFilter(new \Twig\TwigFilter('nl2br', function (?string $value): string {
+            $escaped = htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+            return nl2br($escaped);
+        }, ['is_safe' => ['html']]));
     }
 }
 

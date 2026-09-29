@@ -26,7 +26,11 @@
 </div>
 {% endif %}
 
-<div class="cf-article-content">{{ post.content|raw }}</div>
+{# v1.25.7: |raw -> |nl2br — blogposts zijn ledencontent (elk lid, geen
+   contentpermissie), in tegenstelling tot News/Pages (news.create/
+   pages.manage) waar |raw bewust wél gebruikt wordt. Zie ThemeManager's
+   nl2br-filter voor de volledige toelichting (stored-XSS-fix). #}
+<div class="cf-article-content">{{ post.content|nl2br }}</div>
 
 <div style="margin-top:2rem;padding-top:1rem;border-top:1px solid var(--border);">
   <a href="/blog/{{ post.username }}" class="cf-btn cf-btn-ghost">← Terug naar blog van {{ post.display_name|default(post.username) }}</a>
