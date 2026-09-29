@@ -126,13 +126,17 @@ final class RoleAdminController
         // kunnen buitensluiten van zijn eigen beheerpaneel). Checkboxes voor
         // deze rol worden dan ook read-only getoond in de view; dit is de
         // server-side garantie daarachter.
+        $wildcardId = $this->findWildcardPermissionId();
         if ($role['name'] === 'super_admin') {
-            $wildcard = $this->repo->getAllPermissionsGrouped();
-            $wildcardId = null;
-            foreach ($wildcard['system'] ?? [] as $p) {
-                if ($p['name'] === '*') { $wildcardId = (int) $p['id']; break; }
-            }
             $permIds = $wildcardId !== null ? [$wildcardId] : $permIds;
+        } elseif ($wildcardId !== null) {
+            // Privilege-escalatie voorkomen: zonder deze uitsluiting kon elke
+            // houder van roles.manage (standaard ook de 'admin'-rol, niet
+            // alleen super_admin) de '*'-wildcard aan een ANDERE rol hangen
+            // via de gewone permissions[]-checkboxlijst — de view toont die
+            // checkbox voor niet-super_admin rollen namelijk gewoon actief.
+            // Gevonden tijdens de S13-inventarisatiepas.
+            $permIds = array_values(array_diff($permIds, [$wildcardId]));
         }
 
         $this->repo->updateRole($id, $displayName, $description ?: null, $color ?: null, $priority);
@@ -191,6 +195,15 @@ final class RoleAdminController
         $slug = strtolower(trim($text));
         $slug = preg_replace('/[^a-z0-9]+/', '_', $slug) ?? '';
         return trim($slug, '_');
+    }
+
+    private function findWildcardPermissionId(): ?int
+    {
+        $groups = $this->repo->getAllPermissionsGrouped();
+        foreach ($groups['system'] ?? [] as $p) {
+            if ($p['name'] === '*') return (int) $p['id'];
+        }
+        return null;
     }
 }
 

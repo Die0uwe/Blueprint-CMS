@@ -46,9 +46,17 @@ final class BlizzardApiClient
             CURLOPT_USERPWD        => $this->clientId . ':' . $this->clientSecret,
             CURLOPT_POSTFIELDS     => 'grant_type=client_credentials',
         ]);
-        $body = json_decode(curl_exec($ch), true);
+        $raw = curl_exec($ch);
         curl_close($ch);
 
+        // curl_exec() geeft `false` terug bij een netwerkfout (Battle.net
+        // onbereikbaar, timeout, ...). json_decode(false, ...) knalt onder
+        // strict_types=1 met een TypeError (verwacht string) i.p.v. netjes
+        // null terug te geven — elke WoW-functie in deze module crashte
+        // hierdoor met een 500 in plaats van gewoon te degraderen, in
+        // tegenstelling tot get() hieronder die zijn HTTP-status al wél
+        // checkt. Gevonden tijdens de S13-inventarisatiepas.
+        $body    = is_string($raw) ? (json_decode($raw, true) ?: []) : [];
         $token   = $body['access_token'] ?? '';
         $expires = (int)($body['expires_in'] ?? 86400) - 60;
 

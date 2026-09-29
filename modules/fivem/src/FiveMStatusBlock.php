@@ -47,11 +47,16 @@ final class FiveMStatusBlock extends AbstractBlock
             if ($code !== 200) return null;
             $info = json_decode($body, true);
 
-            // Haal spelers op
+            // Haal spelers op. Zelfde bug als FiveMController::index(): een
+            // gefaalde curl_exec() geeft `false` terug, en json_decode(false)
+            // knalt onder strict_types=1 met een TypeError i.p.v. dat de
+            // `?? []` hierna nog kan redden. Gevonden tijdens de
+            // S13-inventarisatiepas.
             $ph = curl_init("http://{$serverIp}/players.json");
             curl_setopt_array($ph, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 4]);
-            $players = json_decode(curl_exec($ph), true) ?? [];
+            $rawPlayers = curl_exec($ph);
             curl_close($ph);
+            $players = is_string($rawPlayers) ? (json_decode($rawPlayers, true) ?? []) : [];
 
             return ['info' => $info, 'players' => $players];
         });

@@ -3,6 +3,7 @@
 // Copyright (C) 2026  DieOuwe — GPL-3.0-or-later
 // ============================================================================
 declare(strict_types=1);
+use CommunityFusion\Core\Security\CsrfProtection;
 // $applications, $members, $ranks beschikbaar vanuit GuildAdminController
 $pendingCount  = count(array_filter($applications ?? [], fn($a) => $a['status'] === 'pending'));
 $approvedCount = count(array_filter($applications ?? [], fn($a) => $a['status'] === 'approved'));
@@ -184,8 +185,10 @@ $classIcons    = ['Death Knight'=>'🩸','Demon Hunter'=>'👁️','Druid'=>'�
   </div>
 </div>
 <div id="toast"></div>
+<?= CsrfProtection::field() ?>
 
 <script>
+const CSRF = document.querySelector('input[name="_csrf_token"]')?.value || '';
 function showToast(msg, type='success') {
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -198,7 +201,7 @@ async function reviewApp(id, action) {
   const r = await fetch(`/admin/guild/applications/${id}/${action}`, {
     method: 'POST',
     headers: {'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'},
-    body: JSON.stringify({ note })
+    body: JSON.stringify({ note, _csrf_token: CSRF })
   });
   const d = await r.json();
   if (d.success) {

@@ -20,6 +20,8 @@ final class GuildController
 
     public function index(Request $request): Response
     {
+        if (!$this->installed()) return $this->notInstalledResponse();
+
         $teams   = $this->db->fetchAll("SELECT * FROM cf_guild_teams ORDER BY type");
         $members = $this->db->fetchAll(
             "SELECT gm.*, gr.display_name as rank_name, gr.color as rank_color
@@ -34,6 +36,8 @@ final class GuildController
 
     public function members(Request $request): Response
     {
+        if (!$this->installed()) return $this->notInstalledResponse();
+
         $rankFilter = $request->query('rank');
         $sql = "SELECT gm.*, gr.display_name as rank_name, gr.color as rank_color
                 FROM cf_guild_members gm
@@ -59,6 +63,8 @@ final class GuildController
 
     public function applyForm(Request $request): Response
     {
+        if (!$this->installed()) return $this->notInstalledResponse();
+
         $teams = $this->db->fetchAll("SELECT * FROM cf_guild_teams WHERE is_recruiting = 1 ORDER BY name");
         ob_start();
         include __DIR__ . '/../templates/apply.php';
@@ -67,6 +73,8 @@ final class GuildController
 
     public function apply(Request $request): Response
     {
+        if (!$this->installed()) return $this->notInstalledResponse();
+
         CsrfProtection::validateRequest();
 
         $data = $request->all();
@@ -96,5 +104,34 @@ final class GuildController
         ]);
 
         return Response::redirect('/guild/apply?success=1');
+    }
+
+    /**
+     * De installer registreert een module wel in cf_modules (is_enabled=1)
+     * maar roept bewust NOOIT install() aan — zie de uitleg in
+     * installer/steps/Step5.php. Elke module hoort zich daarom netjes te
+     * degraderen zolang z'n eigen tabellen nog niet zijn aangemaakt (pas
+     * gebeurt via Marketplace-herinstallatie). Guild Management deed dat
+     * nog niet en gaf hierdoor een kale 500 op elke /guild*-route direct
+     * na installatie — gevonden tijdens de S13-inventarisatiepas.
+     */
+    private function installed(): bool
+    {
+        try {
+            $this->db->fetchOne("SELECT 1 FROM cf_guild_teams LIMIT 1");
+            return true;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    private function notInstalledResponse(): Response
+    {
+        return Response::html(
+            '<h1>Guild-module nog niet geïnstalleerd</h1>' .
+            '<p>Deze module is ingeschakeld maar moet nog eenmalig geïnstalleerd worden ' .
+            '(tabellen aanmaken) via <a href="/admin/marketplace">/admin/marketplace</a>.</p>',
+            503
+        );
     }
 }

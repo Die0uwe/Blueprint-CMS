@@ -14,7 +14,7 @@ GPL-3.0-or-later
 [![PHP](https://img.shields.io/badge/PHP-8.3%2B-777BB4?style=flat-square&logo=php)](https://php.net)
 [![MariaDB](https://img.shields.io/badge/MariaDB-10.11%2B-003545?style=flat-square&logo=mariadb)](https://mariadb.org)
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.24.0-brightgreen?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-1.25.0-brightgreen?style=flat-square)](CHANGELOG.md)
 [![CI](https://img.shields.io/github/actions/workflow/status/Die0uwe/bluprint-cms/ci.yml?branch=main&style=flat-square&label=CI)](.github/workflows/ci.yml)
 
 *Geïnspireerd door PHP-Fusion · Down Under Fusion · ImpressCMS*
@@ -164,7 +164,7 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 | **S11** | ✅ v1.23.0 | Media-galerij — albums (`cf_categories`, `type=gallery`) met foto/video-upload, GD-miniaturen, publieke doorbladering + lightbox (beide thema's), sidebar-widget. Hergebruikt de bestaande `/media/{path}`-serveer-route i.p.v. een nieuwe. Zie CHANGELOG v1.23.0. |
 | **S13** | ✅ v1.24.0 | Multi-language/i18n — `Translator` (nl/en/de), publieke + per-gebruiker + site-standaard taalwisseling met volledige prioriteitsketen, `trans()`/`Trans::get()` op de hoogst-verkeer schermen. **S12 (Premium ecosysteem) is bewust vóór S13 geplaatst uitgesteld** ("premium is nu niet belangerijk"). Zie CHANGELOG v1.24.0. |
 | **S12** | 📋 Gepland | Premium ecosysteem + licenties + betalingen |
-| **Inventarisatie + debug** | 📋 Gepland | Projectbrede gaten-inventarisatie en debugronde, direct na S13 |
+| **Inventarisatie + debug** | ✅ v1.25.0 | Projectbrede audit (2 onafhankelijke passes) + fix- en live-testronde: 2× privilege-escalatie (`/admin/users`, `/admin/roles`), JSON-request-bodies die nergens werden uitgelezen (Blokken-admin/Marketplace/Ollama-chat allemaal stuk), 3 module-adminpanels (Guild/Warcraft/Ollama) volledig onbereikbaar door een routing-volgordebug, login-CSRF op `/api/v1/auth/login`, en meer. Zie CHANGELOG v1.25.0. |
 
 ---
 
@@ -184,7 +184,7 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 
 ---
 
-## ⚠️ Bekende beperkingen (stand v1.24.0)
+## ⚠️ Bekende beperkingen (stand v1.25.0)
 
 Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben opgelost — zie
 `docs/wave-0-gap-analysis.md` en `CHANGELOG.md` voor de volledige context per punt.
@@ -361,6 +361,29 @@ Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben o
 > losse tekstlabels ín de ~26 admin-schermen (buiten sidebar/dashboard — alleen hun
 > `<html lang>` is gefixt), de installer zelf, en de losse game/streamer-modules. Zie
 > CHANGELOG v1.24.0 voor het volledige verhaal.
+>
+> **v1.25.0: post-S13-inventarisatie- en debugronde — de zwaarste bugronde sinds v1.12.0's
+> eerste échte boot.** Twee onafhankelijke audits (core + extern) leverden 13 bevindingen op,
+> waarvan er twee ronduit ernstig waren: **elke `users.manage`- of `roles.manage`-houder (dus
+> ook een gewone `admin`, niet alleen `super_admin`) kon zichzelf of een ander stilzwijgend
+> tot super_admin maken** — via `/admin/users` (rol direct toewijzen, geen prioriteitscheck)
+> óf via `/admin/roles` (de `*`-wildcard aan de `admin`-rol hangen, geen uitsluiting buiten
+> `super_admin` zelf). Beide gefixt en live bevestigd: een escalatiepoging wordt nu geweigerd,
+> een gewone rolwijziging werkt gewoon door. Daarnaast bleek **`Request::fromGlobals()` nooit
+> een JSON-request-body uit te lezen** (PHP vult `$_POST` alleen voor form-urlencoded/
+> multipart) — waardoor de Blokken-admin, de Marketplace-admin én de Ollama-chatwidget al
+> sinds hun introductie functioneel dood waren ondanks een complete UI, en `/api/v1/auth/login`
+> nooit een échte JSON-login kon verwerken. En de grootste verrassing: **de
+> `router.routes`-hook (waarmee modules hun eigen routes registreren) vuurde pas ná de
+> `/admin/{path}`-catch-all**, waardoor de complete adminschermen van **Guild Management,
+> Warcraft en Ollama** sinds hun bestaan onbereikbaar waren — elke klik landde stil op de
+> generieke `/admin`-redirect. Verder: login-CSRF op `/api/v1/auth/login` (riep intern gewoon
+> de sessie-login aan, ondanks "stateless" te zijn), een ontbrekende CSRF-check op
+> blok-herordenen, twee crashes bij een onbereikbare externe server (Battle.net/FiveM —
+> `json_decode(false)` onder `strict_types`), Guild Management die 500'de i.p.v. netjes
+> degradeerde zolang 'ie niet geïnstalleerd was, en wat opruiming van dode code. Alles live
+> getest tegen een echte, opnieuw opgebouwde MariaDB-installatie met twee admin-accounts van
+> verschillende `role priority`. Zie CHANGELOG v1.25.0 voor het volledige verhaal per punt.
 
 - ~~`/admin`-routes zijn niet permissie-gated~~ — **opgelost in v1.10.0.** Zie CHANGELOG:
   `PermissionMiddleware` + `admin.access`/`settings.edit`/`blocks.manage`/`marketplace.*`.
@@ -504,8 +527,9 @@ GPL-3.0-or-later — © 2026 [DieOuwe](https://www.dieouwe.nl) / [Slayer Allianc
 
 <!--
 ╔══════════════════════════════════════════════════════════════════════╗
-║  File: README.md | Role: Docs | Version: 1.23.0                      ║
-║  Updated: 2026-09-29 — S11 afgerond: Media-galerij (albums, upload,  ║
-║           GD-miniaturen, lightbox, sidebar-widget), na S10 (Kick)    ║
+║  File: README.md | Role: Docs | Version: 1.25.0                      ║
+║  Updated: 2026-09-29 — Post-S13 inventarisatie- en debugronde: 2x    ║
+║           privilege-escalatie, JSON-body-parsing, 3 onbereikbare     ║
+║           module-adminpanels (routing-volgorde), login-CSRF, meer    ║
 ╚══════════════════════════════════════════════════════════════════════╝
 -->

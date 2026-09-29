@@ -93,6 +93,24 @@ final class UserAdminController
             }
         }
 
+        // Privilege-escalatie voorkomen: users.manage staat standaard ook op
+        // de 'admin'-rol (priority 80), niet alleen op super_admin (priority
+        // 100). Zonder deze check kon elke admin zichzelf of een ander via
+        // dit formulier gewoon de super_admin-rol geven — de checkbox-lijst
+        // in admin_edit.php toont immers alle rollen zonder onderscheid.
+        // Regel: je kan nooit een rol toewijzen met een hogere priority dan
+        // je eigen hoogste rol. Gevonden tijdens de S13-inventarisatiepas.
+        $actingMaxPriority = $this->highestPriority($this->auth->id());
+        $allRoles          = $this->repo->getAllRoles();
+        $priorityById      = array_column($allRoles, 'priority', 'id');
+        foreach ($roleIds as $rid) {
+            if (($priorityById[$rid] ?? 0) > $actingMaxPriority) {
+                return Response::redirect("/admin/users/{$id}/bewerk?error=" . urlencode(
+                    'Je kan geen rol toewijzen met een hogere prioriteit dan je eigen rol.'
+                ));
+            }
+        }
+
         $this->repo->setActive($id, $wantActive);
         $this->repo->syncRoles($id, $roleIds, $this->auth->id());
 
@@ -112,6 +130,17 @@ final class UserAdminController
         ]);
 
         return Response::redirect('/admin/users?ok=bijgewerkt');
+    }
+
+    /**
+     * Hoogste role-priority van de ingelogde gebruiker (0 als hij geen
+     * rollen heeft). RBACManager::getUserRoles() sorteert al op
+     * priority DESC, dus de eerste rij volstaat.
+     */
+    private function highestPriority(int $userId): int
+    {
+        $roles = $this->rbac->getUserRoles($userId);
+        return $roles === [] ? 0 : (int) $roles[0]['priority'];
     }
 }
 

@@ -47,8 +47,19 @@ final class AuthManager
 
     /**
      * Log een gebruiker in met username/email + wachtwoord.
+     *
+     * $startSession = false slaat de cookie-sessie sectie van login() over —
+     * nodig voor Api\V1\AuthController::login(), dat een stateless JWT-token
+     * hoort uit te geven. Zonder dit riep de "stateless" login-endpoint hier
+     * gewoon session_regenerate_id() + $_SESSION['user_id'] aan zoals de
+     * normale weblogin, wat een klassieke login-CSRF opende: een simpele
+     * cross-site <form method=POST> (application/x-www-form-urlencoded,
+     * geen CORS-preflight nodig) naar /api/v1/auth/login met de
+     * inloggegevens van de AANVALLER logde het slachtoffer-sessiecookie
+     * stilletjes in op het account van de aanvaller. Gevonden tijdens de
+     * S13-inventarisatiepas.
      */
-    public function attempt(string $identifier, string $password): bool
+    public function attempt(string $identifier, string $password, bool $startSession = true): bool
     {
         $user = $this->db->fetchOne(
             "SELECT * FROM cf_users WHERE (username = ? OR email = ?) AND is_active = 1 AND deleted_at IS NULL",
@@ -62,19 +73,22 @@ final class AuthManager
             return false;
         }
 
-        $this->login($user);
+        $this->login($user, $startSession);
         return true;
     }
 
     /**
-     * Sla de gebruiker op in de sessie.
+     * Sla de gebruiker op in de sessie (of alleen in-memory voor dit
+     * request als $startSession false is — zie attempt() hierboven).
      */
-    public function login(array $user): void
+    public function login(array $user, bool $startSession = true): void
     {
-        session_regenerate_id(true); // Voorkom session fixation
-        $_SESSION['user_id']    = $user['id'];
-        $_SESSION['login_time'] = time();
-        $this->currentUser      = $user;
+        if ($startSession) {
+            session_regenerate_id(true); // Voorkom session fixation
+            $_SESSION['user_id']    = $user['id'];
+            $_SESSION['login_time'] = time();
+        }
+        $this->currentUser = $user;
 
         // Update last_login
         $this->db->execute(

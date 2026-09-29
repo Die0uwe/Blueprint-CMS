@@ -18,6 +18,151 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ---
 
+## [1.25.0] — 2026-09-29 — Post-S13 inventarisatie- en debugronde
+
+Aanleiding: tweede helft van "s13 en dan inventariseren en de debug" — na S13 (i18n, zie
+v1.24.0) een projectbrede audit van alle modules op gaten/bugs, gevolgd door een echte fix- en
+live-testronde. Twee onafhankelijke audits (core `src/Modules`+`src/Core`, en de externe
+`modules/`+`themes/`+`installer/`) leverden 13 concrete bevindingen op; alle zijn gefixt en
+live getest tegen een echte, opnieuw opgebouwde MariaDB-installatie (schema-import, twee
+admin-accounts met verschillende role-priority, een guest-account, en de PHP-ingebouwde server
+achter een `.htaccess`-emulerende router — zie eerdere versies voor waarom dat laatste nodig
+is). Elke bevinding hieronder werd zowel vóór als na de fix daadwerkelijk getest, niet alleen
+gelezen.
+
+### 🔴 Kritiek — privilege-escalatie (2×)
+
+- **`/admin/users` — elke `users.manage`-houder kon zichzelf/anderen super_admin maken.**
+  `users.manage` staat standaard ook op de `admin`-rol (priority 80), niet alleen op
+  `super_admin` (priority 100) — maar `UserAdminController::update()` accepteerde élke
+  `roles[]`-selectie zonder enige prioriteitscheck, en `admin_edit.php` toont alle rollen
+  inclusief `super_admin` als gewone checkbox. Live bevestigd: een ingelogde priority-80
+  `admin` kon een andere gebruiker via een simpele POST de `super_admin`-rol geven. Fix:
+  `UserAdminController` weigert nu elke `roles[]`-toewijzing met een hogere `priority` dan de
+  hoogste rol van de ingelogde beheerder zelf (`highestPriority()`, via
+  `RBACManager::getUserRoles()`). Getest: escalatiepoging → redirect met foutmelding, géén
+  rij in `cf_user_roles`; toewijzen van een gelijke/lagere rol (bv. `moderator`, `admin`)
+  werkt gewoon door.
+- **`/admin/roles` — elke `roles.manage`-houder kon de `*`-wildcard aan een ANDERE rol hangen.**
+  `RoleAdminController::update()` forceerde de `*`-wildcard alleen op de rol `super_admin`
+  zélf, maar sloot 'm nergens uit bij het bewerken van een andere rol — en de
+  permissie-checkboxlijst toont `*` gewoon als aanvinkbaar voor elke niet-`super_admin`-rol.
+  Live bevestigd: de `admin`-rol de `*`-permissie geven via het gewone formulier lukte
+  probleemloos, wat elke toekomstige `admin`-gebruiker stilzwijgend tot super_admin had
+  gemaakt. Fix: de wildcard-permissie-id wordt nu altijd uit `permissions[]` gefilterd tenzij
+  de bewerkte rol `super_admin` is. Getest: dezelfde poging slaat de overige permissies wél
+  op, maar `*` verschijnt niet in `cf_role_permissions` voor de `admin`-rol.
+
+### 🔴 Kritiek — architectuurbug: JSON-request-bodies werden nergens uitgelezen
+
+- **`Request::fromGlobals()` gebruikte kaal `$_POST` als body.** PHP vult `$_POST` NOOIT voor
+  een `Content-Type: application/json`-request (alleen voor
+  `application/x-www-form-urlencoded`/`multipart/form-data`) — maar drie plekken in de app
+  sturen wél JSON: de Blokken-admin (drag & drop), de Marketplace-admin, en de
+  Ollama-chatwidget. Voor alle drie betekende dit dat `Request::input()` altijd de
+  default-waarde teruggaf, ongeacht wat de client stuurde: blok toevoegen/verplaatsen/
+  verwijderen gaf altijd "Block type '' niet gevonden", en de Ollama-chat altijd "messages
+  array vereist." — functioneel volledig kapot, ondanks dat de UI's er compleet uitzagen.
+  Bovendien leest `CsrfProtection::validateRequest()` rechtstreeks `$_POST`, dus zelfs ná een
+  eventuele body-fix zou elke CSRF-check op deze routes blijven falen. Fix: `Request::
+  fromGlobals()` detecteert nu `Content-Type: application/json`, parsed `php://input` en
+  merget het resultaat zowel in `$body` als terug in `$_POST` (zodat rechtstreekse
+  `$_POST`-lezers als `CsrfProtection` hetzelfde zien). Los daarvan bleek de Blokken-admin-JS
+  de al wél uitgelezen `CSRF`-const nooit daadwerkelijk mee te sturen — gefixt naar hetzelfde
+  patroon als Marketplace (`_csrf_token` in de JSON-body). Live getest: blok toevoegen via de
+  JSON-`api()`-helper werkt nu (`{"success":true,"block_id":"1"}`); `/api/v1/auth/login`
+  (die al langer op `$request->input()` leunde) las voorheen dus óók nooit een echte
+  `identifier`/`password` uit een JSON-body — bevestigd via curl vóór en na de fix.
+
+### 🔴 Kritiek — routing: 3 module-admin-panels waren volledig onbereikbaar
+
+- **De `router.routes`-hook vuurde ná de `/admin/{path}`-catch-all, niet ervóór.** `Router`'s
+  constructor registreert alle kernroutes (incl. de bewust-laatste catch-all die elke
+  onbekende `/admin/...` afvangt met een "nog niet gebouwd"-scherm), en pas ìn `dispatch()`
+  vuurde de `router.routes`-hook waarmee modules hun eigen routes registreren
+  (`ModuleInterface::boot()`). Omdat de Router op registratievolgorde matcht (niet op
+  specificiteit — hetzelfde principe dat de catch-all's eigen commentaar al beschreef voor de
+  kernroutes, maar niet voor hook-routes), werd élke module-geregistreerde `/admin/*`-route
+  altijd door de catch-all onderschept. Trof drie modules: **Guild Management** (`/admin/
+  guild`), **Warcraft** (`/admin/wow`) en **Ollama** (`/admin/ollama`) — hun volledige
+  adminschermen waren sinds hun introductie nooit bereikbaar, elke klik landde stilletjes op
+  de generieke `/admin`-redirect zonder foutmelding. Fix: de `router.routes`-hook vuurt nu in
+  de constructor, ná `registerCoreRoutes()` maar vóór de (nu losgetrokken)
+  `registerFallbackRoutes()` die de catch-all + OAuth-callbacks bevat. Live bevestigd: vóór de
+  fix gaven alle drie `/admin/guild`, `/admin/wow` en `/admin/ollama` een 302 naar `/admin`;
+  ná de fix geven ze allemaal 200 met het echte modulescherm — een volledige regressiesweep
+  over 18 andere admin- en publieke routes bevestigde dat niets anders brak.
+
+### 🟠 Hoog — CSRF
+
+- **`BlockController::savePositions()`** (drag & drop-herordening) miste
+  `CsrfProtection::validateRequest()`, als enige state-wijzigende actie in dat bestand. Live
+  getest: zonder token nu een 403, met token 200.
+- **Guild-admin "Goedkeuren"/"Afwijzen"-knoppen** stuurden nooit een CSRF-token mee (geen
+  `_csrf_token`-veld op de pagina, en de `fetch()`-body bevatte 'm ook niet) — beide knoppen
+  gaven dus altijd een 403. Fix: `CsrfProtection::field()` + `CSRF`-const toegevoegd naar
+  hetzelfde patroon als Blokken/Marketplace.
+- **`/api/v1/auth/login` opende login-CSRF.** Dit "stateless" JWT-endpoint riep intern gewoon
+  `AuthManager::login()` aan — `session_regenerate_id()` + `$_SESSION['user_id']` zetten,
+  identiek aan de normale weblogin. Een cross-site `<form method=POST>` (form-urlencoded,
+  geen CORS-preflight nodig) naar dit endpoint met de inloggegevens van de AANVALLER logde
+  het sessiecookie van het SLACHTOFFER stilletjes in op het account van de aanvaller — een
+  klassieke login-CSRF/session-fixation. Fix: `AuthManager::attempt()`/`login()` kregen een
+  `$startSession`-parameter (default `true`, ongewijzigd voor de twee weblogin-aanroepen);
+  `Api\V1\AuthController::login()` roept nu `attempt(..., startSession: false)` aan. Live
+  bevestigd: een API-login retourneert een geldig JWT maar zet `$_SESSION['user_id']` niet —
+  `/api/v1/auth/me` met dát sessiecookie stuurt nog steeds door naar `/login`, terwijl de
+  normale weblogin met dezelfde credentials `/api/v1/auth/me` wél de juiste gebruiker geeft.
+
+### 🟡 Gemiddeld — module-degradatie & netwerkfouten
+
+- **Guild Management crashte met een kale 500 als de module wel ingeschakeld maar nog niet
+  geïnstalleerd was.** De installer registreert een geselecteerde module bewust alleen in
+  `cf_modules` zonder `install()` aan te roepen (zie `installer/steps/Step5.php`'s eigen
+  commentaar: modules horen zich netjes te degraderen tot een beheerder ze via de Marketplace
+  echt installeert) — maar Guild's controllers hadden geen enkele try/catch rond hun queries
+  tegen de dan nog niet bestaande `cf_guild_*`-tabellen. Fix: `installed()`-check (probeert
+  `SELECT 1 FROM cf_guild_teams`) vóór elke actie in `GuildController`/`GuildAdminController`,
+  met een vriendelijke 503 i.p.v. een PDOException. Live bevestigd met een module die wél
+  `is_enabled=1` maar nooit `install()`'d is: `/guild` en `/admin/guild` geven nu netjes 503
+  i.p.v. 500.
+- **`BlizzardApiClient::getAccessToken()`, `FiveMController::index()` en
+  `FiveMStatusBlock::render()` crashten bij een netwerkfout.** `curl_exec()` geeft `false`
+  terug bij een timeout/onbereikbare server — en `json_decode(false, …)` gooit onder
+  `strict_types=1` een `TypeError` (verwacht `string`) i.p.v. dat een `?? []`/`?? null` erna
+  nog kan redden. Voor FiveM is een offline server nota bene het meest voorkomende geval op
+  die pagina. Alle drie kregen een `is_string()`-check vóór `json_decode()`, naar hetzelfde
+  patroon als de reeds-correcte buren in dezelfde bestanden (bv. `BlizzardApiClient::get()`,
+  `MinecraftController`). Live bevestigd tegen een echt onbereikbaar IP (`10.255.255.1`):
+  `/fivem` geeft nu gewoon 200 (offline-status) i.p.v. 500.
+
+### 🟢 Laag — opruiming
+
+- **`FileCache::get()`** gaf een PHP-warning + effectief altijd een cache-miss bij een
+  corrupt/half-geschreven cachebestand (`unserialize()` op ongeldige data geeft `false`,
+  waarna `$data['expires']` op een bool een warning gooit) — en liet het kapotte bestand
+  staan, dus de warning bleef terugkomen. Nu een expliciete check die het bestand opruimt en
+  netjes `$default` teruggeeft.
+- **Dode code verwijderd**: `BlockController::zones()` (nooit gerouteerd, vervangen door
+  `getZonesApi()`), en zes wezen-views onder `src/Modules/Settings/views/` (`roles.php`,
+  `menus.php`, `themes.php`, `logs.php`, `media.php`, `_placeholder.php`) — de Wave 2
+  "nog niet gebouwd"-placeholders voor precies die vijf schermen, die sinds Wave 5 elk hun
+  eigen dedicated controller + route hebben en dus nooit meer via de `/admin/{path}`-catch-all
+  bereikt worden (bevestigd: geen enkele andere plek `include`t ze).
+
+### Niet aangepast (bewust, of te klein om los te noemen)
+
+Enkele `module.json`-manifesten (kick/twitch/youtube/battlenet/google) declareren `hooks[]`
+die nergens geregistreerd of afgevuurd worden — puur decoratieve metadata zonder functioneel
+effect, niet aangepakt in deze ronde. `composer.json` vereist nog altijd `league/container`,
+`league/event`, `league/route`, `monolog/monolog` en `ramsey/uuid`, die nergens in de
+codebase gebruikt worden (bevestigd via een projectbrede grep) — vermoedelijk restanten van
+een vroege architectuurkeuze die is losgelaten; opschonen is uitstelbaar (het kost niets
+zolang `composer install` toch al niet tegen packagist.org kan draaien in deze omgeving) en
+dus bewust buiten scope van deze inventarisatieronde gelaten.
+
+---
+
 ## [1.24.0] — 2026-09-29 — S13: Multi-language / i18n
 
 Aanleiding: "s13 en dan inventariseren en de debug" — na S11 (Media-galerij) werd S12

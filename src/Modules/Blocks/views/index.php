@@ -423,7 +423,14 @@ function handleDrop(e, zone) {
 // ── API calls ─────────────────────────────────────────────────────────────
 async function api(method, url, body = null) {
   const opts = { method, headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } };
-  if (body) opts.body = JSON.stringify(body);
+  // CSRF-token hoort in de body: de const werd hier al sinds v1.16.0
+  // uitgelezen maar nooit daadwerkelijk meegestuurd, dus elke actie op dit
+  // scherm (blok toevoegen/verplaatsen/verwijderen/herordenen) werd door
+  // CsrfProtection::validateRequest() afgewezen — samen met het feit dat
+  // JSON-bodies vóór de Request-fix server-side sowieso nooit werden
+  // uitgelezen, stond dit hele scherm dus non-functioneel. Zelfde patroon
+  // als Marketplace/views/index.php. Gevonden tijdens de S13-inventarisatiepas.
+  opts.body = JSON.stringify({ ...(body || {}), _csrf_token: CSRF });
   const r = await fetch(url, opts);
   return r.json();
 }

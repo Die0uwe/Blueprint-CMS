@@ -16,6 +16,23 @@ final class Router
         private readonly HookManager $hooks,
     ) {
         $this->registerCoreRoutes();
+
+        // Module-routes (Discord/Twitch/Guild/Warcraft/Ollama/...) komen via
+        // de 'router.routes'-hook binnen — zie ModuleInterface::boot(). Dit
+        // MOET vóór registerFallbackRoutes() draaien: dispatch() matcht op
+        // registratievolgorde (niet op specificiteit, zie het commentaar bij
+        // de catch-all hieronder), en deze hook werd voorheen pas in
+        // dispatch() gevuurd — dus ná de complete registerCoreRoutes(),
+        // inclusief de /admin/{path}-catch-all. Elke module die zoals Guild/
+        // Warcraft/Ollama een eigen /admin/*-route registreerde (bv.
+        // /admin/guild, /admin/wow, /admin/ollama) werd daardoor altijd door
+        // die catch-all onderschept — een kale 404-achtige AdminController::
+        // handle()-redirect naar /admin i.p.v. het echte modulescherm, voor
+        // elke request, sinds die modules bestaan. Gevonden tijdens de
+        // S13-inventarisatiepas.
+        $this->hooks->doAction('router.routes', $this);
+
+        $this->registerFallbackRoutes();
     }
 
     public function get(string $pattern, callable|string $handler, array $middleware = []): void
@@ -43,8 +60,6 @@ final class Router
     {
         $method = $request->getMethod();
         $path   = $request->getPath();
-
-        $this->hooks->doAction('router.routes', $this);
 
         foreach ($this->routes as $route) {
             if ($route['method'] !== $method) continue;
@@ -322,6 +337,23 @@ final class Router
         $this->get('/api/v1/marketplace/installed',           'CommunityFusion\Modules\Marketplace\MarketplaceController@apiInstalled', [...$cors, ...$perm('marketplace.view')]);
         $this->get('/api/v1/marketplace/updates',             'CommunityFusion\Modules\Marketplace\MarketplaceController@apiUpdates',   [...$cors,...$auth]);
 
+    }
+
+    /**
+     * Routes die pas NA de 'router.routes'-hook mogen worden geregistreerd
+     * (zie de constructor) — met name de catch-all, die letterlijk elke
+     * /admin/... vangt die nog niet eerder matchte. Stond hiervoor aan het
+     * eind van registerCoreRoutes(), vóór de modules ooit de kans kregen om
+     * hun eigen /admin/*-routes te registreren; zie de uitleg in de
+     * constructor. OAuth-callbacks staan hier gewoon mee bij gebrek aan een
+     * andere logische plek — ze worden door niets geshadowd, dus hun exacte
+     * positie maakte nooit uit.
+     */
+    private function registerFallbackRoutes(): void
+    {
+        $auth = ['CommunityFusion\Api\Middleware\AuthMiddleware'];
+        $perm = fn(string $permission) => [...$auth, "CommunityFusion\\Api\\Middleware\\PermissionMiddleware:{$permission}"];
+
         // ── Overige admin-sidebar links, catch-all (Wave 2) ─────────────────
         // Media/Gebruikers/Rollen/Thema's/Menu's/Logs stonden al sinds Sprint 2
         // in de sidebar maar hadden geen enkele route (kale 404). AdminController
@@ -329,8 +361,9 @@ final class Router
         // — dit vangt die zes op met een eerlijk "nog niet gebouwd"-scherm i.p.v.
         // een 404 zonder uitleg. Moet de ALLERLAATSTE /admin/*-route zijn: de
         // Router matcht routes in registratievolgorde (niet op specificiteit),
-        // dus elke specifiekere /admin/... hierboven (incl. Marketplace) moet
-        // hier vóór staan — anders "wint" deze catch-all en breekt die route.
+        // dus elke specifiekere /admin/... hierboven (incl. Marketplace, en nu
+        // ook elke module-geregistreerde /admin/*-route) moet hier vóór staan
+        // — anders "wint" deze catch-all en breekt die route.
         $this->get('/admin/{path:[a-z0-9\/-]+}', 'CommunityFusion\Modules\Settings\AdminController@handle', $perm('admin.access'));
 
         // ── OAuth Callbacks ─────────────────────────────────────────────

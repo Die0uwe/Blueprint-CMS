@@ -132,6 +132,10 @@ final class BlockController
 
     public function savePositions(Request $request): Response
     {
+        // Ontbrak hier — enige state-wijzigende actie in dit bestand zonder
+        // CSRF-check, terwijl store()/update()/delete() 'm wel hebben.
+        // Gevonden tijdens de S13-inventarisatiepas.
+        CsrfProtection::validateRequest();
         $zone      = $request->input('zone', '');
         $positions = $request->input('positions', []);
         if (!array_key_exists($zone, self::ZONES) || !is_array($positions)) {
@@ -172,8 +176,6 @@ final class BlockController
         }
         return $placed;
     }
-
-    public function zones(): array { return self::ZONES; }
 }
 
 // ╔══════════════════════════════════════════════════════════════════════╗

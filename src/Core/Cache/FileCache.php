@@ -37,7 +37,19 @@ final class FileCache implements CacheInterface
         $file = $this->getFilePath($key);
         if (!file_exists($file)) return $default;
 
-        $data = unserialize(file_get_contents($file));
+        // unserialize() geeft `false` terug bij een corrupt/half-geschreven
+        // bestand (bv. door een crash midden in set()). Zonder deze check
+        // gaf $data['expires']/$data['value'] hieronder een "trying to
+        // access array offset on bool"-warning en leverde stilletjes null
+        // op i.p.v. $default — en het kapotte bestand bleef staan, dus de
+        // warning bleef bij elke volgende get() terugkomen. Gevonden
+        // tijdens de S13-inventarisatiepas.
+        $raw  = file_get_contents($file);
+        $data = $raw !== false ? @unserialize($raw) : false;
+        if (!is_array($data) || !array_key_exists('value', $data) || !array_key_exists('expires', $data)) {
+            @unlink($file);
+            return $default;
+        }
 
         if ($data['expires'] !== null && $data['expires'] < time()) {
             unlink($file);

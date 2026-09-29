@@ -31,7 +31,10 @@ final class AuthController
             return Response::json(['error' => 'identifier en password zijn verplicht.'], 422);
         }
 
-        if (!$this->auth->attempt($identifier, $password)) {
+        // startSession=false: dit endpoint geeft een stateless JWT-token uit
+        // en mag de browser-sessiecookie niet aanraken — zie de uitleg bij
+        // AuthManager::attempt()/login().
+        if (!$this->auth->attempt($identifier, $password, startSession: false)) {
             return Response::json(['error' => 'Ongeldige inloggegevens.'], 401);
         }
 

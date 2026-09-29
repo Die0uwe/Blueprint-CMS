@@ -37,12 +37,42 @@ final class Request
 
     public static function fromGlobals(): self
     {
+        $headers = getallheaders() ?: [];
+        $body    = $_POST;
+
+        // PHP vult $_POST NOOIT voor een `Content-Type: application/json`
+        // request — dat gebeurt alleen voor application/x-www-form-urlencoded
+        // en multipart/form-data. Zonder deze stap kwam iedere fetch()-aanroep
+        // met een JSON-body (Blokken-admin drag & drop, Marketplace-admin,
+        // de Ollama-chatwidget) hier altijd met een lege $body binnen:
+        // Request::input() gaf dan overal de default terug — en
+        // CsrfProtection::validateRequest(), die rechtstreeks $_POST leest,
+        // wees de request daardoor ook altijd af. $_POST wordt hieronder ook
+        // gevuld zodat die (en andere) rechtstreekse $_POST-lezers hetzelfde
+        // zien als Request::input(). Gevonden tijdens de S13-inventarisatiepas
+        // — zie CHANGELOG.
+        $contentType = '';
+        foreach ($headers as $key => $value) {
+            if (strcasecmp((string) $key, 'Content-Type') === 0) {
+                $contentType = (string) $value;
+                break;
+            }
+        }
+        if (str_contains($contentType, 'application/json')) {
+            $raw     = file_get_contents('php://input');
+            $decoded = $raw !== false && $raw !== '' ? json_decode($raw, true) : null;
+            if (is_array($decoded)) {
+                $body  = [...$body, ...$decoded];
+                $_POST = $body;
+            }
+        }
+
         return new self(
             method:  strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET'),
             uri:     parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/',
             query:   $_GET,
-            body:    $_POST,
-            headers: getallheaders() ?: [],
+            body:    $body,
+            headers: $headers,
             cookies: $_COOKIE,
             files:   $_FILES,
             server:  $_SERVER,

@@ -20,6 +20,8 @@ final class GuildAdminController
 
     public function index(Request $request): Response
     {
+        if (!$this->installed()) return $this->notInstalledResponse();
+
         $applications = $this->db->fetchAll(
             "SELECT ga.*, gt.name as team_name
              FROM cf_guild_applications ga
@@ -73,5 +75,26 @@ final class GuildAdminController
         return $request->isAjax()
             ? Response::json(['success' => true])
             : Response::redirect('/admin/guild');
+    }
+
+    /** Zie de uitleg bij GuildController::installed(). */
+    private function installed(): bool
+    {
+        try {
+            $this->db->fetchOne("SELECT 1 FROM cf_guild_teams LIMIT 1");
+            return true;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    private function notInstalledResponse(): Response
+    {
+        return Response::html(
+            '<h1>Guild-module nog niet geïnstalleerd</h1>' .
+            '<p>Deze module is ingeschakeld maar moet nog eenmalig geïnstalleerd worden ' .
+            '(tabellen aanmaken) via <a href="/admin/marketplace">/admin/marketplace</a>.</p>',
+            503
+        );
     }
 }
