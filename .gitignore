@@ -1,6 +1,7 @@
 /vendor/
 /.env
 /config/config.php
+/installer/.installed
 /.phpunit.cache/
 /.phpunit.result.cache
 /storage/cache/*

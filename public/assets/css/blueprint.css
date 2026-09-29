@@ -80,12 +80,24 @@ img { max-width: 100%; }
   background: rgba(17,24,39,.9);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
-  height: 64px;
+  min-height: 64px;
   position: sticky;
   top: 0;
   z-index: 100;
 }
-#cf-header .cf-container { height: 100%; }
+#cf-header .cf-container { min-height: 64px; padding-block: .5rem; }
+
+/* ── Logo + MOTD (v1.18.0) ── site_motd wordt als kleine regel onder de
+   sitetitel getoond; de link zelf werd een kolom zodat beide op elkaar
+   kunnen staan zonder de header-hoogte permanent te vergroten. */
+.cf-logo-wrap {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  line-height: 1.15;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
 
 .cf-logo {
   font-size: 1.2rem;
@@ -94,7 +106,13 @@ img { max-width: 100%; }
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   white-space: nowrap;
-  flex-shrink: 0;
+}
+
+.cf-motd {
+  font-size: .72rem;
+  font-weight: 500;
+  color: var(--text-dim);
+  white-space: nowrap;
 }
 
 .cf-nav {

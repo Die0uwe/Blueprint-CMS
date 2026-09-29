@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{% block title %}{{ page_title|default('') }}{% endblock %}{% if settings.site_name is defined %} — {{ settings.site_name }}{% endif %}</title>
 <meta name="description" content="{% block meta_desc %}{{ settings.site_description|default('') }}{% endblock %}">
+{% if settings.site_icon is defined and settings.site_icon %}
+<link rel="icon" href="{{ settings.site_icon }}">
+{% endif %}
 <link rel="stylesheet" href="{{ asset('css/blueprint.css') }}">
 {% block head %}{% endblock %}
 </head>
@@ -13,8 +16,11 @@
 {# HEADER ZONE #}
 <header id="cf-header">
   <div class="cf-container">
-    <a href="/" class="cf-logo">
-      🔮 {{ settings.site_name|default('Blueprint CMS') }}
+    <a href="/" class="cf-logo-wrap">
+      <span class="cf-logo">🔮 {{ settings.site_name|default('Blueprint CMS') }}</span>
+      {% if settings.site_motd is defined and settings.site_motd %}
+        <span class="cf-motd">{{ settings.site_motd }}</span>
+      {% endif %}
     </a>
     <nav class="cf-nav">
       <a href="/news" class="cf-nav-link">Nieuws</a>

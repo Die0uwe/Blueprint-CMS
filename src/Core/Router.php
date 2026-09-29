@@ -171,6 +171,7 @@ final class Router
 
         $this->get('/admin',          'CommunityFusion\Modules\Settings\AdminController@dashboard', $perm('admin.access'));
         $this->get('/admin/settings', 'CommunityFusion\Modules\Settings\AdminController@settings',  $perm('settings.edit'));
+        $this->post('/admin/settings', 'CommunityFusion\Modules\Settings\AdminController@updateSettings', $perm('settings.edit'));
 
         // Blokken admin
         $this->get('/admin/blocks',                     'CommunityFusion\Modules\Blocks\BlockController@index',  $perm('blocks.manage'));

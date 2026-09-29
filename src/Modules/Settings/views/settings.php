@@ -2,66 +2,122 @@
 // ============================================================================
 // Copyright (C) 2026  DieOuwe — GPL-3.0-or-later
 // ============================================================================
-declare(strict_types=1);
+// $core (array — 'core'-instellingengroep via SettingsRepository::getGroup()),
+// $error, $flash beschikbaar — vanuit Settings\AdminController::settings().
+// Tot v1.18.0 was dit scherm 100% statische HTML zonder <form>, die de
+// beheerder doorstuurde naar config/config.php (buiten webroot) en
+// /installer/ (bestaat na installatie niet meer). Dit is nu een echt,
+// werkend formulier op de 'core'-instellingengroep in cf_settings.
+use CommunityFusion\Core\Security\CsrfProtection;
+
+$activeNav  = 'settings';
+$siteName   = $core['site_name'] ?? '';
+$siteMotd   = $core['site_motd'] ?? '';
+$siteDesc   = $core['site_description'] ?? '';
+$siteIcon   = $core['site_icon'] ?? '';
+$locale     = $core['default_locale'] ?? 'nl';
+$timezone   = $core['timezone'] ?? 'Europe/Amsterdam';
 ?>
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Site Instellingen — Blueprint CMS Admin</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Site-instellingen — Blueprint CMS Admin</title>
 <link rel="stylesheet" href="/assets/css/blueprint.css">
+<?php include __DIR__ . '/../../Shared/views/admin_styles.php'; ?>
 <style>
-  :root{--sidebar-w:240px;}
-  .admin-wrap{display:flex;min-height:100vh;}
-  .admin-sidebar{width:var(--sidebar-w);background:var(--surface);border-right:1px solid var(--border);
-    display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:50;}
-  .admin-logo{padding:1.2rem 1.5rem;font-size:1.1rem;font-weight:800;
-    background:linear-gradient(135deg,#a855f7,#6c3df4);-webkit-background-clip:text;
-    -webkit-text-fill-color:transparent;border-bottom:1px solid var(--border);}
-  .admin-nav{padding:1rem;flex:1;}
-  .admin-nav-link{display:flex;align-items:center;gap:.7rem;padding:.55rem .9rem;border-radius:8px;
-    font-size:.875rem;color:var(--text-dim);margin-bottom:2px;transition:all .15s;}
-  .admin-nav-link:hover,.admin-nav-link.active{background:rgba(108,61,244,.15);color:var(--accent2);}
-  .admin-main{margin-left:var(--sidebar-w);flex:1;}
-  .admin-topbar{height:56px;background:rgba(17,24,39,.95);border-bottom:1px solid var(--border);
-    display:flex;align-items:center;padding:0 1.5rem;position:sticky;top:0;z-index:40;}
-  .admin-content{padding:2rem;max-width:700px;}
+.form-wrap { max-width: 720px; }
+.cf-icon-preview {
+  width: 64px; height: 64px; border-radius: 12px; object-fit: cover;
+  border: 1px solid var(--border); background: rgba(255,255,255,.04);
+}
+.cf-icon-row { display: flex; align-items: center; gap: 1rem; margin-bottom: .5rem; }
+.cf-field-help { color: var(--text-dim); font-size: .78rem; margin: .35rem 0 0; }
 </style>
 </head>
 <body>
 <div class="admin-wrap">
-  <aside class="admin-sidebar">
-    <div class="admin-logo">🔮 Blueprint CMS</div>
-    <nav class="admin-nav">
-      <a href="/admin" class="admin-nav-link">📊 Dashboard</a>
-      <a href="/admin/blocks" class="admin-nav-link">🧩 Blokken</a>
-      <a href="/admin/marketplace" class="admin-nav-link">🏪 Marketplace</a>
-      <a href="/admin/settings" class="admin-nav-link active">🛠️ Instellingen</a>
-      <a href="/" class="admin-nav-link">🌐 Site</a>
-    </nav>
-  </aside>
+  <?php include __DIR__ . '/../../Shared/views/admin_sidebar.php'; ?>
+
   <div class="admin-main">
     <header class="admin-topbar">
-      <h1 style="font-size:1rem;font-weight:700;">🛠️ Site Instellingen</h1>
+      <h1>⚙️ Site-instellingen</h1>
+      <a href="/admin" class="cf-btn-sm">← Terug naar dashboard</a>
     </header>
+
     <div class="admin-content">
-      <?php if (isset($_GET['saved'])): ?>
-        <div class="cf-alert cf-alert-success" style="margin-bottom:1.2rem;">✅ Instellingen opgeslagen!</div>
-      <?php endif; ?>
-      <div class="cf-card">
-        <div class="cf-card-header">Algemeen</div>
-        <div class="cf-card-body">
-          <p style="color:var(--muted);font-size:.875rem;">
-            Site-instellingen worden beheerd via de <a href="/config/config.php" style="color:var(--accent2)">config/config.php</a>
-            of via de <a href="/installer/" style="color:var(--accent2)">installer</a>.
-            Module-specifieke instellingen staan bij de modules zelf:
-          </p>
-          <ul style="margin-top:1rem;display:flex;flex-direction:column;gap:.5rem;font-size:.875rem;">
-            <li><a href="/admin/ollama" style="color:var(--accent2)">🤖 Ollama AI instellingen</a></li>
-            <li><a href="/admin/wow" style="color:var(--accent2)">🐉 World of Warcraft API</a></li>
-            <li><a href="/admin/marketplace" style="color:var(--accent2)">🏪 Marketplace</a></li>
-          </ul>
-        </div>
+      <div class="form-wrap">
+        <?php if ($error): ?>
+          <div class="cf-alert cf-alert-error"><?= htmlspecialchars($error) ?></div>
+        <?php endif; ?>
+        <?php if ($flash): ?>
+          <div class="cf-alert cf-alert-success">Instellingen opgeslagen.</div>
+        <?php endif; ?>
+
+        <form method="post" action="/admin/settings" enctype="multipart/form-data">
+          <?= CsrfProtection::field() ?>
+
+          <div class="cf-form-group">
+            <label class="cf-label">Sitenaam <span style="color:#f87171">*</span></label>
+            <input type="text" name="site_name" class="cf-input" required maxlength="200"
+                   value="<?= htmlspecialchars($siteName) ?>">
+            <p class="cf-field-help">Verschijnt in de titelbalk van elke pagina en in het header-logo.</p>
+          </div>
+
+          <div class="cf-form-group">
+            <label class="cf-label">MOTD / slogan</label>
+            <input type="text" name="site_motd" class="cf-input" maxlength="255"
+                   value="<?= htmlspecialchars($siteMotd) ?>"
+                   placeholder="Bijv. &quot;Welkom bij onze gaming community&quot;">
+            <p class="cf-field-help">Kleine tekstregel die direct onder de sitetitel in de header wordt getoond.</p>
+          </div>
+
+          <div class="cf-form-group">
+            <label class="cf-label">Omschrijving <span style="color:var(--text-dim);font-weight:400;">— SEO</span></label>
+            <textarea name="site_description" class="cf-input" rows="3" maxlength="500"
+                      placeholder="Korte omschrijving voor zoekmachines en social-media previews"><?= htmlspecialchars($siteDesc) ?></textarea>
+          </div>
+
+          <div class="cf-form-group">
+            <label class="cf-label">Website-icoon (favicon)</label>
+            <div class="cf-icon-row">
+              <?php if ($siteIcon !== ''): ?>
+                <img src="<?= htmlspecialchars($siteIcon) ?>" alt="Huidig icoon" class="cf-icon-preview">
+              <?php else: ?>
+                <div class="cf-icon-preview" style="display:flex;align-items:center;justify-content:center;font-size:1.4rem;">🌐</div>
+              <?php endif; ?>
+              <div>
+                <input type="file" name="site_icon" accept="image/png,image/jpeg,image/gif,image/webp">
+                <p class="cf-field-help">PNG, JPG, GIF of WebP — max. 5MB. Vierkant beeld raden we aan.</p>
+              </div>
+            </div>
+            <?php if ($siteIcon !== ''): ?>
+              <label style="font-weight:400;display:flex;align-items:center;gap:.4rem;margin-top:.35rem;font-size:.87rem;">
+                <input type="checkbox" name="remove_icon" value="1" style="width:auto;">
+                Huidig icoon verwijderen
+              </label>
+            <?php endif; ?>
+          </div>
+
+          <div style="display:flex;gap:1rem;">
+            <div class="cf-form-group" style="flex:1;">
+              <label class="cf-label">Standaardtaal</label>
+              <select name="default_locale" class="cf-input">
+                <option value="nl" <?= $locale === 'nl' ? 'selected' : '' ?>>Nederlands</option>
+                <option value="en" <?= $locale === 'en' ? 'selected' : '' ?>>English</option>
+              </select>
+            </div>
+            <div class="cf-form-group" style="flex:1;">
+              <label class="cf-label">Tijdzone</label>
+              <input type="text" name="timezone" class="cf-input" maxlength="60"
+                     value="<?= htmlspecialchars($timezone) ?>" placeholder="Europe/Amsterdam">
+            </div>
+          </div>
+
+          <button type="submit" class="cf-btn">Instellingen opslaan</button>
+          <a href="/admin" class="cf-btn-ghost">Annuleren</a>
+        </form>
       </div>
     </div>
   </div>

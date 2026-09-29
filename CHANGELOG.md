@@ -18,6 +18,100 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ---
 
+## [1.18.0] — 2026-09-29 — Wave 8: site-instellingen écht bewerkbaar — naam, MOTD, favicon, taal, tijdzone
+
+Aanleiding: expliciet verzoek van de gebruiker — sitenaam, website-icoon (favicon), de MOTD/
+slogan onder de sitetitel, en de sitetitel zelf moeten via een echt werkend adminscherm
+aanpasbaar zijn.
+
+### Bevinding — `/admin/settings` was 100% niet-functioneel
+
+`Settings\AdminController` injecteerde nergens een `SettingsRepository`; `settings()` deed
+alleen `include views/settings.php` zonder enige data. De view zelf was volledig statische
+HTML zonder `<form>`, en verwees de beheerder naar `config/config.php` (buiten webroot, geen
+UI-toegang) en `/installer/` (bestaat na installatie niet meer — zie `Step5.php`, die de map
+hernoemt/vergrendelt). Er bestond dus geen enkele manier om sitenaam, taal, tijdzone of
+iets anders na installatie te wijzigen zonder rechtstreeks in de database te werken. Een
+tweede, onafhankelijke bevinding: `cf_settings` had helemaal geen `site_motd`- of
+`site_icon`-sleutel — die functionaliteit bestond nergens in de codebase, niet eens als
+kolom-restant. Dit is dus een nieuwe feature, geen bugfix van iets dat ooit werkte.
+
+### Added
+
+- **`Settings\AdminController::settings()`** injecteert nu `SettingsRepository`, laadt de
+  volledige `core`-instellingengroep en geeft die door aan de view, samen met `?error=`/
+  `?ok=`-querystring-feedback.
+- **`Settings\AdminController::updateSettings()`** (nieuw, `POST /admin/settings`, achter
+  `auth` + `can:settings.edit` + CSRF): valideert en slaat `site_name` (verplicht),
+  `site_motd`, `site_description`, `default_locale` (whitelist nl/en) en `timezone` op via
+  `SettingsRepository::set('core', ...)`. Icoon-upload via de bestaande DI-`UploadManager`
+  (subdir `branding`, whitelist jpg/png/gif/webp, max 5MB — dezelfde instantie die
+  avatar-uploads al gebruikt) opgeslagen als `/media/branding/<hash>.<ext>` in
+  `cf_settings.site_icon`. Een `remove_icon`-checkbox wist het veld. In beide gevallen ruimt
+  een nieuwe `cleanupOldIcon()`-helper het oude bestand op — maar uitsluitend als het pad
+  met `/media/branding/` begint (nooit een extern OAuth-avatar-URL verwijderen, zelfde
+  voorzichtigheidspatroon als `ProfileController::updateAvatar()`). Elke wijziging wordt
+  gelogd via `AuditLogger::log('settings.update', ...)`.
+- **`src/Modules/Settings/views/settings.php`** volledig herschreven als een echt formulier
+  (`enctype="multipart/form-data"`, `CsrfProtection::field()`), met de gedeelde
+  `admin_sidebar.php`/`admin_styles.php`-partials (zelfde patroon als Rollen/Media/Blokken
+  uit eerdere waves) in plaats van de oude, losstaande hand-uitgeschreven sidebar/CSS.
+  Velden: sitenaam, MOTD/slogan, SEO-omschrijving, icoon-upload met live voorvertoning +
+  "verwijderen"-checkbox, standaardtaal, tijdzone.
+- **Favicon + MOTD nu écht zichtbaar op de site.** `themes/default/templates/layout.twig`
+  (en de identieke `gaming-dark`-variant) renderen nu `<link rel="icon" href="{{
+  settings.site_icon }}">` in de `<head>` (alleen als ingesteld), en het header-logo is
+  omgezet van een platte `<a class="cf-logo">` naar `<a class="cf-logo-wrap"><span
+  class="cf-logo">...</span><span class="cf-motd">...</span></a>` — de MOTD-regel verschijnt
+  alleen als `settings.site_motd` niet leeg is. `settings` is hetzelfde Twig-global dat al
+  `getGroup('core')` bevat (`Application.php`, Wave 6/7), dus `site_motd`/`site_icon` waren
+  na deze wave direct beschikbaar zonder verdere wiring.
+- **CSS**: `#cf-header` van vaste `height: 64px` naar `min-height: 64px` (met
+  `padding-block`) zodat een tweeregelige titel+MOTD niet overflowed; nieuwe
+  `.cf-logo-wrap` (flex-kolom) en `.cf-motd` (klein, gedempt, geen gradient) regels.
+
+### Getest (live, sandbox-installatie — zie onderstaande noot over vendor/)
+
+- Fris geïnstalleerd (schema-import + admin `BigBoss`/`LiveCheck123!`), ingelogd, formulier
+  ingediend met echte waarden + een echt gegenereerde 32×32 PNG als icoon.
+- `cf_settings` bevatte na opslaan exact de ingevoerde `site_name`/`site_motd`/
+  `site_description`/`default_locale`/`timezone`, en `site_icon` = `/media/branding/<hash>.png`;
+  bestand stond op disk in `storage/uploads/branding/`.
+- Homepage `<title>`, `<link rel="icon">` en de nieuwe MOTD-regel onder het logo reflecteerden
+  alle drie de opgeslagen waarden. `/media/branding/<hash>.png` gaf `200` met
+  `Content-Type: image/png`.
+- "Icoon verwijderen"-checkbox: `cf_settings.site_icon` werd leeggemaakt EN het bestand op
+  disk werd daadwerkelijk verwijderd (geen wees-bestanden in `storage/uploads/branding/`).
+- CSRF-gating: POST met een vervalst token → `403` (bevestigt dat de CsrfProtection-fix uit
+  v1.15.0 nog steeds correct werkt voor dit nieuwe endpoint).
+- Rechten-gating: een los aangemaakte `member`-testgebruiker (geen `settings.edit`) kreeg
+  `403` op zowel de GET als impliciet de POST-route.
+- Regressie-sweep van 14 publieke + admin-routes (`/`, `/news`, `/blog`, `/forum`,
+  `/downloads`, `/contact`, `/admin`, `/admin/news`, `/admin/pages`, `/admin/media`,
+  `/admin/blocks`, `/admin/roles`, `/admin/users`, `/admin/modules`) — allemaal `200`,
+  behalve `/admin/modules` dat bewust naar `/admin/marketplace` redirect (bestaand gedrag,
+  geen regressie).
+- **Noot over de sandbox-omgeving**: `composer.lock`/`vendor/` genereren blijft geverifieerd
+  onmogelijk in deze sandbox (`repo.packagist.org` staat niet op de proxy-allowlist — zelfde,
+  nog altijd openstaande blokkade als eerder gedocumenteerd). Voor deze live-test is een
+  minimale `vendor/` handmatig samengesteld (Twig + psr/container + psr/simple-cache via
+  `git clone` van hun publieke GitHub-repo's, die in deze sandbox wél bereikbaar zijn, plus
+  een 6-regelige losse `trigger_deprecation()`-shim voor `symfony/deprecation-contracts`) —
+  geverifieerd via een grep dat dit werkelijk de enige drie externe namespaces zijn die de
+  broncode importeert. Niet gecommit (`vendor/` staat al in `.gitignore`); een echte
+  installatie moet nog altijd `composer install` draaien.
+
+### Nog open
+
+- `composer.lock` kan nog steeds niet gegenereerd worden in deze sandbox (ongewijzigd, zie
+  hierboven en eerdere versies).
+- `$_ENV['APP_URL']` wordt nog op twee plekken gebruikt (`ThemeManager::registerFunctions()`'s
+  `url()`-functie, `TwitchStreamBlock`'s embed-`parent`-parameter) terwijl `$_ENV` in deze
+  omgeving altijd leeg is (`variables_order=GPCS`, geen `E`) — bekend, nog niet gefixt, raakt
+  dit scherm niet.
+
+---
+
 ## [1.17.0] — 2026-09-29 — Wave 7: de 2 openstaande gaten uit v1.16.0 gedicht — alle 6 zones + rol-zichtbaarheid
 
 Aanleiding: "ga verder met de volgende stappen" — v1.16.0 loste het Blokkensysteem zelf op

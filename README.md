@@ -14,7 +14,7 @@ GPL-3.0-or-later
 [![PHP](https://img.shields.io/badge/PHP-8.3%2B-777BB4?style=flat-square&logo=php)](https://php.net)
 [![MariaDB](https://img.shields.io/badge/MariaDB-10.11%2B-003545?style=flat-square&logo=mariadb)](https://mariadb.org)
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.17.0-brightgreen?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-1.18.0-brightgreen?style=flat-square)](CHANGELOG.md)
 [![CI](https://img.shields.io/github/actions/workflow/status/Die0uwe/bluprint-cms/ci.yml?branch=main&style=flat-square&label=CI)](.github/workflows/ci.yml)
 
 *Geïnspireerd door PHP-Fusion · Down Under Fusion · ImpressCMS*
@@ -152,7 +152,7 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 | **S9** | ⚠️ v1.8.0 | ~~WoW Module v2 — Guild Roster + Character Armory~~ — **ingetrokken in v1.9.0**: bleek WordPress-code, nooit geladen. Zie CHANGELOG v1.9.0. |
 | **S9-audit** | ✅ v1.9.0 | Wave 0 gap-analyse tegen de echte repo, WP-code verwijderd, CI/tests toegevoegd, JWT/APP_KEY gescheiden, Discord-registratie, upload-handler, Forum/Blog/Downloads/Contact core-modules, installer Step5 dynamisch |
 | **S9-audit²** | ✅ v1.10.0–v1.11.0 | Wave 2: `/admin` permissie-gating, echte Mailer, News/Pages admin-CRUD, `migrate`/`module:install` CLI-commando's — en een kritieke `LIMIT`/`OFFSET`-bug gevonden door voor het eerst tegen een echte MariaDB-server te testen (zie CHANGELOG v1.11.0) |
-| **S9-audit³** | ✅ v1.12.0–v1.17.0 | Wave 3–6: eerste échte end-to-end boot (2 fatale autoload-bugs gevonden), `/admin/users`, Forum live-verificatie + bordbeheer, de laatste 5 placeholder-schermen (Roles/Menus/Logs/Themes/Media — **alle 6 oorspronkelijke placeholder-schermen uit v1.10.0 zijn hiermee vervangen**), en het Blokkensysteem (Kernprincipe #3), dat sinds Sprint 1 nog nooit had gewerkt. Zie CHANGELOG v1.12.0–v1.17.0. |
+| **S9-audit³** | ✅ v1.12.0–v1.18.0 | Wave 3–8: eerste échte end-to-end boot (2 fatale autoload-bugs gevonden), `/admin/users`, Forum live-verificatie + bordbeheer, de laatste 5 placeholder-schermen (Roles/Menus/Logs/Themes/Media — **alle 6 oorspronkelijke placeholder-schermen uit v1.10.0 zijn hiermee vervangen**), het Blokkensysteem (Kernprincipe #3), dat sinds Sprint 1 nog nooit had gewerkt, en tot slot `/admin/settings` — eveneens al sinds Sprint 1 volledig niet-functioneel — dat nu sitenaam/MOTD/favicon/taal/tijdzone écht bewerkbaar maakt. Zie CHANGELOG v1.12.0–v1.18.0. |
 | **S10** | 📋 Gepland | YouTube + Kick integratie |
 | **S11** | 📋 Gepland | Media-galerij (los van de generieke upload-handler) |
 | **S12** | 📋 Gepland | Premium ecosysteem + licenties + betalingen |
@@ -176,7 +176,7 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 
 ---
 
-## ⚠️ Bekende beperkingen (stand v1.17.0)
+## ⚠️ Bekende beperkingen (stand v1.18.0)
 
 Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben opgelost — zie
 `docs/wave-0-gap-analysis.md` en `CHANGELOG.md` voor de volledige context per punt.
@@ -248,6 +248,22 @@ Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben o
 > live bewezen: alle 3 nieuwe zones tonen een echt geplaatst blok; een rol-beperkt blok is
 > tegelijk onzichtbaar voor een anonieme bezoeker en zichtbaar voor de juiste rol. Zie
 > CHANGELOG v1.17.0.
+>
+> **v1.18.0: `/admin/settings` bleek — net als het Blokkensysteem in v1.16.0 — al sinds
+> Sprint 1 volledig niet-functioneel.** Geen `SettingsRepository`-injectie, geen `<form>`,
+> en de pagina verwees de beheerder naar `config/config.php` (buiten webroot) en
+> `/installer/` (bestaat na installatie niet meer). Er bestond dus geen enkele manier om
+> de sitenaam, taal of tijdzone na installatie aan te passen zonder rechtstreeks in de
+> database te werken — en `site_motd`/`site_icon` bestonden nog nergens, ook niet als
+> kolom. Nu een echt, werkend formulier: sitenaam, MOTD/slogan (nieuw, verschijnt onder de
+> sitetitel in de header), SEO-omschrijving, website-icoon/favicon (upload via de
+> bestaande `UploadManager`, met live voorvertoning en een "verwijderen"-optie die het
+> oude bestand ook echt van disk opruimt), standaardtaal en tijdzone. Live bewezen: een
+> ingediend formulier met een echte PNG-upload liet zowel de databasewaarden als de
+> `<title>`, `<link rel="icon">` en de nieuwe MOTD-regel op de homepage kloppen; CSRF- en
+> `settings.edit`-permissiegating gaven allebei correct `403`. Zie CHANGELOG v1.18.0
+> (inclusief een noot over hoe deze wave's sandbox-`vendor/` handmatig is samengesteld,
+> aangezien `composer install` hier nog altijd geblokkeerd is).
 
 - ~~`/admin`-routes zijn niet permissie-gated~~ — **opgelost in v1.10.0.** Zie CHANGELOG:
   `PermissionMiddleware` + `admin.access`/`settings.edit`/`blocks.manage`/`marketplace.*`.
@@ -288,6 +304,11 @@ Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben o
   gebouwd en écht getest tegen een lokale MariaDB-server (zie CHANGELOG). Bijvangst: dit legde
   ook bloot dat `queue:work` al sinds Sprint 1 stuk was (`Application::boot()` was `private`,
   nu `public`) — ook gefixt.
+- ~~`/admin/settings` was volledig statisch — geen manier om sitenaam/taal/tijdzone na
+  installatie te wijzigen zonder directe SQL~~ — **opgelost in v1.18.0.** Echt formulier
+  met sitenaam, MOTD/slogan (nieuw — verschijnt onder de sitetitel in de header),
+  SEO-omschrijving, website-icoon/favicon-upload (met opruiming van het oude bestand),
+  standaardtaal en tijdzone — zie CHANGELOG v1.18.0.
 - **Module-specifieke extra tabellen** (bv. `cf_discord_role_mapping`) worden niet direct
   aangemaakt wanneer je een module in installer-stap 5 selecteert — de installer laadt bewust
   geen framework-klassen. Ze ontstaan zodra een beheerder de module later via
