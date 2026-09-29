@@ -24,7 +24,20 @@ RewriteEngine On
 # Blokkeer gevoelige mappen/bestanden expliciet, mocht mod_rewrite om wat
 # voor reden dan ook niet actief zijn (defense in depth — de RewriteRule
 # hieronder zou dit toch al afvangen).
-RewriteRule ^(config|storage|vendor|installer|tests|cli|src|modules|themes|composer\.json|composer\.lock|\.env)(/|$) - [F,L]
+#
+# LET OP: installer/ zit BEWUST NIET in deze lijst. Die stond hier eerder
+# wel (v1.25.1, eerste versie) — met als gedachte "alles gaat toch via
+# public/index.php's require()" — maar deze regel matcht op basis van het
+# aangevraagde URL-pad, dus hij blokkeerde ook een rechtstreeks bezoek aan
+# /installer/ zélf (de URL die README als installatie-instructie geeft),
+# nog vóór de request public/index.php ooit bereikte. Resultaat: een kale
+# "Forbidden" i.p.v. de installer, op precies het moment dat iemand 'm
+# probeert te starten. installer/index.php heeft sowieso al zijn eigen
+# bescherming (InstallerCore::isCompleted() stuurt na installatie door
+# naar /), dus rechtstreekse toegang hoeft hier niet apart geblokkeerd —
+# in tegenstelling tot .env/config/storage/vendor, die WEL geheimen
+# bevatten.
+RewriteRule ^(config|storage|vendor|tests|cli|src|modules|themes|composer\.json|composer\.lock|\.env)(/|$) - [F,L]
 
 # Bestaande bestanden binnen public/ (assets, uploads) gewoon doorlaten;
 # public/.htaccess handelt die verder af.

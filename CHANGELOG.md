@@ -18,6 +18,32 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ---
 
+## [1.25.2] — 2026-09-29 — "Forbidden" op /installer/ — eigen v1.25.1-fix zat nog in de weg
+
+Aanleiding: direct na v1.25.1 live-melding "Forbidden / you don't have permission to access
+this resource" bij het starten van de installer. Zelf veroorzaakt: de nieuwe root-`.htaccess`
+uit v1.25.1 blokkeerde (bedoeld voor `.env`/`config`/`storage`/`vendor`/etc.) per ongeluk óók
+letterlijk het pad `installer` zelf — dus een rechtstreeks bezoek aan `/installer/` (de URL die
+README als installatie-instructie geeft) werd al door Apache met een 403 afgekapt, nog vóórdat
+de request `public/index.php` (en daarmee de v1.25.1-dispatch-fix) ooit bereikte. Bij het
+live-testen van v1.25.1 is dit gemist: wél `/installer/index.php` rechtstreeks getest (bewust
+403, single-entry-point), maar nooit `/installer/` zonder bestandsnaam — exact het pad dat de
+gebruiker gebruikte.
+
+**Fix:** `installer` uit de blokkeerlijst in de root-`.htaccess` gehaald. Er is geen
+beveiligingswinst in het blokkeren van directe toegang tot de installer-map specifiek —
+`installer/index.php` beschermt zichzelf al (`InstallerCore::isCompleted()` stuurt na
+installatie door naar `/`), in tegenstelling tot `.env`/`config/`/`storage/`/`vendor/`, die wel
+echte geheimen bevatten en dus geblokkeerd blijven.
+
+Live opnieuw getest (PHP-ingebouwde server met `DocumentRoot=projectroot`, dus precies het
+model waar dit speelde): `/installer/` geeft nu 200 i.p.v. 403, en een complete installatie
+(stap 1–5 via die exacte `/installer/?step=N`-URL's, echte MariaDB) is opnieuw volledig
+doorlopen. `.env`, `config/config.php`, `vendor/autoload.php`, `composer.json`,
+`src/Core/Application.php` en `modules/discord/module.json` blijven allemaal 403, zoals bedoeld.
+
+---
+
 ## [1.25.1] — 2026-09-29 — Installer onbereikbaar bij upload naar een echte server
 
 Aanleiding: live-melding van de gebruiker na het uploaden van het project naar een echte
