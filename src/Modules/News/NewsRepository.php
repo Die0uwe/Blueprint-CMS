@@ -153,6 +153,106 @@ final class NewsRepository
 
         return $candidate;
     }
+
+    // ── Categoriebeheer (Wave 9 — /admin/news/categories bestond niet; het
+    //    identieke gat dat Wave 4 voor Forumborden dichtte, bestond hier ook:
+    //    een News-categorie aanmaken/hernoemen/herordenen/verwijderen kon
+    //    alleen rechtstreeks in cf_categories(type=news) ─────────────────────
+    //
+    //    Cascade-keuze bij verwijderen: in tegenstelling tot
+    //    cf_forum_topics.board_id (ON DELETE CASCADE — vandaar de blokkade in
+    //    BoardAdminController::delete() zolang er nog topics zijn) staat
+    //    cf_news.category_id op ON DELETE SET NULL (zie schema.sql,
+    //    fk_news_category). Een categorie verwijderen verwijdert dus nooit
+    //    artikelen — die blijven gewoon bestaan, alleen ontkoppeld
+    //    ("categorieloos"). Omdat dat non-destructief is, blokkeert
+    //    deleteCategory() hieronder — anders dan deleteBoard() — het
+    //    verwijderen niet, maar de admin-UI toont wel hoeveel artikelen
+    //    ontkoppeld raken zodat dat geen verrassing is. ─────────────────────
+
+    /** Alle News-categorieën met live artikeltelling, voor het admin-overzicht. */
+    public function getAllCategoriesForAdmin(): array
+    {
+        return $this->db->fetchAll(
+            "SELECT c.*, COUNT(n.id) AS article_count
+             FROM cf_categories c
+             LEFT JOIN cf_news n ON n.category_id = c.id AND n.deleted_at IS NULL
+             WHERE c.type = 'news'
+             GROUP BY c.id
+             ORDER BY c.position ASC, c.name ASC"
+        );
+    }
+
+    public function findCategoryById(int $id): ?array
+    {
+        return $this->db->fetchOne(
+            "SELECT * FROM cf_categories WHERE type = 'news' AND id = ?",
+            [$id]
+        );
+    }
+
+    public function categorySlugTaken(string $slug, ?int $exceptId = null): bool
+    {
+        if ($exceptId !== null) {
+            $row = $this->db->fetchOne(
+                "SELECT id FROM cf_categories WHERE type = 'news' AND slug = ? AND id != ?",
+                [$slug, $exceptId]
+            );
+        } else {
+            $row = $this->db->fetchOne(
+                "SELECT id FROM cf_categories WHERE type = 'news' AND slug = ?",
+                [$slug]
+            );
+        }
+        return $row !== null;
+    }
+
+    /** Aantal (niet-verwijderde) artikelen in een categorie — voor de verwijder-waarschuwing. */
+    public function countArticlesInCategory(int $categoryId): int
+    {
+        $row = $this->db->fetchOne(
+            "SELECT COUNT(*) AS count FROM cf_news WHERE category_id = ? AND deleted_at IS NULL",
+            [$categoryId]
+        );
+        return (int) ($row['count'] ?? 0);
+    }
+
+    public function createCategory(string $slug, string $name, string $description, int $position, ?int $parentId): int
+    {
+        $id = $this->db->insert('categories', [
+            'type'        => 'news',
+            'parent_id'   => $parentId,
+            'slug'        => $slug,
+            'name'        => $name,
+            'description' => $description,
+            'position'    => $position,
+        ]);
+        $this->cache->clear();
+        return (int) $id;
+    }
+
+    public function updateCategory(int $id, string $slug, string $name, string $description, int $position, ?int $parentId): void
+    {
+        $this->db->update('categories', [
+            'parent_id'   => $parentId,
+            'slug'        => $slug,
+            'name'        => $name,
+            'description' => $description,
+            'position'    => $position,
+        ], 'id = ? AND type = ?', [$id, 'news']);
+        $this->cache->clear();
+    }
+
+    /**
+     * Verwijdert een categorie. Zie de uitleg bovenaan deze sectie: artikelen
+     * in deze categorie worden NIET verwijderd — cf_news.category_id staat op
+     * ON DELETE SET NULL, dus de database ontkoppelt ze automatisch.
+     */
+    public function deleteCategory(int $id): void
+    {
+        $this->db->delete('categories', 'id = ? AND type = ?', [$id, 'news']);
+        $this->cache->clear();
+    }
 }
 
 // ╔══════════════════════════════════════════════════════════════════════╗
@@ -160,11 +260,12 @@ final class NewsRepository
 // ╠══════════════════════════════════════════════════════════════════════╣
 // ║  File         : NewsRepository.php                                   ║
 // ║  Role         : Data                                                 ║
-// ║  Version      : 1.0.0                                                ║
+// ║  Version      : 1.1.0                                                ║
 // ║  Created      : 2026-06-06                                           ║
-// ║  Last Updated : 2026-06-06  03:00                                    ║
+// ║  Last Updated : 2026-09-29  Wave 9 — categoriebeheer (admin CRUD)     ║
 // ║  Status       : New                                                  ║
-// ║  Notes        : Nieuws CRUD + cache-aside                            ║
+// ║  Notes        : Nieuws CRUD + cache-aside; categorieën = cf_categories║
+// ║                 (type=news), FK ON DELETE SET NULL (zie hierboven)   ║
 // ╠══════════════════════════════════════════════════════════════════════╣
 // ║  Created by Dieouwe                                                  ║
 // ║  🌐 www.dieouwe.nl          ⚔️  www.slayeralliance.com              ║

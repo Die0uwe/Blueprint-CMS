@@ -237,6 +237,15 @@ INSERT INTO `cf_modules` (`slug`, `name`, `version`, `is_core`, `is_enabled`) VA
 ('settings', 'Instellingen',     '1.0.0', 1, 1),
 ('blocks',   'Blokkensysteem',   '1.0.0', 1, 1);
 
+-- De 'core'-instellingengroep wordt niet hier geseed, maar pas tijdens de
+-- installer (Step5.php) met de door de beheerder ingevulde site-gegevens.
+-- 'contact.notify_email' hoort bij geen enkele installer-stap (die is nu
+-- alleen via /admin/settings in te stellen — zie Settings\AdminController),
+-- dus die rij zetten we hier wél alvast klaar: leeg toegestaan, valt in dat
+-- geval terug op Mailer::getFromAddress() (zie ContactController::notifyAdmin()).
+INSERT INTO `cf_settings` (`group`, `key`, `value`, `type`, `label`, `is_public`) VALUES
+('contact', 'notify_email', '', 'string', 'Meldingen-e-mailadres', 0);
+
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- ============================================================

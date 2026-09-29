@@ -30,7 +30,10 @@ $badgeFor  = static function (string $status): string {
   <div class="admin-main">
     <header class="admin-topbar">
       <h1>📰 Nieuws Beheer</h1>
-      <a href="/admin/news/create" class="cf-btn-sm">+ Nieuw artikel</a>
+      <div style="display:flex;gap:.5rem;">
+        <a href="/admin/news/categories" class="cf-btn-ghost">🗂️ Categorieën beheren</a>
+        <a href="/admin/news/create" class="cf-btn-sm">+ Nieuw artikel</a>
+      </div>
     </header>
 
     <div class="admin-content">

@@ -9,6 +9,32 @@
 <link rel="icon" href="{{ settings.site_icon }}">
 {% endif %}
 <link rel="stylesheet" href="{{ asset('css/blueprint.css') }}">
+{# Thema-kleuren (v1.19.0) — tot nu toe deed thema-wissel LETTERLIJK NIETS
+   zichtbaars: layout.twig was al identiek tussen default/gaming-dark (zelfde
+   templates), blueprint.css bevat maar één, hardcoded kleurenpalet, en de
+   `asset()`-Twig-functie verwijst altijd naar het gedeelde /assets/, nooit
+   naar een thema-eigen /themes/<slug>/assets/-map. `theme.json`'s `colors`-
+   blok werd wél al als Twig-global ingelezen (zie ThemeManager::boot()) maar
+   nergens gebruikt. blueprint.css is al volledig op CSS custom properties
+   gebouwd (--bg/--surface/--accent/enz.), dus i.p.v. een aparte stylesheet
+   per thema volstaat het overschrijven van diezelfde variabelen hier — het
+   actieve thema's eigen theme.json bepaalt de waarden, zonder dat
+   blueprint.css zelf iets hoeft te weten van welk thema actief is. #}
+{% if theme.colors is defined and theme.colors %}
+<style>
+:root {
+  {% if theme.colors.bg      is defined %}--bg: {{ theme.colors.bg }};{% endif %}
+  {% if theme.colors.surface is defined %}--surface: {{ theme.colors.surface }};{% endif %}
+  {% if theme.colors.accent  is defined %}--accent: {{ theme.colors.accent }};{% endif %}
+  {% if theme.colors.accent2 is defined %}--accent2: {{ theme.colors.accent2 }};{% endif %}
+  {% if theme.colors.gold    is defined %}--gold: {{ theme.colors.gold }};{% endif %}
+  {% if theme.colors.text    is defined %}--text: {{ theme.colors.text }};{% endif %}
+  {% if theme.colors.muted   is defined %}--muted: {{ theme.colors.muted }};{% endif %}
+  {% if theme.colors.success is defined %}--success: {{ theme.colors.success }};{% endif %}
+  {% if theme.colors.error   is defined %}--error: {{ theme.colors.error }};{% endif %}
+}
+</style>
+{% endif %}
 {% block head %}{% endblock %}
 </head>
 <body class="cf-theme-dark" data-theme-slug="{{ theme.slug|default('') }}" data-theme-name="{{ theme.name|default('') }}">

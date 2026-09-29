@@ -213,6 +213,17 @@ final class Router
         $this->post('/admin/forum/boards/{id:[0-9]+}/bewerk',  'CommunityFusion\Modules\Forum\BoardAdminController@update',     $perm('forum.moderate'));
         $this->post('/admin/forum/boards/{id:[0-9]+}/verwijder', 'CommunityFusion\Modules\Forum\BoardAdminController@delete',   $perm('forum.moderate'));
 
+        // ── Nieuwscategorieën (Wave 9 — zelfde gap als Forumborden hierboven,
+        //    nu voor News; identiek patroon, zie CategoryAdminController).
+        //    Letterlijke /nieuw-route vóór de generieke {id}-route, zelfde
+        //    volgorde-conventie als Forumborden/Blog/Downloads hierboven. ──
+        $this->get('/admin/news/categories',                    'CommunityFusion\Modules\News\CategoryAdminController@index',      $perm('news.create'));
+        $this->get('/admin/news/categories/nieuw',               'CommunityFusion\Modules\News\CategoryAdminController@createForm', $perm('news.create'));
+        $this->post('/admin/news/categories',                    'CommunityFusion\Modules\News\CategoryAdminController@store',      $perm('news.create'));
+        $this->get('/admin/news/categories/{id:[0-9]+}/bewerk',   'CommunityFusion\Modules\News\CategoryAdminController@editForm',   $perm('news.create'));
+        $this->post('/admin/news/categories/{id:[0-9]+}/bewerk',  'CommunityFusion\Modules\News\CategoryAdminController@update',     $perm('news.create'));
+        $this->post('/admin/news/categories/{id:[0-9]+}/verwijder', 'CommunityFusion\Modules\News\CategoryAdminController@delete',   $perm('news.create'));
+
         // ── Rollen & Permissies (Wave 5 — voorheen alleen via SQL) ──────
         $this->get('/admin/roles',                        'CommunityFusion\Modules\Roles\RoleAdminController@index',      $perm('roles.manage'));
         $this->get('/admin/roles/nieuw',                   'CommunityFusion\Modules\Roles\RoleAdminController@createForm', $perm('roles.manage'));

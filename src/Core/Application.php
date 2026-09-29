@@ -79,13 +79,25 @@ final class Application
         $config = require CF_ROOT . '/config/config.php';
         $this->container->singleton('config', fn() => $config);
 
-        // config/config.php is de bron van waarheid voor APP_KEY en JWT_SECRET
-        // (door de installer gegenereerd als twee losse, willekeurige sleutels).
-        // We synchroniseren ze naar $_ENV zodat code die nog rechtstreeks
+        // config/config.php is de bron van waarheid voor APP_KEY, JWT_SECRET en
+        // APP_URL. We synchroniseren ze naar $_ENV zodat code die nog rechtstreeks
         // $_ENV leest (bv. OAuthClient::getAppKey()) altijd de echte,
         // gegenereerde waarde ziet — nooit de lege default uit .env.example.
+        // APP_URL toegevoegd in v1.19.0: op minstens 4 plekken (ThemeManager::url(),
+        // DiscordOAuthController/TwitchOAuthController's OAuth-redirect_uri,
+        // TwitchStreamBlock's embed-parent) werd $_ENV['APP_URL'] rechtstreeks
+        // gelezen. Op elke omgeving waar php.ini's variables_order geen 'E' bevat
+        // (o.a. deze sandbox, en het is al sinds PHP 5.4 niet meer de standaard-
+        // waarde) is $_ENV altijd leeg — dus stond de OAuth-redirect_uri altijd op
+        // een lege basis-URL (bv. "/auth/discord/callback" i.p.v.
+        // "https://site.nl/auth/discord/callback"), wat Discord/Twitch-login zou
+        // laten mislukken met een redirect_uri-mismatch. Nooit eerder live
+        // getest omdat dat een echte OAuth-app-registratie bij Discord/Twitch
+        // vereist — zie CHANGELOG v1.19.0 voor de (statische) verificatie die wél
+        // mogelijk was.
         $_ENV['APP_KEY']    = $config['app']['key'] ?? ($_ENV['APP_KEY'] ?? '');
         $_ENV['JWT_SECRET'] = $config['jwt']['secret'] ?? ($_ENV['JWT_SECRET'] ?? '');
+        $_ENV['APP_URL']    = $config['app']['url'] ?? ($_ENV['APP_URL'] ?? '');
 
         // Database
         $this->container->singleton(Connection::class, function() use ($config) {

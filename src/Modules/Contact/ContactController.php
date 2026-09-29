@@ -23,6 +23,7 @@ use CommunityFusion\Core\Auth\AuthManager;
 use CommunityFusion\Core\Template\ThemeManager;
 use CommunityFusion\Core\Security\CsrfProtection;
 use CommunityFusion\Core\Mail\Mailer;
+use CommunityFusion\Modules\Settings\SettingsRepository;
 
 /**
  * ContactController
@@ -34,10 +35,11 @@ use CommunityFusion\Core\Mail\Mailer;
 final class ContactController
 {
     public function __construct(
-        private readonly ContactRepository $repo,
-        private readonly AuthManager       $auth,
-        private readonly ThemeManager      $theme,
-        private readonly Mailer            $mailer,
+        private readonly ContactRepository  $repo,
+        private readonly AuthManager        $auth,
+        private readonly ThemeManager       $theme,
+        private readonly Mailer             $mailer,
+        private readonly SettingsRepository $settings,
     ) {}
 
     /** GET /contact */
@@ -92,18 +94,26 @@ final class ContactController
 
     /**
      * Wave 1 bouwde dit formulier zonder Mailer (die bestond nog niet) —
-     * berichten werden alleen opgeslagen, nooit gemaild. Er is (nog) geen
-     * apart "meldingen naar"-adres in te stellen via de admin-UI (settings.php
-     * is een statische pagina, geen key/value-editor), dus het bericht gaat
-     * naar het geconfigureerde afzenderadres zelf — in de praktijk vaak
-     * dezelfde inbox bij een kleine community. Een mislukte mail (geen SMTP
-     * bereikbaar, verkeerd wachtwoord, …) mag een bezoeker nooit een 500
-     * opleveren: het bericht staat al veilig in de database/inbox, dus dit
-     * is best-effort en faalt stil (Mailer logt zelf via error_log()).
+     * berichten werden alleen opgeslagen, nooit gemaild. Daarna ging elke
+     * melding altijd naar het geconfigureerde afzenderadres zelf, omdat
+     * settings.php destijds een statische pagina was zonder key/value-editor
+     * en er dus geen plek was om een apart meldingen-adres in te stellen.
+     * Sinds v1.18.0 is /admin/settings een echt formulier op de cf_settings-
+     * tabel (zie Settings\AdminController::settings()/updateSettings()),
+     * dus dat is nu ingehaald: een beheerder kan via de sectie "Contactform-
+     * ulier" een eigen 'contact.notify_email' instellen. Leeg (of niet
+     * ingesteld) valt nog steeds terug op precies het oude gedrag. Een
+     * mislukte mail (geen SMTP bereikbaar, verkeerd wachtwoord, …) mag een
+     * bezoeker nooit een 500 opleveren: het bericht staat al veilig in de
+     * database/inbox, dus dit is best-effort en faalt stil (Mailer logt
+     * zelf via error_log()).
      */
     private function notifyAdmin(string $name, string $email, string $subject, string $message): void
     {
-        $to = $this->mailer->getFromAddress();
+        $to = trim((string) $this->settings->get('contact', 'notify_email', ''));
+        if ($to === '') {
+            $to = $this->mailer->getFromAddress();
+        }
         if ($to === '' || $to === 'noreply@localhost') {
             return; // geen zinnig adres geconfigureerd — niets te versturen
         }

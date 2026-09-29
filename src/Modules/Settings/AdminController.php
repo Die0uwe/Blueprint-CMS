@@ -42,9 +42,10 @@ final class AdminController
      */
     public function settings(Request $request): Response
     {
-        $core  = $this->settings->getGroup('core');
-        $error = $request->query('error');
-        $flash = $request->query('ok');
+        $core    = $this->settings->getGroup('core');
+        $contact = $this->settings->getGroup('contact');
+        $error   = $request->query('error');
+        $flash   = $request->query('ok');
 
         ob_start();
         include __DIR__ . '/views/settings.php';
@@ -55,18 +56,25 @@ final class AdminController
     {
         CsrfProtection::validateRequest();
 
-        $siteName   = trim((string) $request->input('site_name', ''));
-        $siteMotd   = trim((string) $request->input('site_motd', ''));
-        $siteDesc   = trim((string) $request->input('site_description', ''));
-        $locale     = (string) $request->input('default_locale', 'nl');
-        $timezone   = trim((string) $request->input('timezone', ''));
-        $removeIcon = $request->input('remove_icon') !== null;
+        $siteName    = trim((string) $request->input('site_name', ''));
+        $siteMotd    = trim((string) $request->input('site_motd', ''));
+        $siteDesc    = trim((string) $request->input('site_description', ''));
+        $locale      = (string) $request->input('default_locale', 'nl');
+        $timezone    = trim((string) $request->input('timezone', ''));
+        $removeIcon  = $request->input('remove_icon') !== null;
+        $notifyEmail = trim((string) $request->input('contact_notify_email', ''));
 
         if ($siteName === '') {
             return Response::redirect('/admin/settings?error=' . urlencode('Sitenaam mag niet leeg zijn.'));
         }
         if (!in_array($locale, ['nl', 'en'], true)) {
             $locale = 'nl';
+        }
+        // Leeg mag (dan valt ContactController terug op het standaard
+        // afzenderadres) — alleen bij een ingevulde waarde moet het ook
+        // echt een geldig e-mailadres zijn.
+        if ($notifyEmail !== '' && !filter_var($notifyEmail, FILTER_VALIDATE_EMAIL)) {
+            return Response::redirect('/admin/settings?error=' . urlencode('Meldingen-e-mailadres is geen geldig e-mailadres.'));
         }
 
         $this->settings->set('core', 'site_name', $siteName);
@@ -76,6 +84,7 @@ final class AdminController
         if ($timezone !== '') {
             $this->settings->set('core', 'timezone', $timezone);
         }
+        $this->settings->set('contact', 'notify_email', $notifyEmail);
 
         $previousIcon = (string) $this->settings->get('core', 'site_icon', '');
         $file = $request->files()['site_icon'] ?? null;

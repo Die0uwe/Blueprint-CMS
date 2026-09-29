@@ -18,6 +18,107 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ---
 
+## [1.19.0] — 2026-09-29 — Wave 9: vier losse gaten parallel gedicht — $_ENV['APP_URL'], thema-kleuren, News-categorieën, contact-meldingsadres
+
+Aanleiding: "geef een overzicht van wat nog te doen is" + "iedereen aan het werk" — na het
+overzicht (zie CHANGELOG-geschiedenis + README-roadmap) bleken er vier kleine, onafhankelijke
+gaten te zitten die zich goed leenden voor parallelle uitvoering: twee zijn zelf gefixt, twee
+zijn gedelegeerd aan aparte, geïsoleerde subagents (elk in een eigen git-worktree, zodat ze
+niet dezelfde bestanden tegelijk konden wijzigen) en na afloop gereviewd, samengevoegd en
+centraal live getest.
+
+### Fix 1 — `$_ENV['APP_URL']` bleek op 4 plekken leeg te zijn, niet 2
+
+Eerder (v1.18.0-noot) waren 2 bekende plekken gedocumenteerd (`ThemeManager::url()`,
+`TwitchStreamBlock`'s embed-`parent`). Een `grep` over de hele codebase vond er nog 2 meer, en
+serieuzer: `DiscordOAuthController` en `TwitchOAuthController` gebruiken `$_ENV['APP_URL']`
+voor hun OAuth `redirect_uri`. Op elke omgeving waar php.ini's `variables_order` geen `E`
+bevat — en dat is al sinds PHP 5.4 niet meer de standaardwaarde, dus dit raakt vermoedelijk
+niet alleen deze sandbox — is `$_ENV` altijd leeg, dus stond de Discord/Twitch OAuth
+`redirect_uri` altijd op een lege basis-URL (`/auth/discord/callback` i.p.v.
+`https://site.nl/auth/discord/callback`), wat login via Discord/Twitch met een
+redirect_uri-mismatch zou laten mislukken. `Application::boot()` had al een bewezen, identiek
+patroon voor exact dit probleem met `APP_KEY`/`JWT_SECRET` (config → `$_ENV` synchroniseren
+bij elke boot) — dat patroon is nu met één extra regel uitgebreid naar `APP_URL`, wat alle 4
+call sites in één keer fixt zonder die bestanden zelf aan te raken. **Niet live te
+verifiëren**: dat vereist een echte Discord/Twitch OAuth-app-registratie met een publiek
+bereikbare callback-URL, wat in deze sandbox niet mogelijk is — wel bevestigd dat de
+config→\$_ENV-sync zelf werkt (zelfde mechanisme dat `APP_KEY`/`JWT_SECRET` al jarenlang
+betrouwbaar doet).
+
+### Fix 2 — Thema-wissel deed tot nu toe LETTERLIJK NIETS zichtbaars
+
+Grondiger dan gedacht: het was niet alleen "kleuren worden niet toegepast" (zoals eerder
+gedocumenteerd) — `gaming-dark`'s `templates/` waren al sinds deze sessie's Wave 7 byte-voor-
+byte identiek aan `default`'s (zelf zo gemaakt tijdens het zone-werk), `gaming-dark/assets/css/`
+bevat alleen een `.gitkeep`, en de `asset()`-Twig-functie verwijst altijd naar het gedeelde
+`/assets/`, nooit naar een thema-eigen map. Drie onafhankelijke oorzaken die er samen voor
+zorgden dat thema-wissel nooit één pixel veranderde. Oplossing: `theme.json`'s `colors`-blok
+werd al wél als Twig-global ingelezen maar nergens gebruikt — `blueprint.css` is al volledig op
+CSS custom properties gebouwd, dus in plaats van een aparte stylesheet per thema volstaat een
+kleine, geconditioneerde `<style>:root{...}</style>`-override in `layout.twig` (beide thema's,
+zelfde bestand toevallig al identiek) die de custom properties overschrijft met de waarden uit
+het actieve thema's eigen `theme.json`. Live bewezen: homepage met `default` toont
+`--accent:#6c3df4` (paars), na omschakelen naar `gaming-dark` via `cf_settings.active_theme`
+toont dezelfde homepage `--accent:#22c55e` (groen) — een geplaatst blok, de header, alles
+kleurt daadwerkelijk mee.
+
+### Fix 3 — News-categorieën beheerscherm (nieuw, `/admin/news/categories`)
+
+Zelfde gat dat Wave 4 (v1.14.0) al dichtte voor Forumborden bestond identiek voor News: geen
+enkele manier om een categorie aan te maken/hernoemen/herordenen/verwijderen behalve
+rechtstreeks SQL. Nieuw: `CategoryAdminController` (1:1 patroon van
+`Forum\BoardAdminController`), `NewsRepository`-uitbreiding (`getAllCategoriesForAdmin()`,
+`findCategoryById()`, `categorySlugTaken()`, `countArticlesInCategory()`,
+`createCategory()`/`updateCategory()`/`deleteCategory()`), twee nieuwe views, en 6 nieuwe
+routes onder `news.create`-permissie. **Bewuste afwijking van het Forum-patroon**:
+`cf_forum_topics.board_id` staat op `ON DELETE CASCADE` (vandaar dat Forumborden-verwijderen
+geblokkeerd wordt zolang er topics zijn), maar `cf_news.category_id` staat al op
+`ON DELETE SET NULL` — een categorie verwijderen kan dus nooit artikelen vernietigen, alleen
+ontkoppelen. Daarom blokkeert dit scherm verwijderen niet, maar toont wél het aantal
+gekoppelde artikelen vooraf én in een JS-bevestiging. Live bewezen: categorie aangemaakt via
+het echte formulier, een testartikel eraan gekoppeld via SQL, categorie verwijderd via de
+echte UI — het artikel bleef gewoon bestaan met `category_id = NULL`, precies zoals ontworpen.
+
+### Fix 4 — Contactformulier: instelbaar meldingen-e-mailadres
+
+`ContactController::notifyAdmin()` stuurde altijd naar `Mailer::getFromAddress()` — er was geen
+apart in te stellen "meldingen naar"-adres, en de code-comment zei letterlijk dat dit kwam
+omdat `/admin/settings` een statische pagina was. Dat klopte niet meer sinds v1.18.0 (vorige
+wave, dezelfde sessie) — deze fix haalt dat in: nieuwe `cf_settings`-rij (group `contact`, key
+`notify_email`), nieuwe sectie "Contactformulier" in het bestaande, al-werkende
+`/admin/settings`-formulier (leeg toegestaan, anders `FILTER_VALIDATE_EMAIL`), en
+`ContactController` krijgt `SettingsRepository` via DI (auto-resolved door de container, geen
+handmatige wiring nodig) en leest het ingestelde adres vóór de oude fallback. Live bewezen:
+formulier ingediend met een geldig adres → opgeslagen in `cf_settings`; met een ongeldig adres
+→ `?error=`-redirect zonder de oude waarde te overschrijven; het publieke contactformulier zelf
+ingediend en het bericht kwam correct in `cf_contact_messages` terecht (mailversturen zelf
+faalt stil op `sendmail: not found` — verwacht in deze sandbox zonder MTA, geen regressie).
+
+### Werkwijze — twee parallelle subagents, centraal samengevoegd
+
+Fix 3 en Fix 4 zijn gebouwd door twee losse subagents, elk in een eigen geïsoleerde
+git-worktree (zodat ze nooit dezelfde bestanden tegelijk konden wijzigen — hun bestandensets
+overlapten toevallig ook niet). Elke agent kreeg het exacte referentiepatroon om te volgen (zie
+hierboven), mocht niet aan `CHANGELOG.md`/`README.md` komen en niet zelf committen — alleen
+`php -l` en kritische zelf-review. Na afloop is elke diff hier gelezen en beoordeeld vóór
+samenvoegen (o.a. gecontroleerd of `insert()`/`update()`/`delete()`-helpers echt de `cf_`-prefix
+toevoegen, en of CSRF-velden in élke `<form>` zaten) — beide leverden correcte, goed
+gedocumenteerde code af. Daarna is alles in één sessie samen live getest (verse installatie,
+inloggen, elk scherm écht bediend via HTTP) en in één keer gedocumenteerd/gecommit, zodat
+CHANGELOG/README niet in losse, elkaar overlappende delta's uiteenvallen.
+
+### Nog open
+
+- OAuth-`redirect_uri`-fix (Fix 1) kon niet live tegen echte Discord/Twitch-apps getest worden.
+- `composer.lock` blijft geblokkeerd (ongewijzigd — zie eerdere versies).
+- SMTP-instelvelden in de installer (Stap 3) — bewust buiten scope gehouden voor Fix 4, blijft
+  een apart vervolgpunt.
+- S10 (YouTube + Kick-integratie), Rust/Ark gaming-modules (wel in de projectblauwdruk genoemd,
+  nooit gepland), S11 (media-galerij), S12 (premium/licenties), S13 (i18n) — zie README-roadmap.
+
+---
+
 ## [1.18.0] — 2026-09-29 — Wave 8: site-instellingen écht bewerkbaar — naam, MOTD, favicon, taal, tijdzone
 
 Aanleiding: expliciet verzoek van de gebruiker — sitenaam, website-icoon (favicon), de MOTD/

@@ -3,20 +3,23 @@
 // Copyright (C) 2026  DieOuwe — GPL-3.0-or-later
 // ============================================================================
 // $core (array — 'core'-instellingengroep via SettingsRepository::getGroup()),
-// $error, $flash beschikbaar — vanuit Settings\AdminController::settings().
+// $contact (array — 'contact'-instellingengroep, idem), $error, $flash
+// beschikbaar — vanuit Settings\AdminController::settings().
 // Tot v1.18.0 was dit scherm 100% statische HTML zonder <form>, die de
 // beheerder doorstuurde naar config/config.php (buiten webroot) en
 // /installer/ (bestaat na installatie niet meer). Dit is nu een echt,
-// werkend formulier op de 'core'-instellingengroep in cf_settings.
+// werkend formulier op de 'core'- en 'contact'-instellingengroepen in
+// cf_settings.
 use CommunityFusion\Core\Security\CsrfProtection;
 
-$activeNav  = 'settings';
-$siteName   = $core['site_name'] ?? '';
-$siteMotd   = $core['site_motd'] ?? '';
-$siteDesc   = $core['site_description'] ?? '';
-$siteIcon   = $core['site_icon'] ?? '';
-$locale     = $core['default_locale'] ?? 'nl';
-$timezone   = $core['timezone'] ?? 'Europe/Amsterdam';
+$activeNav    = 'settings';
+$siteName     = $core['site_name'] ?? '';
+$siteMotd     = $core['site_motd'] ?? '';
+$siteDesc     = $core['site_description'] ?? '';
+$siteIcon     = $core['site_icon'] ?? '';
+$locale       = $core['default_locale'] ?? 'nl';
+$timezone     = $core['timezone'] ?? 'Europe/Amsterdam';
+$notifyEmail  = $contact['notify_email'] ?? '';
 ?>
 <!DOCTYPE html>
 <html lang="nl">
@@ -113,6 +116,15 @@ $timezone   = $core['timezone'] ?? 'Europe/Amsterdam';
               <input type="text" name="timezone" class="cf-input" maxlength="60"
                      value="<?= htmlspecialchars($timezone) ?>" placeholder="Europe/Amsterdam">
             </div>
+          </div>
+
+          <h2 style="margin:2rem 0 .75rem;font-size:1.05rem;">Contactformulier</h2>
+          <div class="cf-form-group">
+            <label class="cf-label">Meldingen naar e-mailadres</label>
+            <input type="email" name="contact_notify_email" class="cf-input" maxlength="255"
+                   value="<?= htmlspecialchars($notifyEmail) ?>"
+                   placeholder="meldingen@voorbeeld.nl">
+            <p class="cf-field-help">Optioneel. Hierheen gaat de meldingsmail bij een nieuw contactformulier-bericht. Leeg = val terug op het standaard afzenderadres uit de mailconfiguratie.</p>
           </div>
 
           <button type="submit" class="cf-btn">Instellingen opslaan</button>
