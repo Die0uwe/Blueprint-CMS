@@ -21,22 +21,17 @@ $selectedModules   = array_values(array_intersect($requestedModules, array_keys(
 $db   = InstallerCore::getData('db');
 $site = InstallerCore::getData('site');
 
-// Schrijf config bestand
-InstallerCore::writeConfig([
-    'date'            => date('Y-m-d H:i:s'),
-    'site_name_php'   => var_export($site['siteName'], true),
-    'site_url_php'    => var_export($site['siteUrl'], true),
-    'timezone_php'    => var_export($site['timezone'], true),
-    'locale_php'      => var_export($site['locale'], true),
-    'mail_php'        => var_export($site['mail'] ?: 'noreply@example.com', true),
-    'db_host_php'     => var_export($db['host'], true),
-    'db_port_php'     => (int) $db['port'],
-    'db_name_php'     => var_export($db['name'], true),
-    'db_user_php'     => var_export($db['user'], true),
-    'db_pass_php'     => var_export($db['pass'], true),
-]);
-
-// Sla site settings op in DB
+// v1.26.2: config/config.php werd hier VOOR de DB-poging hieronder
+// geschreven — als die PDO-stap dan alsnog faalde (verkeerd wachtwoord dat
+// tussentijds gewijzigd is, verbinding weggevallen, een volle disk op de
+// server, wat dan ook), stond config/config.php er al. public/index.php
+// beslist alleen op file_exists(config/config.php) of de installer nog
+// moet draaien — dus na zo'n mislukte stap 5 verdween de installer
+// blijvend uit beeld (redirect naar de kapotte hoofdsite) terwijl er nooit
+// een geldige installatie heeft plaatsgevonden. De enige uitweg was
+// config/config.php handmatig via FTP verwijderen. Nu: config.php wordt
+// pas geschreven NADAT de DB-stap volledig is geslaagd, dus een mislukte
+// poging laat de installer intact en herstartbaar.
 try {
     $dsn = "mysql:host={$db['host']};port={$db['port']};dbname={$db['name']};charset=utf8mb4";
     $pdo = new PDO($dsn, $db['user'], $db['pass'], [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
@@ -85,6 +80,23 @@ try {
             $manifest['description'] ?? '',
         ]);
     }
+
+    // Pas NU config/config.php schrijven — de DB-stap hierboven is
+    // volledig geslaagd, dus dit is het eerste moment waarop we config.php
+    // veilig kunnen achterlaten (zie het commentaar bovenaan dit bestand).
+    InstallerCore::writeConfig([
+        'date'            => date('Y-m-d H:i:s'),
+        'site_name_php'   => var_export($site['siteName'], true),
+        'site_url_php'    => var_export($site['siteUrl'], true),
+        'timezone_php'    => var_export($site['timezone'], true),
+        'locale_php'      => var_export($site['locale'], true),
+        'mail_php'        => var_export($site['mail'] ?: 'noreply@example.com', true),
+        'db_host_php'     => var_export($db['host'], true),
+        'db_port_php'     => (int) $db['port'],
+        'db_name_php'     => var_export($db['name'], true),
+        'db_user_php'     => var_export($db['user'], true),
+        'db_pass_php'     => var_export($db['pass'], true),
+    ]);
 
     // Hernoem installer map
     if (is_dir(CF_ROOT . '/installer') && !is_dir(CF_ROOT . '/installer.done')) {

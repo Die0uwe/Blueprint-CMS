@@ -18,6 +18,46 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ---
 
+## [1.26.2] — 2026-09-30 — HOOG: mislukte installatiestap 5 liet een kapotte, onherstelbare `config/config.php` achter
+
+Aanleiding: een gebruiker meldde dat de installer "vastliep bij opslaan" (module-selectie met
+Discord + Google) en de site daarna helemaal niets meer toonde — geen installer, geen foutmelding,
+niets. Live gereproduceerd tegen een echte MariaDB-instantie door tijdens stap 5 een DB-fout te
+forceren (gewijzigd wachtwoord halverwege de sessie, wat op een gedeelde host ook door een
+verlopen verbinding of tijdelijke storing kan gebeuren).
+
+### 🟠 De bug
+
+`installer/steps/Step5.php` schreef `config/config.php` **vóór** de databasepoging (het opslaan
+van site-instellingen en de geselecteerde modules), niet erna. `public/index.php` beslist
+uitsluitend op `file_exists('config/config.php')` of de installer nog moet draaien
+(`InstallerCore::isCompleted()`). Zodra die PDO-stap om welke reden dan ook faalde — verkeerd
+wachtwoord, weggevallen verbinding, een tijdelijke serverstoring — stond `config/config.php` er
+al, dus verdween de installer blijvend uit beeld, terwijl er nooit een geldige installatie had
+plaatsgevonden. De enige uitweg was `config/config.php` handmatig via FTP verwijderen.
+
+### 🔧 Fix
+
+De config-schrijfstap is verplaatst naar ná de geslaagde databasepoging, binnen dezelfde
+`try`-block, vlak vóór het `installer/.installed`-lockbestand. Een mislukte stap 5 laat nu geen
+enkel spoor achter — de installer blijft gewoon herstartbaar en toont zijn eigen foutmelding
+("Fout bij opslaan instellingen: ...") in plaats van de site blijvend te breken.
+
+### ✅ Live getest
+
+Tegen een echte MariaDB-instantie, volledige installer-flow (stap 1 t/m 5, Discord + Google
+geselecteerd):
+
+- **DB-fout tijdens stap 5** (wachtwoord halverwege gewijzigd): nette foutmelding getoond,
+  `config/config.php` bevestigd **niet** aangemaakt, homepage toont daarna nog altijd het
+  installer-welkomstscherm — niet de kapotte applicatie.
+- **Daaropvolgende geslaagde poging** (wachtwoord hersteld, opnieuw stap 5 ingediend): voltooit
+  normaal, `config/config.php` wordt nu wél geschreven, homepage en admin-login werken.
+
+Testomgeving nadien volledig opgeruimd.
+
+---
+
 ## [1.26.1] — 2026-09-30 — HOOG: kale witte pagina i.p.v. installer wanneer `composer install` niet is uitgevoerd
 
 Aanleiding: een gebruiker meldde dat de projectmap na upload naar hosting "leeg" leek — geen

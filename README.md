@@ -16,7 +16,7 @@ GPL-3.0-or-later
 [![PHP](https://img.shields.io/badge/PHP-8.3%2B-777BB4?style=flat-square&logo=php)](https://php.net)
 [![MariaDB](https://img.shields.io/badge/MariaDB-10.11%2B-003545?style=flat-square&logo=mariadb)](https://mariadb.org)
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.26.1-brightgreen?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-1.26.2-brightgreen?style=flat-square)](CHANGELOG.md)
 [![CI](https://img.shields.io/github/actions/workflow/status/Die0uwe/bluprint-cms/ci.yml?branch=main&style=flat-square&label=CI)](.github/workflows/ci.yml)
 
 *Geïnspireerd door PHP-Fusion · Down Under Fusion · ImpressCMS*
@@ -183,6 +183,7 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 | **KRITIEK: guild/ollama-adminpanels open voor elk lid** | ✅ v1.25.9 | Een gerichte security-herscan vond een vierde instantie van dezelfde bugklasse (module declareert een permissie, niets zaait die ooit in `cf_permissions`): `guild.manage`/`ollama.admin` bestonden nergens, dus draaiden hun admin-routes alleen op `AuthMiddleware` — elk lid kon guild-aanmeldingen goed-/afkeuren en Ollama-host/systeemprompt overschrijven (opstap naar SSRF). Permissies geseed + routes op `PermissionMiddleware` gezet; ook rate limiting toegevoegd aan de voorheen onbeperkte publieke `/api/ollama/*`-endpoints. Live getest: exploit geblokkeerd (403), legitiem gebruik intact. Zie CHANGELOG v1.25.9. |
 | **Stappenplan/Roadmap** | ✅ v1.26.0 | Vierde en laatste onderdeel van de sessie-opdracht: `docs/ROADMAP.md` — samenvatting van alle v1.25.x-fixes, de resterende audit-backlog per domein (Security/Architectuur/Database/Frontend-i18n) geprioriteerd op ernst, en een gefaseerd vervolgtraject (fundament verstevigen → S12 Premium → Rust/Ark heroverwegen). Zie CHANGELOG v1.26.0. |
 | **HOOG: witte pagina i.p.v. installer** | ✅ v1.26.1 | Gebruikersmelding: na upload naar hosting leek de site "leeg", geen installer bereikbaar. Root cause: `public/index.php` deed een onvoorwaardelijke `require` van `vendor/autoload.php`, vóór de installer-dispatch — ontbrak die map (composer install nooit gedraaid, gangbaar bij een kale ZIP-upload zonder SSH), dan crashte élke request met een volledig leeg wit scherm en geen enkele aanwijzing. Nu een duidelijke Nederlandstalige uitlegpagina met concrete vervolgstappen (SSH of lokaal composer install + upload). Live getest: beide scenario's (ontbrekend/aanwezig) gedragen zich correct. Zie CHANGELOG v1.26.1. |
+| **HOOG: mislukte stap 5 brak de installer blijvend** | ✅ v1.26.2 | Gebruikersmelding: installer "liep vast bij opslaan" (Discord+Google geselecteerd), site toonde daarna niets meer. Live gereproduceerd: `installer/steps/Step5.php` schreef `config/config.php` vóór de databasepoging i.p.v. erna — faalde die PDO-stap (verkeerd wachtwoord, weggevallen verbinding), dan stond config.php er al en verdween de installer blijvend uit beeld (`isCompleted()` checkt alleen `file_exists`), terwijl er nooit een geldige installatie had plaatsgevonden. Config-schrijfstap verplaatst naar ná een geslaagde DB-poging. Live getest: mislukte stap 5 laat de installer nu herstartbaar; een geslaagde vervolgpoging werkt normaal. Zie CHANGELOG v1.26.2. |
 
 ---
 
@@ -202,7 +203,7 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 
 ---
 
-## ⚠️ Bekende beperkingen (stand v1.26.1)
+## ⚠️ Bekende beperkingen (stand v1.26.2)
 
 Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben opgelost — zie
 `docs/wave-0-gap-analysis.md` en `CHANGELOG.md` voor de volledige context per punt.
@@ -517,6 +518,17 @@ Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben o
 > SSH-toegang als pure FTP-hosting) i.p.v. de kale crash. Live getest: beide scenario's
 > (`vendor/` ontbrekend/aanwezig) gedragen zich correct, geen regressie op de bestaande
 > installer-flow. Zie CHANGELOG v1.26.1.
+>
+> **v1.26.2: HOOG — mislukte installatiestap 5 brak de installer blijvend.** Een gebruiker
+> meldde dat de installer "vastliep bij opslaan" met Discord+Google geselecteerd, en de site
+> daarna niets meer toonde. Live gereproduceerd tegen echte MariaDB: `installer/steps/Step5.php`
+> schreef `config/config.php` vóór de databasepoging i.p.v. erna — faalde die stap (verkeerd
+> wachtwoord, weggevallen verbinding, een tijdelijke storing), dan stond config.php er al en
+> verdween de installer blijvend uit beeld (`isCompleted()` checkt alleen `file_exists`), terwijl
+> er nooit een geldige installatie had plaatsgevonden. De enige uitweg was config.php handmatig
+> via FTP verwijderen. Config-schrijfstap verplaatst naar ná een geslaagde DB-poging. Live
+> getest: een mislukte stap 5 laat de installer nu gewoon herstartbaar, een geslaagde
+> vervolgpoging werkt normaal. Zie CHANGELOG v1.26.2.
 
 - ~~`/admin`-routes zijn niet permissie-gated~~ — **opgelost in v1.10.0.** Zie CHANGELOG:
   `PermissionMiddleware` + `admin.access`/`settings.edit`/`blocks.manage`/`marketplace.*`.
@@ -666,9 +678,9 @@ GPL-3.0-or-later — © 2026 [DieOuwe](https://www.dieouwe.nl) / [Slayer Allianc
 
 <!--
 ╔══════════════════════════════════════════════════════════════════════╗
-║  File: README.md | Role: Docs | Version: 1.26.1                      ║
-║  Updated: 2026-09-30 — HOOG: witte pagina i.p.v. installer wanneer   ║
-║           vendor/autoload.php ontbreekt (composer install niet       ║
-║           gedraaid) — nu een duidelijke uitlegpagina i.p.v. crash.  ║
+║  File: README.md | Role: Docs | Version: 1.26.2                      ║
+║  Updated: 2026-09-30 — HOOG: een mislukte installatiestap 5 schreef  ║
+║           config/config.php al vóór de DB-poging, wat de installer  ║
+║           blijvend brak. Config wordt nu pas ná succes weggeschreven.║
 ╚══════════════════════════════════════════════════════════════════════╝
 -->
