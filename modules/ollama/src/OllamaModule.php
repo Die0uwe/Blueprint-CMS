@@ -34,12 +34,28 @@ final class OllamaModule implements ModuleInterface
         // Routes
         $hooks->addAction('router.routes', function($router) {
             $auth = ['CommunityFusion\Api\Middleware\AuthMiddleware'];
-            // Publieke chat API (gebruikt door de chat block via AJAX)
-            $router->post('/api/ollama/chat',      'CommunityFusion\Modules\Ollama\OllamaApiController@chat');
-            $router->post('/api/ollama/summarize', 'CommunityFusion\Modules\Ollama\OllamaApiController@summarize');
-            $router->get('/api/ollama/models',     'CommunityFusion\Modules\Ollama\OllamaApiController@models');
-            $router->get('/admin/ollama',          'CommunityFusion\Modules\Ollama\OllamaAdminController@index', $auth);
-            $router->post('/admin/ollama/save',    'CommunityFusion\Modules\Ollama\OllamaAdminController@save',  $auth);
+            $rate = ['CommunityFusion\Api\Middleware\RateLimitMiddleware'];
+            // KRITIEK, v1.25.9: /admin/ollama(/save) hing alleen aan $auth
+            // (elke ingelogde gebruiker) i.p.v. een permissie — module.json
+            // declareerde 'ollama.admin' al sinds het begin, maar niets
+            // zaaide die ooit in cf_permissions (nu wél, zie schema.sql).
+            // Zonder deze fix kon elk lid de Ollama-host/systeemprompt
+            // overschrijven — een opstap naar SSRF via de chat-endpoint
+            // hieronder. Zie CHANGELOG v1.25.9.
+            $perm = fn(string $permission) => [...$auth, "CommunityFusion\\Api\\Middleware\\PermissionMiddleware:{$permission}"];
+            // Publieke chat API (gebruikt door de chat block via AJAX, ook
+            // door niet-ingelogde bezoekers — OllamaChatBlock::render() doet
+            // geen auth-check, dus is bewust ook voor guests bedoeld) — stond
+            // wél volledig ONBEPERKT open (geen rate limit): een onbeperkte
+            // anonieme proxy naar de geconfigureerde Ollama-host, op
+            // kosten/capaciteit van de sitebeheerder. $rate toegevoegd
+            // (Gemiddeld-bevinding uit dezelfde Security-herscan) — geen
+            // $auth, om het publieke-widget-gedrag niet te breken.
+            $router->post('/api/ollama/chat',      'CommunityFusion\Modules\Ollama\OllamaApiController@chat',      $rate);
+            $router->post('/api/ollama/summarize', 'CommunityFusion\Modules\Ollama\OllamaApiController@summarize', $rate);
+            $router->get('/api/ollama/models',     'CommunityFusion\Modules\Ollama\OllamaApiController@models',    $rate);
+            $router->get('/admin/ollama',          'CommunityFusion\Modules\Ollama\OllamaAdminController@index', $perm('ollama.admin'));
+            $router->post('/admin/ollama/save',    'CommunityFusion\Modules\Ollama\OllamaAdminController@save',  $perm('ollama.admin'));
         });
 
         // Hook: analyseer guild aanmeldingen automatisch met AI

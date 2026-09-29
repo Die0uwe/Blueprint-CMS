@@ -580,3 +580,26 @@ INSERT IGNORE INTO `cf_permissions` (`name`, `group`, `description`) VALUES
 INSERT IGNORE INTO `cf_role_permissions` (`role_id`, `permission_id`)
 SELECT r.id, p.id FROM `cf_roles` r, `cf_permissions` p
 WHERE r.name = 'admin' AND p.name IN ('gallery.manage');
+
+-- ============================================================
+-- KRITIEK — v1.25.9, gevonden tijdens de Security-herscan van de totale-
+-- codebase-audit: guild-management/module.json en ollama/module.json
+-- declareren "guild.manage"/"guild.admin" resp. "ollama.admin" al sinds
+-- hun allereerste versie, maar — exact dezelfde bug als hierboven bij
+-- Wave 1/2/5/S11 telkens opnieuw gevonden en gefixt voor andere modules —
+-- niets voerde die ooit in cf_permissions in. GuildModule.php/
+-- OllamaModule.php gaven hun admin-routes daarom alleen AuthMiddleware
+-- mee (elke ingelogde gebruiker) i.p.v. PermissionMiddleware: zonder een
+-- bestaande permissie om tegen te checken was er nooit een andere optie.
+-- Resultaat: elk geregistreerd lid kon /admin/guild/applications/{id}/
+-- approve|reject aanroepen (guild-aanmeldingen goed-/afkeuren) en
+-- /admin/ollama/save (Ollama-host/systeemprompt overschrijven — een
+-- opstap naar SSRF via de publieke chatendpoint). Zie CHANGELOG v1.25.9.
+-- ============================================================
+INSERT IGNORE INTO `cf_permissions` (`name`, `group`, `description`) VALUES
+('guild.manage', 'guild',  'Guild-aanmeldingen goed- of afkeuren, guild-instellingen beheren'),
+('ollama.admin', 'ollama', 'Ollama AI-module configureren (host, systeemprompt, model)');
+
+INSERT IGNORE INTO `cf_role_permissions` (`role_id`, `permission_id`)
+SELECT r.id, p.id FROM `cf_roles` r, `cf_permissions` p
+WHERE r.name = 'admin' AND p.name IN ('guild.manage', 'ollama.admin');

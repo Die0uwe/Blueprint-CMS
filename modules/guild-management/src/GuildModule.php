@@ -29,14 +29,21 @@ final class GuildModule implements ModuleInterface
 
         $hooks->addAction('router.routes', function($router) {
             $auth = ['CommunityFusion\Api\Middleware\AuthMiddleware'];
+            // KRITIEK, v1.25.9: deze 3 admin-routes hingen alleen aan $auth
+            // (elke ingelogde gebruiker, dus ook een kale 'member') i.p.v.
+            // een permissie — module.json declareerde 'guild.manage' al
+            // sinds Sprint 5, maar niets zaaide die ooit in cf_permissions
+            // (nu wél, zie schema.sql). Zonder deze fix kon elk lid guild-
+            // aanmeldingen goed-/afkeuren. Zie CHANGELOG v1.25.9.
+            $perm = fn(string $permission) => [...$auth, "CommunityFusion\\Api\\Middleware\\PermissionMiddleware:{$permission}"];
             $router->get('/guild',                    'CommunityFusion\Modules\Guild\GuildController@index');
             $router->get('/guild/apply',              'CommunityFusion\Modules\Guild\GuildController@applyForm');
             $router->post('/guild/apply',             'CommunityFusion\Modules\Guild\GuildController@apply');
             $router->get('/guild/members',            'CommunityFusion\Modules\Guild\GuildController@members');
             $router->get('/guild/roster',             'CommunityFusion\Modules\Guild\GuildController@roster');
-            $router->get('/admin/guild',              'CommunityFusion\Modules\Guild\GuildAdminController@index', $auth);
-            $router->post('/admin/guild/applications/{id}/approve', 'CommunityFusion\Modules\Guild\GuildAdminController@approve', $auth);
-            $router->post('/admin/guild/applications/{id}/reject',  'CommunityFusion\Modules\Guild\GuildAdminController@reject', $auth);
+            $router->get('/admin/guild',              'CommunityFusion\Modules\Guild\GuildAdminController@index', $perm('guild.manage'));
+            $router->post('/admin/guild/applications/{id}/approve', 'CommunityFusion\Modules\Guild\GuildAdminController@approve', $perm('guild.manage'));
+            $router->post('/admin/guild/applications/{id}/reject',  'CommunityFusion\Modules\Guild\GuildAdminController@reject', $perm('guild.manage'));
         });
     }
 

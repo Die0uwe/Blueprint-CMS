@@ -18,6 +18,66 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ---
 
+## [1.25.9] — 2026-09-29 — KRITIEK: elk lid kon guild-aanmeldingen goedkeuren en Ollama-instellingen overschrijven
+
+Aanleiding: een gerichte Security-herscan (follow-up op de zes-koppige totale-codebase-audit,
+om te bevestigen dat er geen resterende Kritiek/Hoog-bevindingen over het hoofd waren gezien)
+vond dit — een vierde instantie van precies dezelfde bugklasse die dit project al vier keer
+eerder trof (Wave 1, Wave 2, Wave 5, S11: zie schema.sql's RBAC-secties): een module declareert
+een permissie in zijn `module.json`, maar niets zaait die ooit in `cf_permissions`.
+
+### 🔴 Het lek
+
+`guild-management/module.json` declareert `guild.manage`/`guild.admin` en `ollama/module.json`
+declareert `ollama.admin` — al sinds hun allereerste versie. Maar `cf_permissions` bevatte deze
+namen nergens, dus `GuildModule.php`/`OllamaModule.php` gaven hun admin-routes noodgedwongen
+alleen `AuthMiddleware` mee (elke ingelogde gebruiker) i.p.v. `PermissionMiddleware`: er was
+domweg geen bestaande permissie om tegen te checken.
+
+Resultaat: **elk geregistreerd lid** kon:
+- `POST /admin/guild/applications/{id}/approve` of `/reject` aanroepen — guild-aanmeldingen
+  van willekeurige spelers goed- of afkeuren, zonder enige guild-rol of -rang.
+- `POST /admin/ollama/save` aanroepen — de geconfigureerde Ollama-host, systeemprompt en model
+  overschrijven. Omdat `POST /api/ollama/chat` de geconfigureerde host proxy't naar wie dan ook
+  (zie hieronder), is dit een opstap naar SSRF: wijs de host naar een interne dienst en gebruik
+  de publieke chat-endpoint als anonieme proxy ernaartoe.
+
+### 🔧 Fix
+
+`guild.manage` en `ollama.admin` toegevoegd aan `cf_permissions` (`INSERT IGNORE`, zelfde
+patroon als alle vier eerdere keren dat dit gebeurde) en toegekend aan de `admin`-rol in
+`src/Core/Database/schema.sql`. `GuildModule.php`/`OllamaModule.php`: de admin-routes gebruiken
+nu `PermissionMiddleware:guild.manage` resp. `PermissionMiddleware:ollama.admin` i.p.v. kale
+`AuthMiddleware`. Bestaande installaties pikken de nieuwe permissie-seeds op via
+`php cli/console.php migrate` (data-only `INSERT IGNORE`, geen schema-wijziging nodig).
+
+Ook uit dezelfde herscan gefixt (Gemiddeld): `POST /api/ollama/chat` en `/summarize` hadden
+**geen enkele** rate limiting — een volledig onbeperkte, anonieme proxy naar de geconfigureerde
+Ollama-host, op kosten/capaciteit van de sitebeheerder. `RateLimitMiddleware` toegevoegd aan
+alle drie `/api/ollama/*`-routes. Bewust géén `$auth`-vereiste toegevoegd — `OllamaChatBlock`
+doet geen inlog-check en is dus bedoeld als publieke widget ook voor niet-ingelogde bezoekers;
+dat gedrag blijft intact, alleen nu snelheidsbeperkt.
+
+### ✅ Live getest
+
+Volledige installatie met `guild-management`+`ollama` geselecteerd, permissie-seeds bevestigd
+in `cf_role_permissions` (`admin` → `guild.manage`+`ollama.admin`). Twee testgebruikers: een
+kale `member` en een `admin`.
+
+- **Exploit geblokkeerd:** `member` krijgt `403 Forbidden` op zowel
+  `/admin/guild/applications/{id}/approve` (DB-status blijft `pending`) als
+  `/admin/ollama/save`.
+- **Legitiem gebruik intact:** `admin` krijgt `200 OK` op `GET /admin/ollama`, en de
+  `approve`-actie voert de DB-`UPDATE` daadwerkelijk uit (status `pending` → `approved`
+  bevestigd) vóórdat een ONGERELATEERDE test-harness-beperking (handmatig aangemaakte
+  testdatabase miste de `cf_guild_ranks`/`cf_guild_members`-tabellen die alleen via een
+  volledige module-`install()`-cyclus ontstaan — geen regressie van deze fix) een 500 gaf ná
+  de geslaagde permissie-check en state-wijziging.
+
+Testomgeving nadien volledig opgeruimd.
+
+---
+
 ## [1.25.8] — 2026-09-29 — HOOG: `cache.driver=redis` gaf een kale fatal error i.p.v. een duidelijke fout
 
 Aanleiding: de Architectuur/Code-kwaliteit-deelaudit (laatste van de zes deelaudits die met
