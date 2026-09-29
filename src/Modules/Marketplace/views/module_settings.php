@@ -146,6 +146,18 @@ function oauth_provider_hint(string $slug): ?string
             (<code>eu</code>, <code>us</code>, <code>kr</code> of <code>tw</code>) — dit bepaalt welk
             OAuth-endpoint gebruikt wordt (bv. <code>eu.battle.net</code>). Eén client werkt maar voor
             één regio; voor meerdere regio's heb je losse Battle.net-apps nodig.",
+        'youtube' => "
+            <strong>YouTube</strong> — dit is GEEN OAuth-login (daarvoor gebruik je de Google-module
+            hierboven), maar een publieke API-sleutel voor kanaalgegevens. Maak er een aan in de
+            <a href=\"https://console.cloud.google.com/apis/credentials\" target=\"_blank\" rel=\"noopener\">Google Cloud Console</a>
+            (Create Credentials → API key) en schakel eerst
+            <a href=\"https://console.cloud.google.com/apis/library/youtube.googleapis.com\" target=\"_blank\" rel=\"noopener\">de YouTube Data API v3</a>
+            in voor dat project — zonder die stap geeft elke aanroep een foutmelding. Een gratis
+            project krijgt 10.000 quota-eenheden per dag; de live-statuscheck kost 100 eenheden per
+            weergave (vandaar de langere cache van 5 minuten op dat blok).<br>
+            <strong>Standaard kanaal-ID</strong>: geen gebruikersnaam maar het technische ID
+            (begint met <code>UC</code>) — te vinden via de \"Info\"-sectie van een kanaal of een
+            gratis kanaal-ID-lookuptool.",
         default => null,
     };
 }

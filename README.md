@@ -14,7 +14,7 @@ GPL-3.0-or-later
 [![PHP](https://img.shields.io/badge/PHP-8.3%2B-777BB4?style=flat-square&logo=php)](https://php.net)
 [![MariaDB](https://img.shields.io/badge/MariaDB-10.11%2B-003545?style=flat-square&logo=mariadb)](https://mariadb.org)
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.20.0-brightgreen?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-1.21.0-brightgreen?style=flat-square)](CHANGELOG.md)
 [![CI](https://img.shields.io/github/actions/workflow/status/Die0uwe/bluprint-cms/ci.yml?branch=main&style=flat-square&label=CI)](.github/workflows/ci.yml)
 
 *Geïnspireerd door PHP-Fusion · Down Under Fusion · ImpressCMS*
@@ -115,6 +115,9 @@ cp .env.example .env
 | Minecraft | 1 | Server status via mcsrvstat.us |
 | FiveM | 1 | Server status via FXServer endpoint |
 | Ollama AI | 2 | Chat widget, assistent, guild analyse, nieuws samenvatting |
+| Google | 0 | OAuth-login/registratie (OpenID Connect), koppelen aan bestaand account |
+| Battle.net | 0 | OAuth-login/registratie (regio-gated: eu/us/kr/tw), BattleTag als weergavenaam |
+| YouTube | 4 | Kanaalinfo, laatste video's (quota-efficiënt via uploads-playlist), live-status, playlist-embed — API-sleutel, geen OAuth |
 
 Het WoW-module bevat drie native blocks (`WowGuildRosterBlock`, `WowMythicProgressBlock`,
 `WowCharacterBlock`) die via `src/Core/Auth`-stijl PDO/Connection-code werken — geen externe
@@ -154,7 +157,8 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 | **S9-audit²** | ✅ v1.10.0–v1.11.0 | Wave 2: `/admin` permissie-gating, echte Mailer, News/Pages admin-CRUD, `migrate`/`module:install` CLI-commando's — en een kritieke `LIMIT`/`OFFSET`-bug gevonden door voor het eerst tegen een echte MariaDB-server te testen (zie CHANGELOG v1.11.0) |
 | **S9-audit³** | ✅ v1.12.0–v1.19.0 | Wave 3–9: eerste échte end-to-end boot (2 fatale autoload-bugs gevonden), `/admin/users`, Forum live-verificatie + bordbeheer, de laatste 5 placeholder-schermen (Roles/Menus/Logs/Themes/Media — **alle 6 oorspronkelijke placeholder-schermen uit v1.10.0 zijn hiermee vervangen**), het Blokkensysteem (Kernprincipe #3), dat sinds Sprint 1 nog nooit had gewerkt, `/admin/settings` (sitenaam/MOTD/favicon/taal/tijdzone), en tot slot vier losse gaten in één golf: een `$_ENV['APP_URL']`-bug die OAuth-login kon breken, een thema-wissel die letterlijk niets deed, News-categoriebeheer en een instelbaar contact-meldingsadres. Zie CHANGELOG v1.12.0–v1.19.0. |
 | **Golf 10** | ✅ v1.20.0 | OAuth-login met Google, Discord, Battle.net en Twitch — generiek instellingenscherm (`/admin/marketplace/package/{slug}/instellingen`) dat werkt voor elke module met een `settings`-schema, échte encryptie voor opgeslagen secrets (`Core\Security\Crypto`, was voorheen een dode `'encrypted'`-kolomwaarde), en twee nieuwe modules (Google, Battle.net). Zie CHANGELOG v1.20.0. |
-| **S10** | 📋 Gepland | YouTube + Kick integratie |
+| **Golf 10a** | ✅ v1.21.0 | YouTube-module — 4 blocks (kanaal, laatste video's, live-status, playlist), quota-bewuste API-client. Kick-integratie (oorspronkelijk samen met YouTube onder S10 gepland) is **nog niet gebouwd** — niet gevraagd in deze golf. Zie CHANGELOG v1.21.0. |
+| **S10 (rest)** | 📋 Gepland | Kick integratie |
 | **S11** | 📋 Gepland | Media-galerij (los van de generieke upload-handler) |
 | **S12** | 📋 Gepland | Premium ecosysteem + licenties + betalingen |
 | **S13** | 📋 Gepland | Multi-language / i18n volledige implementatie |
@@ -177,7 +181,7 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 
 ---
 
-## ⚠️ Bekende beperkingen (stand v1.20.0)
+## ⚠️ Bekende beperkingen (stand v1.21.0)
 
 Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben opgelost — zie
 `docs/wave-0-gap-analysis.md` en `CHANGELOG.md` voor de volledige context per punt.
@@ -303,6 +307,22 @@ Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben o
 > nu toe ontbrekende "inloggen met"-flow (had alleen "koppelen"). Zie CHANGELOG v1.20.0 voor
 > de volledige details, inclusief een derde ontdekte bug (de Marketplace "Geïnstalleerd"-tab
 > track niet dezelfde modules als `Application::loadModules()` daadwerkelijk gebruikt).
+>
+> **v1.21.0: YouTube-module (Golf 10a) — kanaalinfo, laatste video's, live-status en een
+> playlist-embed, als vier losse blocks naar het bewezen Twitch-blockpatroon.** De
+> laatste-video's-block gebruikt bewust `playlistItems.list` op de uploads-playlist in plaats
+> van `search.list` (~100x minder quotakosten voor hetzelfde resultaat); de live-status-check
+> kán niet anders dan `search.list` gebruiken (de enige gedocumenteerde manier om live-status
+> te detecteren) en cachet daarom 5 minuten i.p.v. Twitch's 90 seconden om de dagelijkse
+> quota (10.000 eenheden bij een gratis Google Cloud-project, 100 per live-check) niet snel
+> leeg te trekken. Het bestaande generieke instellingenscherm uit v1.20.0 werkte direct, zonder
+> extra code. Tijdens het live-testen kwam een pre-existing, latent gat aan het licht: `GET
+> /admin/blocks/create` gaf al sinds het bestaan van die route een lege HTTP 200 terug, omdat
+> `views/create.php` nooit bestond — onschadelijk gebleven omdat de échte "blok
+> toevoegen"-flow een JS-modal gebruikt die de route nooit aanroept. Nu een echt, werkend
+> non-JS-formulier. Live bevestigd: alle 4 blocktypes verschijnen in de blocks-picker, zijn
+> via de echte store-flow geplaatst en renderen (met nette graceful-degradation-teksten)
+> op de homepage; 19-routes regressiesweep zonder breuken. Zie CHANGELOG v1.21.0.
 
 - ~~`/admin`-routes zijn niet permissie-gated~~ — **opgelost in v1.10.0.** Zie CHANGELOG:
   `PermissionMiddleware` + `admin.access`/`settings.edit`/`blocks.manage`/`marketplace.*`.
@@ -371,10 +391,16 @@ Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben o
   Nieuwe gedeelde `Core\Security\Crypto`-klasse (AES-256-GCM); `SettingsRepository` en
   Discord/Twitch's `getSetting()` versleutelen/ontsleutelen nu écht. Zie CHANGELOG v1.20.0
   voor waarom dit pas tijdens het bouwen van het instellingenscherm aan het licht kwam.
-- Nog niet live tegen echte Discord/Twitch/Google/Battle.net-app-registraties te verifiëren
-  in deze sandbox (geen uitgaand verkeer naar willekeurige domeinen) — de redirect-opbouw,
-  encryptie-roundtrip en callback-dispatch zijn wel volledig live geverifieerd (zie
-  CHANGELOG v1.20.0).
+- Nog niet live tegen echte Discord/Twitch/Google/Battle.net-app-registraties (of een echte
+  YouTube Data API-sleutel) te verifiëren in deze sandbox (geen uitgaand verkeer naar
+  willekeurige domeinen) — de redirect-opbouw, encryptie-roundtrip en callback-dispatch zijn
+  wel volledig live geverifieerd (zie CHANGELOG v1.20.0/v1.21.0).
+- ~~`GET /admin/blocks/create` gaf een lege HTTP 200 (ontbrekende view)~~ — **opgelost in
+  v1.21.0.** `views/create.php` bestond nooit; onschadelijk gebleven omdat de echte
+  "blok toevoegen"-flow (JS-modal) deze route nooit aanroept. Zie CHANGELOG v1.21.0.
+- **Kick-integratie is nog niet gebouwd.** Stond oorspronkelijk samen met YouTube onder "S10"
+  in de roadmap, maar was geen onderdeel van de Golf 10a-opdracht (alleen YouTube werd
+  gevraagd).
 - **Module-specifieke extra tabellen** (bv. `cf_discord_role_mapping`) worden niet direct
   aangemaakt wanneer je een module in installer-stap 5 selecteert — de installer laadt bewust
   geen framework-klassen. Ze ontstaan zodra een beheerder de module later via
@@ -426,8 +452,8 @@ GPL-3.0-or-later — © 2026 [DieOuwe](https://www.dieouwe.nl) / [Slayer Allianc
 
 <!--
 ╔══════════════════════════════════════════════════════════════════════╗
-║  File: README.md | Role: Docs | Version: 1.9.0                       ║
-║  Updated: 2026-09-28 — Wave 1: Forum/Blog/Downloads/Contact, RBAC-   ║
-║           seeding, Twig-globals, installer Step5 dynamisch           ║
+║  File: README.md | Role: Docs | Version: 1.21.0                      ║
+║  Updated: 2026-09-29 — Golf 10a: YouTube-module (4 blocks) + fix     ║
+║           voor ontbrekende Blocks views/create.php                   ║
 ╚══════════════════════════════════════════════════════════════════════╝
 -->

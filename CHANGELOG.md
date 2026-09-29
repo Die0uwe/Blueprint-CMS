@@ -18,6 +18,65 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ---
 
+## [1.21.0] — 2026-09-29 — Golf 10a: YouTube-module (kanaalinfo, laatste video's, live-status, playlists)
+
+Aanleiding: vervolg op Golf 10 — "ga vervolgens verder met stap 10a youtube", de eerste van de
+twee S10-integraties uit de roadmap (YouTube + Kick).
+
+### Nieuw — `modules/youtube/`
+
+Vier blocktypes, naar het bewezen Twitch-patroon (`TwitchLiveBlock`/`TwitchStreamBlock`):
+
+- **`youtube-channel`** — kanaaltitel, avatar, abonnee-/video-aantallen.
+- **`youtube-latest`** — grid met de laatste N uploads (via `playlistItems.list` op de
+  `uploads`-playlist, NIET `search.list` — dat laatste raadt Google zelf af voor dit doel omdat
+  het ~100x zoveel API-quota kost).
+- **`youtube-live`** — live/niet-live-status. Gebruikt wél `search.list` met `eventType=live`
+  (de enige gedocumenteerde manier om dit te detecteren), en cachet daarom 5 minuten i.p.v.
+  Twitch's 90 seconden — bewuste quota-sparing (een gratis Google Cloud-project krijgt 10.000
+  eenheden/dag, deze ene aanroep kost al 100).
+- **`youtube-playlist`** — pure iframe-embed (`youtube.com/embed/videoseries?list=...`), heeft
+  BEWUST geen API-sleutel nodig, zelfde soort embed als `TwitchStreamBlock`.
+
+Nieuwe dunne API-client `YouTubeApi.php` (server-side API-sleutel, geen OAuth — dit is
+functioneel iets heel anders dan de Google-*login*-module uit Golf 10, vandaar een eigen
+`api_key`-instelling i.p.v. `client_id`/`client_secret`). Elke methode degradeert netjes naar
+`null`/`[]` bij een API-fout, zelfde patroon als `TwitchLiveBlock::fetchLiveStatus()` — een
+verkeerde of lege sleutel mag een blok nooit laten crashen.
+
+Instellingenscherm werkt out-of-the-box via het generieke `ModuleSettingsController` uit Golf
+10 (geen extra code nodig) — inclusief een eigen provider-uitleg in
+`module_settings.php::oauth_provider_hint()`: waar je de YouTube Data API v3 inschakelt in de
+Google Cloud Console (aparte stap van de sleutel zelf aanmaken — vaak vergeten) en hoe je een
+kanaal-ID (niet de gebruikersnaam) vindt.
+
+### Bug gevonden tijdens live-testen: `GET /admin/blocks/create` was al sinds het bestaan van
+### deze controller een lege 200-pagina
+
+`BlockController::create()` doet `include __DIR__ . '/views/create.php'`, maar dat bestand
+bestond nergens in de repo — alleen `views/index.php` was er. In de praktijk onschadelijk
+gebleven omdat de ECHTE "blok toevoegen"-flow in `views/index.php` een JS-modal gebruikt die
+rechtstreeks naar `POST /admin/blocks/store` post en deze `GET`-route nooit aanroept — vandaar
+dat dit nooit eerder opviel, ook niet in eerdere golven die het Blokkensysteem live testten
+(die gingen via dezelfde modal-flow). Kwam nu aan het licht omdat ik voor het live-testen van
+de nieuwe YouTube-blokken eerst deze route rechtstreeks probeerde. Nieuwe
+`src/Modules/Blocks/views/create.php` toegevoegd: een simpele non-JS-fallback met hetzelfde
+formulier als de modal (titel, zone, per-blocktype config-schema, CSRF-veld) — nu ook bruikbaar
+als directe link of zonder JavaScript.
+
+### Live getest (scripted install + PHP-server + curl)
+
+Alle vier blocktypes verschijnen automatisch in de `/admin/blocks`-picker (dynamische registry,
+geen extra wiring nodig); elk type geplaatst via de echte `/admin/blocks/store`-flow en op de
+homepage gerenderd — `youtube-live`/`youtube-channel`/`youtube-latest` degraderen netjes
+("Niet live" / "Kanaal niet gevonden" / "Geen video's gevonden") met een neptest-sleutel tegen
+een onbereikbare API (geen willekeurig uitgaand verkeer in deze sandbox), `youtube-playlist`
+rendert een echte iframe zonder netwerkaanroep nodig te hebben. Instellingenscherm getest
+(save + encryptie-roundtrip, zelfde als Golf 10). Volledige regressiesweep (19 routes, incl.
+alle vier OAuth-login-redirects) — alles 200/302, geen enkele breuk.
+
+---
+
 ## [1.20.0] — 2026-09-29 — Golf 10: OAuth-login met Google, Discord, Battle.net en Twitch
 
 Aanleiding: "ik wil de mogelijkheid in te loggen met google discord battlenet en twitch

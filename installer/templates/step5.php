@@ -53,6 +53,7 @@
         'twitch'           => '📺',
         'google'           => '🔑',
         'battlenet'        => '🌀',
+        'youtube'          => '▶️',
         'guild-management' => '⚔️',
         'minecraft'        => '🟫',
         'fivem'            => '🚓',

@@ -33,7 +33,8 @@
             "CommunityFusion\\Modules\\FiveM\\": "modules/fivem/src/",
             "CommunityFusion\\Modules\\Ollama\\": "modules/ollama/src/",
             "CommunityFusion\\Modules\\Google\\": "modules/google/src/",
-            "CommunityFusion\\Modules\\BattleNet\\": "modules/battlenet/src/"
+            "CommunityFusion\\Modules\\BattleNet\\": "modules/battlenet/src/",
+            "CommunityFusion\\Modules\\YouTube\\": "modules/youtube/src/"
         }
     },
     "autoload-dev": {

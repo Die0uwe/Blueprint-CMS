@@ -1,0 +1,20 @@
+{
+    "slug":        "youtube",
+    "name":        "YouTube Integration",
+    "version":     "1.0.0",
+    "description": "Kanaalinformatie, laatste video's, live-status en playlist-embeds via de YouTube Data API v3.",
+    "author":      "DieOuwe",
+    "author_url":  "https://www.dieouwe.nl",
+    "min_cms":     "1.0.0",
+    "class":       "CommunityFusion\\Modules\\YouTube\\YouTubeModule",
+    "autoload":    "src/",
+    "is_core":     false,
+    "dependencies": [],
+    "hooks": ["render.sidebar_right"],
+    "permissions": ["youtube.view", "youtube.admin"],
+    "blocks": ["youtube-channel", "youtube-latest", "youtube-live", "youtube-playlist"],
+    "settings": [
+        {"key": "api_key",    "label": "YouTube Data API-sleutel", "type": "encrypted"},
+        {"key": "channel_id", "label": "Standaard kanaal-ID",      "type": "string"}
+    ]
+}
