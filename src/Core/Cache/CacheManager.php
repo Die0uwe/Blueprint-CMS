@@ -29,10 +29,25 @@ final class CacheManager implements CacheInterface
 
     public function __construct(array $config)
     {
-        $this->driver = match ($config['driver'] ?? 'file') {
-            'redis' => new RedisCache($config['redis'] ?? []),
-            default => new FileCache($config['path'] ?? CF_ROOT . '/storage/cache'),
-        };
+        $driver = $config['driver'] ?? 'file';
+
+        // 'redis' stond in config.php's voorbeeld-commentaar ("file | redis |
+        // memcached") en werd hier ook al gerouteerd, maar RedisCache is
+        // nooit gebouwd — een site die dit handmatig instelde (nergens in
+        // installer/admin-UI selecteerbaar, dus alleen via directe
+        // config.php-edit) kreeg op ELKE request een kale "Class
+        // RedisCache not found"-fatal error. Gevonden tijdens de
+        // Architectuur-deelaudit van de totale-codebase-audit (v1.25.5+).
+        // Duidelijke, actionable exception i.p.v. dat cryptische fatal, tot
+        // een echte RedisCache-implementatie er is.
+        if ($driver === 'redis') {
+            throw new \RuntimeException(
+                "Cache-driver 'redis' is nog niet geïmplementeerd in Blueprint CMS — " .
+                "zet config/config.php's cache.driver terug op 'file' (de standaard)."
+            );
+        }
+
+        $this->driver = new FileCache($config['path'] ?? CF_ROOT . '/storage/cache');
     }
 
     public function get(string $key, mixed $default = null): mixed

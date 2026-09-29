@@ -16,7 +16,7 @@ GPL-3.0-or-later
 [![PHP](https://img.shields.io/badge/PHP-8.3%2B-777BB4?style=flat-square&logo=php)](https://php.net)
 [![MariaDB](https://img.shields.io/badge/MariaDB-10.11%2B-003545?style=flat-square&logo=mariadb)](https://mariadb.org)
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.25.7-brightgreen?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-1.25.8-brightgreen?style=flat-square)](CHANGELOG.md)
 [![CI](https://img.shields.io/github/actions/workflow/status/Die0uwe/bluprint-cms/ci.yml?branch=main&style=flat-square&label=CI)](.github/workflows/ci.yml)
 
 *Geïnspireerd door PHP-Fusion · Down Under Fusion · ImpressCMS*
@@ -173,6 +173,7 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 | **Totale codebase-audit + KRITIEK-fix** | ✅ v1.25.5 | Zes parallelle deelaudits (security, architectuur, database, frontend/i18n, module-volledigheid, documentatie). Belangrijkste vondst: rol-priority-escalatie in `/admin/roles` omzeilde de v1.25.0-privilege-fix volledig — een gewone `admin` kon zijn eigen rol een priority van 999 geven en zo alsnog zichzelf `super_admin` toekennen. Gefixt en live getest (exploit-poging geblokkeerd, legitiem gebruik werkt onveranderd). Overige audit-bevindingen staan als backlog in de roadmap hieronder. Zie CHANGELOG v1.25.5. |
 | **"GitHub compleet"** | ✅ v1.25.6 | Documentatie-audit opgevolgd: CHANGELOG-ordeningsbreuk gefixt (v1.0.0–v1.7.1 stond oplopend, nu aflopend zoals de rest), `docs/ANALYSE.md` gearchiveerd (was volledig verouderd, niet alleen het 98/100-cijfer), CONTRIBUTING.md/CODE_OF_CONDUCT.md/SECURITY.md + issue-/PR-templates toegevoegd, composer.json-metadata aangevuld (naam/homepage/authors/support). Zie CHANGELOG v1.25.6. |
 | **HOOG: stored XSS via blog** | ✅ v1.25.7 | Nog een audit-vondst: elk geregistreerd lid (geen contentpermissie nodig, alleen `$auth`) kon `<script>` in een blogpost zetten die onversleuteld uitvoerde voor elke bezoeker — `blog/show.twig` gebruikte `|raw` op ledencontent, waar News/Pages dat bewust alleen doen voor admin/moderator-content. Nieuwe `nl2br`-Twig-filter (zelf-escapend) i.p.v. `|raw`. Live getest: `<script>`-payload komt geëscaped op de pagina terecht, geen uitvoerbare tag. Zie CHANGELOG v1.25.7. |
+| **HOOG: cache-driver `redis` crashte** | ✅ v1.25.8 | Architectuur-deelaudit vond dat `CacheManager` een niet-bestaande `RedisCache`-klasse instantieerde zodra `cache.driver=redis` in `config.php` stond (het voorbeeld-commentaar suggereerde dat als geldige optie) — kale fatal error op elke request. Nu een duidelijke `RuntimeException` i.p.v. de crash; `file`-driver (de enige echt geïmplementeerde) ongewijzigd. Zie CHANGELOG v1.25.8. |
 
 ---
 
@@ -192,7 +193,7 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 
 ---
 
-## ⚠️ Bekende beperkingen (stand v1.25.7)
+## ⚠️ Bekende beperkingen (stand v1.25.8)
 
 Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben opgelost — zie
 `docs/wave-0-gap-analysis.md` en `CHANGELOG.md` voor de volledige context per punt.
@@ -466,6 +467,13 @@ Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben o
 > ongewijzigd (daar is `|raw` terecht, vertrouwde rollen). Live getest: een
 > `<script>`-payload komt geëscaped op de pagina terecht (`&lt;script&gt;…`), regeleinden
 > blijven behouden als `<br />`. Zie CHANGELOG v1.25.7.
+>
+> **v1.25.8: HOOG — `cache.driver=redis` gaf een kale fatal error.** `CacheManager` instantieerde
+> een `RedisCache`-klasse die nergens bestaat, zodra `redis` als driver in `config.php` stond —
+> nergens selecteerbaar via installer/admin-UI, maar het voorbeeld-commentaar suggereerde het
+> wel als geldige optie. Nu een duidelijke `RuntimeException` i.p.v. de crash. Geen
+> Redis-implementatie toegevoegd (buiten scope) — dit maakt de beperking expliciet. Zie
+> CHANGELOG v1.25.8.
 
 - ~~`/admin`-routes zijn niet permissie-gated~~ — **opgelost in v1.10.0.** Zie CHANGELOG:
   `PermissionMiddleware` + `admin.access`/`settings.edit`/`blocks.manage`/`marketplace.*`.
@@ -615,9 +623,9 @@ GPL-3.0-or-later — © 2026 [DieOuwe](https://www.dieouwe.nl) / [Slayer Allianc
 
 <!--
 ╔══════════════════════════════════════════════════════════════════════╗
-║  File: README.md | Role: Docs | Version: 1.25.7                      ║
-║  Updated: 2026-09-29 — HOOG: stored XSS via blogposts gefixt (nl2br- ║
-║           filter i.p.v. |raw). Zie ook v1.25.6 ("GitHub compleet")   ║
-║           en v1.25.5 (KRITIEK rol-priority-escalatie).                ║
+║  File: README.md | Role: Docs | Version: 1.25.8                      ║
+║  Updated: 2026-09-29 — HOOG: cache.driver=redis crashte, nu een      ║
+║           duidelijke exception i.p.v. een kale fatal error. Zie ook  ║
+║           v1.25.7 (blog-XSS) en v1.25.5 (rol-priority-escalatie).    ║
 ╚══════════════════════════════════════════════════════════════════════╝
 -->

@@ -18,6 +18,33 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ---
 
+## [1.25.8] — 2026-09-29 — HOOG: `cache.driver=redis` gaf een kale fatal error i.p.v. een duidelijke fout
+
+Aanleiding: de Architectuur/Code-kwaliteit-deelaudit (laatste van de zes deelaudits die met
+concrete file:line-detail zijn afgerond) vond dat `CacheManager::__construct()` een
+`RedisCache`-klasse instantieert die nergens in de codebase bestaat (alleen `FileCache.php`
+bestaat onder `src/Core/Cache/`). `cache.driver` is nergens in de installer of admin-UI
+selecteerbaar als `redis` — alleen bereikbaar door `config/config.php` handmatig te bewerken,
+wat het voorbeeld-commentaar (`'driver' => 'file', // file | redis | memcached`) wél
+suggereert als een geldige optie. Resultaat: een beheerder die dat commentaar volgt krijgt op
+**elke request** een kale `Class "RedisCache" not found`-fatal error, zonder enige aanwijzing
+wat er mis is.
+
+### 🔧 Fix
+
+`CacheManager::__construct()` gooit nu een duidelijke `RuntimeException` ("Cache-driver 'redis'
+is nog niet geïmplementeerd... zet cache.driver terug op 'file'") zodra `driver=redis`
+geconfigureerd staat, i.p.v. door te vallen op de niet-bestaande klasse. Geen halve
+`RedisCache`-implementatie toegevoegd — dat zou een groter stuk werk zijn (een echte PSR-16
+Redis-cache, `ext-redis`-dependency, eigen tests) dat niet in scope van deze audit-opvolging
+past. Deze fix maakt de huidige beperking expliciet i.p.v. een cryptische crash.
+
+Live-test: `php -l` op het gewijzigde bestand (syntax), en de bestaande live-installatietests
+(v1.25.5/v1.25.7) bevestigen dat de default `file`-driver-pad ongewijzigd blijft werken — geen
+regressie op het pad dat elke huidige installatie daadwerkelijk gebruikt.
+
+---
+
 ## [1.25.7] — 2026-09-29 — HOOG: stored XSS via blogposts — elk lid kon `<script>` naar elke bezoeker sturen
 
 Aanleiding: nog een bevinding uit de Security-deelaudit van de totale-codebase-audit (naast de
