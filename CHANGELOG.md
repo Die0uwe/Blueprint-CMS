@@ -18,6 +18,58 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ---
 
+## [1.25.5] — 2026-09-29 — KRITIEK: rol-priority-escalatie omzeilde de v1.25.0-privilege-fix volledig
+
+Aanleiding: de zes-koppige totale-codebase-audit (gebruiker: "analiseer de hele github en zet
+iedereen aan het werk voor een totale analise") vond via de Security-deelaudit een kritieke
+privilege-escalatie in `/admin/roles`, die de eerdere v1.25.0-fix in `UserAdminController`
+volledig omzeilt.
+
+### 🔴 Het lek
+
+`UserAdminController::update()` (S13, v1.25.0) voorkomt dat een gewone `admin` (priority 80,
+heeft standaard `users.manage`) via `/admin/users` zichzelf de `super_admin`-rol (priority 100)
+toekent: `priorityById[$rid] > $actingMaxPriority` blokkeert elke rol met een hogere priority
+dan de eigen hoogste rol. Die vergelijking rekent live tegen `cf_roles.priority` in de database.
+
+`RoleAdminController::store()`/`update()` (`/admin/roles`, permissie `roles.manage` — standaard
+óók op de `admin`-rol, niet alleen `super_admin`) accepteerden een `priority`-veld zonder enige
+boven-grens. Aanvalspad: een gewone admin bewerkt via `/admin/roles/{eigen-admin-rol-id}/bewerk`
+gewoon zijn EIGEN `admin`-rol en zet `priority` van 80 naar bv. 999. Zijn "hoogste eigen
+priority" is daarna meteen 999 — en de v1.25.0-check in `UserAdminController` rekent daar live
+tegen, dus komt voortaan elke rol (inclusief `super_admin`) moeiteloos doorheen. Volledige
+account-overname zonder ooit `super_admin`-permissies nodig te hebben gehad.
+
+### 🔧 Fix
+
+`RoleAdminController::store()` en `::update()` passen nu dezelfde regel toe als
+`UserAdminController` al deed voor roltoewijzing: **je kan een rol nooit een hogere priority
+geven dan je eigen hoogste rol.** Een nieuwe `highestPriority()`-helper (identieke logica als
+`UserAdminController`s versie, bewust lokaal gehouden — twee regels code delen via een
+gezamenlijke trait zou meer indirectie toevoegen dan het waard is) leest de hoogste
+rol-priority van de ingelogde gebruiker via `RBACManager::getUserRoles()` en vergelijkt die
+tegen het binnenkomende `priority`-veld, vóór er iets naar de database geschreven wordt. `super_admin`
+zelf (priority 100, altijd de hoogste) ondervindt hier geen enkele beperking van.
+
+### ✅ Live getest
+
+Volledige installatie doorlopen (PHP built-in server, echte MariaDB), een tweede testgebruiker
+aangemaakt met uitsluitend de `admin`-rol (priority 80, `roles.manage` + `users.manage` — het
+seed-standaard):
+
+- **Exploit-poging geblokkeerd:** als `testadmin` de eigen `admin`-rol bewerkt met
+  `priority=999` → `302` naar `?error=Je+kan+een+rol+geen+hogere+prioriteit+geven+dan+je+eigen+rol.`,
+  DB-waarde blijft `80`. Zelfde resultaat bij een POST naar `/admin/roles` (nieuwe rol
+  aanmaken) met `priority=999`.
+- **Legitiem gebruik blijft werken:** als `superadmin` (priority 100) de `moderator`-rol
+  van `priority=50` naar `60` bewerkt → `302` naar `?ok=bijgewerkt`, DB-waarde daadwerkelijk
+  `60`.
+
+Testomgeving na afloop volledig opgeruimd (`vendor/`, `config/config.php`,
+`installer/.installed`, testdatabase en MariaDB-service).
+
+---
+
 ## [1.25.4] — 2026-09-29 — CI kapot: composer.json vroeg om zes ongebruikte/onoplosbare packages
 
 Aanleiding: gebruiker plakte de GitHub Actions-foutmelding van de CI-pipeline (PHP 8.3 én 8.4

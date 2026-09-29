@@ -11,6 +11,7 @@ namespace CommunityFusion\Modules\Roles;
 use CommunityFusion\Core\Request;
 use CommunityFusion\Core\Response;
 use CommunityFusion\Core\Auth\AuthManager;
+use CommunityFusion\Core\Auth\RBAC\RBACManager;
 use CommunityFusion\Core\Audit\AuditLogger;
 use CommunityFusion\Core\Security\CsrfProtection;
 
@@ -26,6 +27,7 @@ final class RoleAdminController
         private readonly RoleRepository $repo,
         private readonly AuthManager    $auth,
         private readonly AuditLogger    $audit,
+        private readonly RBACManager    $rbac,
     ) {}
 
     public function index(Request $request): Response
@@ -59,6 +61,23 @@ final class RoleAdminController
 
         if ($displayName === '') {
             return Response::redirect('/admin/roles/nieuw?error=' . urlencode('Naam is verplicht.'));
+        }
+
+        // Privilege-escalatie voorkomen (zelfde regel als bij update() en bij
+        // UserAdminController::update() — zie de uitgebreide toelichting daar
+        // en de KRITIEK-bevinding uit de totale-analise-audit van v1.25.4+1):
+        // je kan een rol nooit een hogere priority geven dan je eigen hoogste
+        // rol. Anders kon een gewone admin (priority 80, heeft standaard
+        // roles.manage) hier een NIEUWE rol aanmaken met priority 999, die
+        // rol later aan zichzelf laten toewijzen — UserAdminController's
+        // eigen check (`priority > actingMaxPriority`) rekent op het moment
+        // van toewijzen, dus een rol die inmiddels priority 999 heeft, komt
+        // daar gewoon doorheen.
+        $actingMaxPriority = $this->highestPriority();
+        if ($priority > $actingMaxPriority) {
+            return Response::redirect('/admin/roles/nieuw?error=' . urlencode(
+                'Je kan een rol geen hogere prioriteit geven dan je eigen rol.'
+            ));
         }
 
         $name = $this->slugify($displayName);
@@ -119,6 +138,25 @@ final class RoleAdminController
 
         if ($displayName === '') {
             return Response::redirect("/admin/roles/{$id}/bewerk?error=" . urlencode('Naam is verplicht.'));
+        }
+
+        // Privilege-escalatie voorkomen — KRITIEK, gevonden tijdens de
+        // totale-codebase-audit ná v1.25.4: zonder deze check kon elke
+        // houder van roles.manage (standaard ook de 'admin'-rol, priority 80,
+        // niet alleen super_admin) hier de PRIORITY van zijn eigen rol (of
+        // elke andere rol) verhogen naar bv. 999. UserAdminController's
+        // eigen escalatie-fix (S13, zie CHANGELOG v1.25.0) blokkeert het
+        // toewijzen van een rol met een hogere priority dan je eigen hoogste
+        // rol — maar die vergelijking gebeurt live tegen cf_roles.priority.
+        // Verhoog je eerst hier de priority van je EIGEN rol, dan is je
+        // "hoogste priority" meteen hoger, en komt elke rol — inclusief
+        // super_admin — moeiteloos door die check heen. Regel: je kan een
+        // rol nooit een hogere priority geven dan je eigen hoogste rol.
+        $actingMaxPriority = $this->highestPriority();
+        if ($priority > $actingMaxPriority) {
+            return Response::redirect("/admin/roles/{$id}/bewerk?error=" . urlencode(
+                'Je kan een rol geen hogere prioriteit geven dan je eigen rol.'
+            ));
         }
 
         // super_admin behoudt altijd de '*'-wildcard — RBACManager::userCan()
@@ -204,6 +242,20 @@ final class RoleAdminController
             if ($p['name'] === '*') return (int) $p['id'];
         }
         return null;
+    }
+
+    /**
+     * Hoogste role-priority van de ingelogde gebruiker (0 als hij geen
+     * rollen heeft). Zelfde logica als UserAdminController::highestPriority()
+     * — bewust hier gedupliceerd i.p.v. gedeeld, want dit is een kleine
+     * puur-lezende helper en een gedeelde trait/base class zou voor twee
+     * regels code meer indirectie toevoegen dan het waard is.
+     * RBACManager::getUserRoles() sorteert al op priority DESC.
+     */
+    private function highestPriority(): int
+    {
+        $roles = $this->rbac->getUserRoles($this->auth->id());
+        return $roles === [] ? 0 : (int) $roles[0]['priority'];
     }
 }
 

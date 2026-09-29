@@ -16,7 +16,7 @@ GPL-3.0-or-later
 [![PHP](https://img.shields.io/badge/PHP-8.3%2B-777BB4?style=flat-square&logo=php)](https://php.net)
 [![MariaDB](https://img.shields.io/badge/MariaDB-10.11%2B-003545?style=flat-square&logo=mariadb)](https://mariadb.org)
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.25.4-brightgreen?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-1.25.5-brightgreen?style=flat-square)](CHANGELOG.md)
 [![CI](https://img.shields.io/github/actions/workflow/status/Die0uwe/bluprint-cms/ci.yml?branch=main&style=flat-square&label=CI)](.github/workflows/ci.yml)
 
 *Geïnspireerd door PHP-Fusion · Down Under Fusion · ImpressCMS*
@@ -170,6 +170,7 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 | **Deploy-fix: installer** | ✅ v1.25.1–1.25.2 | De installer bleek op een echte server (buiten de test-omgeving) onbereikbaar — bij `DocumentRoot=public/` (het door dit document aanbevolen model) zelfs een oneindige redirect-loop. Front controller `require`t de installer nu rechtstreeks i.p.v. te redirecten, en de root-`.htaccess` blokkeert `.env`/`config`/`vendor`/etc. expliciet i.p.v. impliciet door te laten — al blokkeerde die lijst in de eerste versie per ongeluk óók `/installer/` zelf ("Forbidden"), gefixt in v1.25.2. Getest via beide document-root-modellen, inclusief een volledige installatie-run door elk. Zie CHANGELOG v1.25.1/v1.25.2. |
 | **Branding: logo + welkomstscherm** | ✅ v1.25.3 | Officieel logo verwerkt (`public/assets/img/`), plus een welkomstscherm vóór stap 1 van de installer (logo, uitleg, link om te starten). Logo ook terug te zien in de installer-header, de sitebrede header van beide thema's, en als standaard-favicon na installatie. Zie CHANGELOG v1.25.3. |
 | **CI-fix: composer.json** | ✅ v1.25.4 | GitHub Actions faalde op elke push (`composer install` kon niet oplossen): `firebase/php-jwt ^6.0` was volledig geblokkeerd door een security-advisory, `league/route ^5.0` conflicteerde met de vereiste `psr/container`/`psr/simple-cache`-versies, en `league/container`/`league/event`/`monolog/monolog`/`ramsey/uuid` bleken (opnieuw geverifieerd) ongebruikt. Alle zes verwijderd uit `require`; alleen aantoonbaar-gebruikte packages blijven over. Zie CHANGELOG v1.25.4. |
+| **Totale codebase-audit + KRITIEK-fix** | ✅ v1.25.5 | Zes parallelle deelaudits (security, architectuur, database, frontend/i18n, module-volledigheid, documentatie). Belangrijkste vondst: rol-priority-escalatie in `/admin/roles` omzeilde de v1.25.0-privilege-fix volledig — een gewone `admin` kon zijn eigen rol een priority van 999 geven en zo alsnog zichzelf `super_admin` toekennen. Gefixt en live getest (exploit-poging geblokkeerd, legitiem gebruik werkt onveranderd). Overige audit-bevindingen (Hoog/Gemiddeld) staan als backlog in `docs/ANALYSE.md` / de roadmap hieronder. Zie CHANGELOG v1.25.5. |
 
 ---
 
@@ -189,7 +190,7 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 
 ---
 
-## ⚠️ Bekende beperkingen (stand v1.25.4)
+## ⚠️ Bekende beperkingen (stand v1.25.5)
 
 Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben opgelost — zie
 `docs/wave-0-gap-analysis.md` en `CHANGELOG.md` voor de volledige context per punt.
@@ -433,6 +434,17 @@ Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben o
 > (`league/container`, `league/event`, `monolog/monolog`, `ramsey/uuid`), verwijderd uit
 > `composer.json`. Geen enkele class verandert — puur een opschoning van dode/kapotte
 > dependency-declaraties. Zie CHANGELOG v1.25.4.
+>
+> **v1.25.5: totale codebase-audit — KRITIEK rol-priority-escalatie gevonden en gefixt.** Zes
+> parallelle deelaudits (security, architectuur, database, frontend/i18n, module-volledigheid,
+> documentatie) op de volledige repo. Belangrijkste vondst: `/admin/roles` accepteerde een
+> `priority`-veld zonder boven-grens, waarmee een gewone `admin` (niet `super_admin`) zijn eigen
+> rol naar bv. priority 999 kon zetten — en zo de v1.25.0-privilege-fix in `UserAdminController`
+> (die roltoewijzing blokkeert boven je eigen priority) volledig omzeilde: eerst je eigen rol
+> optillen, dan gewoon `super_admin` aan jezelf toewijzen. `RoleAdminController::store()`/
+> `update()` passen nu dezelfde priority-grens toe. Live getest: exploit-poging geblokkeerd
+> (redirect met foutmelding, DB-waarde ongewijzigd), legitiem gebruik door `super_admin`
+> onveranderd. Zie CHANGELOG v1.25.5.
 
 - ~~`/admin`-routes zijn niet permissie-gated~~ — **opgelost in v1.10.0.** Zie CHANGELOG:
   `PermissionMiddleware` + `admin.access`/`settings.edit`/`blocks.manage`/`marketplace.*`.
@@ -576,10 +588,10 @@ GPL-3.0-or-later — © 2026 [DieOuwe](https://www.dieouwe.nl) / [Slayer Allianc
 
 <!--
 ╔══════════════════════════════════════════════════════════════════════╗
-║  File: README.md | Role: Docs | Version: 1.25.4                      ║
-║  Updated: 2026-09-29 — CI-pipeline gefixt: 6 ongebruikte/kapotte     ║
-║           composer.json-dependencies verwijderd (firebase/php-jwt,   ║
-║           league/*, monolog, ramsey/uuid). Zie ook v1.25.3: logo     ║
-║           verwerkt + welkomstscherm vóór installer-stap 1.           ║
+║  File: README.md | Role: Docs | Version: 1.25.5                      ║
+║  Updated: 2026-09-29 — Totale codebase-audit (6 deelaudits): KRITIEK  ║
+║           rol-priority-escalatie in /admin/roles gevonden en gefixt  ║
+║           (omzeilde de v1.25.0-privilege-fix volledig). Zie ook       ║
+║           v1.25.4 (CI-fix composer.json) en v1.25.3 (logo+welkomst). ║
 ╚══════════════════════════════════════════════════════════════════════╝
 -->
