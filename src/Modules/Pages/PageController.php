@@ -58,6 +58,8 @@ final class PageController
             return Response::html('<h1>404 — Pagina niet gevonden</h1>', 404);
         }
 
+        $page['content'] = $this->filterContent((string) $page['content'], 'page', (int) $page['id']);
+
         $template = $page['template'] ?? 'default';
         $html     = $this->theme->render("pages/{$template}.twig", [
             'page_title' => $page['title'],
@@ -65,6 +67,17 @@ final class PageController
         ]);
 
         return Response::html($html);
+    }
+
+    /** Plugins kunnen de uiteindelijke HTML nog aanpassen (filter content.after_render). Een fout in een plugin laat de pagina staan. */
+    private function filterContent(string $html, string $type, int $id): string
+    {
+        try {
+            $out = \CommunityFusion\Core\Application::getInstance()->getHooks()->applyFilters('content.after_render', $html, ['type' => $type, 'id' => $id]);
+            return is_string($out) ? $out : $html;
+        } catch (\Throwable) {
+            return $html;
+        }
     }
 
     // ── Admin (Wave 2 — /admin/pages gated door PermissionMiddleware:pages.manage) ──

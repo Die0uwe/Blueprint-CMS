@@ -222,6 +222,12 @@ final class EditorController
             return nl2br(htmlspecialchars($markup, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'));
         }
         $renderer = $this->renderer();
+        // Plugins mogen de markup vóór het renderen opschonen/aanvullen. De controles hieronder (PHP-recht, sandbox,
+        // limieten) gelden daarna nog steeds: een plugin kan die dus niet omzeilen.
+        foreach (['editor.markup.sanitize', 'content.before_render'] as $hook) {
+            $filtered = $this->hooks->applyFilters($hook, $markup, ['type' => $type]);
+            $markup = is_string($filtered) ? $filtered : $markup;
+        }
         if ($renderer->containsPhp($markup) && !$this->auth->can('editor.markup.php')) {
             throw new \DomainException('PHP-tags zijn niet toegestaan voor jouw rol (recht editor.markup.php).');
         }

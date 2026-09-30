@@ -56,6 +56,12 @@ final class NewsController
         }
 
         $this->repo->incrementViews((int) $item['id']);
+        try {
+            $out = \CommunityFusion\Core\Application::getInstance()->getHooks()
+                ->applyFilters('content.after_render', (string) $item['content'], ['type' => 'news', 'id' => (int) $item['id']]);
+            $item['content'] = is_string($out) ? $out : $item['content'];   // plugin-fout of -onzin laat het artikel staan
+        } catch (\Throwable) {
+        }
 
         $html = $this->theme->render('news/show.twig', [
             'page_title' => $item['title'],

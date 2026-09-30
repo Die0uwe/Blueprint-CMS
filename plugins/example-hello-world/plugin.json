@@ -1,0 +1,16 @@
+{
+    "slug": "example-hello-world",
+    "name": "Hallo wereld (voorbeeldplugin)",
+    "version": "1.0.0",
+    "author": "DieOuwe",
+    "description": "Voorbeeld: een toolbar-knop in de editor, de shortcode [hallo], een block en een eigen tabel.",
+    "requires": { "blueprint": ">=1.29.0", "php": ">=8.3" },
+    "class": "CommunityFusion\\Plugins\\ExampleHelloWorld\\Plugin",
+    "autoload": { "CommunityFusion\\Plugins\\ExampleHelloWorld\\": "src/" },
+    "blocks": ["HelloBlock"],
+    "hooks": ["editor.toolbar.register", "content.after_render"],
+    "settings": [
+        { "key": "greeting", "label": "Begroeting", "type": "string" },
+        { "key": "shout",    "label": "Hoofdletters", "type": "bool" }
+    ]
+}

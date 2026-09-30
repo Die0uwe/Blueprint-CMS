@@ -18,6 +18,48 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ---
 
+## [1.29.0] — 2026-10-01 — Eigen editors en plugin-systeem
+
+Nieuw: bericht-editor, blok-instellingen met markup, markup-blok, sjabloon-overrides en plugins.
+Uitleg: `docs/editors.md`, `docs/plugins.md`. Plan en voortgang: `docs/editors-plugins-plan.md`.
+**Database:** nieuwe tabellen `cf_plugins`, `cf_plugin_migrations`, `cf_block_content`, `cf_editor_drafts`; kolom `content_markup` op `cf_pages`, `cf_news`, `cf_blog_posts`; 4 nieuwe rechten. Bestaande installaties: `ColumnMigrator` voegt de kolommen toe bij het importeren van het schema; draai de `CREATE TABLE IF NOT EXISTS`-blokken uit `schema.sql` (ze zijn herhaalbaar).
+
+### ✨ Nieuw
+* **Bericht-editor** (`/admin/editor/{page|news|blog}/{id}`): eigen HTML/PHP/Twig-kleuring, regelnummers, toolbar, sandbox-voorbeeld, autosave (30 s), concept herstellen.
+* **Blok-instellingen** (⚙️ op `/admin/blocks`): formulier uit het schema van het blocktype. Nieuw: zone-voorbeeld en Markup-sectie.
+* **Markup-blok** en **sjabloon-override per blocktype** (`storage/block-overrides/{type}.twig`).
+* **Plugins**: `plugins/{slug}/plugin.json`, `PluginManager`, `/admin/plugins`, CLI `plugin:*`, eigen tabellen `cf_plg_{slug}_*` met gecontroleerde migraties, instellingen (ook versleuteld), menu-filter `admin.menu`, hooks `content.before_render`, `content.after_render`, `editor.markup.sanitize`, `editor.toolbar.register`. Voorbeeld: `plugins/example-hello-world/`.
+
+### 🐛 Opgelost onderweg
+* `BlockController::update()` overschreef de config met `[]` bij alleen verbergen of verplaatsen.
+* Het blokkenbeheer toonde alleen zichtbare blokken: een verborgen blok verdween en kon niet meer worden teruggezet.
+* Blokken hadden geen scherm voor hun instellingen (Discord-widget bleef leeg); zie `docs/integraties-analyse.md`.
+* Discord-login gebruikte `prompt=none` (een nieuwe gebruiker kreeg een fout); Discord-online-blok cachete foutmeldingen.
+* `CF_VERSION` stond nog op `1.0.0` (plugins controleren `requires.blueprint` hiertegen).
+* Opslaan via het gewone pagina-/nieuwsformulier laat de bron van de editor niet meer verouderen (`content_markup` wordt geleegd).
+
+### 🔒 Gecontroleerde security-klassen
+
+| Klasse | Maatregel | Test |
+|---|---|---|
+| **XSS** | Kleuring via `textContent`; voorbeelden in `<iframe sandbox="">` met CSP `default-src 'none'`; Twig met autoescape; PHP-tags als tekst; toolbar-knoppen en menu-items van plugins worden gevalideerd en geëscaped; plugin-instellingen worden geëscaped getoond | `EditorControllerTest`, `ExamplePluginTest`, `MarkupRendererTest` |
+| **Code-uitvoering** | PHP in markup wordt nooit uitgevoerd; Twig-sandbox met whitelist (geen `include`, `raw`, `range`, functies als `system`); limieten op grootte, lussen en rekentijd; kapotte override valt terug | `MarkupRendererTest`, `BlockControllerTest` |
+| **CSRF** | Elke schrijfactie (editor, blokken, plugins) roept `CsrfProtection::validateRequest()` aan; geen `_csrf_token` = 403 | `EditorControllerTest`, `PluginAdminControllerTest`, `BlockControllerTest` |
+| **RBAC** | Elk endpoint controleert een recht; markup en overrides vragen `blocks.override_template`, PHP-tags `editor.markup.php`, plugins `plugins.manage`; blog alleen eigenaar/moderator; upload alleen `super_admin` én `ALLOW_PLUGIN_UPLOAD=true` | dezelfde tests (mutatiecontrole op eigenaar-check, CSRF en PHP-recht: tests vallen om) |
+| **Path traversal** | Slugs via regex; overrides alleen `^[a-z0-9-]{1,64}$`; ZIP-inspectie; `SafeFs` binnen basismap; autoloader met realpath-controle | `PluginAutoloaderTest`, `ManifestValidatorTest`, `ZipInspectorTest`, `BlockControllerTest` |
+| **SQL-injectie / schema-misbruik** | Prepared statements; plugin-migraties alleen op `cf_plg_{slug}_*` (`PluginSqlGuard`) | `PluginSqlGuardTest`, `PluginManagerTest` |
+| **SSRF / download** | ongewijzigd uit 1.28.1 (`SsrfGuard`, `SafeDownloader`) | `SsrfGuardTest` |
+| **Misbruik van resources** | ratelimit op voorbeeld, concept en opslaan; maximale groottes | `EditorControllerTest::previewsAreRateLimited` |
+| **Geheimen** | versleutelde plugin-instellingen worden nooit in het formulier of de database teruggegeven | `PluginAdminControllerTest` |
+
+### 🧪 Tests en beperkingen
+De PHP-tests zijn gedraaid met een eigen mini-runner (PHPUnit was in de bouwomgeving niet installeerbaar): **144 geslaagd** en ook de 9 JS-tests van de tokenizer (`node --test tests/js/tokenizer.test.mjs`). Draai `composer test` zelf om het met echte PHPUnit te bevestigen. Niet gedaan: handmatige test van de editor in een echte browser en een test tegen een echte Discord-server.
+
+### ⚠️ Bekend en bewust niet in deze release
+Rate limiting met `X-Forwarded-For`-fix; `visibility_roles` in `renderZone`; een `CsrfMiddleware`; een `editor.block.register`-hook; Discord-rolkoppeling, widget-status en webhook (zie `docs/integraties-analyse.md`).
+
+---
+
 ## [1.28.1] — 2026-09-30 — Beveiliging van pakket-installatie (Marketplace) en CSRF
 
 Aanleiding: security-audit vóór de bouw van het plugin-systeem (zie `docs/editors-plugins-plan.md`, stap 0).

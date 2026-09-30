@@ -122,6 +122,11 @@ final class NewsRepository
 
     public function update(int $id, array $data): void
     {
+        // Formulier (of API) schrijft HTML rechtstreeks: de bron van de editor is dan verouderd en moet vervallen,
+        // anders zou de editor bij het openen oude tekst tonen. De editor zelf stuurt content_markup altijd mee.
+        if (array_key_exists('content', $data) && !array_key_exists('content_markup', $data)) {
+            $data['content_markup'] = null;
+        }
         $this->db->update('news', $data, 'id = ?', [$id]);
         $this->cache->clear();
     }
