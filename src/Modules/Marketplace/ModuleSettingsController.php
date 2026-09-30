@@ -50,6 +50,7 @@ final class ModuleSettingsController
 
         $flash  = $request->query('saved', '') === '1';
         $values = $this->settings->getGroup($slug);
+        $moduleOff = $this->isModuleDisabled($slug);
 
         ob_start();
         include __DIR__ . '/views/module_settings.php';
@@ -89,6 +90,22 @@ final class ModuleSettingsController
         }
 
         return Response::redirect("/admin/marketplace/package/{$slug}/instellingen?saved=1");
+    }
+
+    /**
+     * True als de module niet is ingeschakeld in cf_modules (geen rij, of is_enabled = 0): de
+     * instellingen worden dan wel bewaard, maar de module wordt niet geladen (blokken/routes/hooks
+     * bestaan niet). Bij een databasefout: false (geen onterechte waarschuwing).
+     */
+    private function isModuleDisabled(string $slug): bool
+    {
+        try {
+            $db  = \CommunityFusion\Core\Application::getInstance()->make(\CommunityFusion\Core\Database\Connection::class);
+            $row = $db->fetchOne("SELECT is_enabled FROM cf_modules WHERE slug = ?", [preg_replace('/[^a-z0-9-]/', '', $slug)]);
+            return $row === null || (int) $row['is_enabled'] !== 1;
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     /**

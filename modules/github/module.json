@@ -1,0 +1,21 @@
+{
+    "slug":        "github",
+    "name":        "GitHub Login",
+    "version":     "1.0.0",
+    "description": "Inloggen en registreren met een GitHub-account (OAuth2).",
+    "author":      "DieOuwe",
+    "author_url":  "https://www.dieouwe.nl",
+    "min_cms":     "1.0.0",
+    "class":       "CommunityFusion\\Modules\\GitHub\\GitHubModule",
+    "autoload":    "src/",
+    "is_core":     false,
+    "dependencies": [],
+    "hooks": ["user.login", "user.register"],
+    "permissions": ["github.view"],
+    "blocks": [],
+    "settings": [
+        {"key": "client_id",     "label": "Client ID",     "type": "string"},
+        {"key": "client_secret", "label": "Client Secret", "type": "encrypted"},
+        {"key": "redirect_uri",  "label": "Redirect URI",  "type": "string"}
+    ]
+}

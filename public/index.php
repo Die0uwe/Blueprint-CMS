@@ -7,7 +7,7 @@ declare(strict_types=1);
  * Enige publieke entry point. Alle requests komen hier binnen.
  */
 
-define('CF_VERSION', '1.29.0');   // houd gelijk aan de laatste CHANGELOG-release (plugins controleren 'requires.blueprint' hiertegen)
+define('CF_VERSION', '1.30.0');   // houd gelijk aan de laatste CHANGELOG-release (plugins controleren 'requires.blueprint' hiertegen)
 define('CF_ROOT',    dirname(__DIR__));
 define('CF_PUBLIC',  __DIR__);
 define('CF_START',   microtime(true));

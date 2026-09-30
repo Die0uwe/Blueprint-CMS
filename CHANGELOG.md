@@ -18,6 +18,29 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ---
 
+## [1.30.0] — 2026-10-01 — Integraties: Discord-beheer, GitHub-login, gekoppelde accounts
+
+**Database:** `cf_users.password_set` (0 = account via OAuth aangemaakt), `content_markup` wordt MEDIUMTEXT (opslaan >64 KB gaf HTTP 500). Bestaande installaties: `php cli/console.php migrate` (idempotent, vult `password_set` eenmalig aan voor bestaande OAuth-accounts).
+
+### ✨ Nieuw
+* **Discord-beheer** (`/admin/discord`, recht `discord.admin`): verbinding testen, server-widget aanzetten via de API met kanaalkeuze, meldingen via webhook (nieuw artikel → Discord-kanaal), rolkoppeling Discord → CMS-rol, nieuw blok `discord-status` (leden/online zonder widget).
+* **Rol-sync** via queue `discord-sync` (`php cli/console.php queue:work --queue=discord-sync`); `admin`/`super_admin` worden nooit via Discord beheerd; alleen door de sync toegekende rollen worden weer ingetrokken.
+* **GitHub-login** (module `github`) en **gekoppelde-accounts-overzicht** op het profiel (Google, Discord, GitHub, Twitch, Battle.net; uitbreidbaar via filter `auth.providers`).
+* Loginpagina toont alleen providers die aan staan én zijn geconfigureerd.
+* Instellingenpagina van een module waarschuwt als de module uit staat.
+
+### 🔒 Security
+* `PluginSqlGuard`: tabellijsten na FROM/JOIN/USING worden geparsed; comma-joins, `STRAIGHT_JOIN`, hoofdletter-`CF_`, backtick- en `db.tabel`-verwijzingen naar vreemde tabellen zijn geblokkeerd (kritiek lek uit de review).
+* OAuth: lege `state` werd geaccepteerd (login-CSRF/koppelen van een aanvallersaccount) — nu geweigerd voor alle providers.
+* Ontkoppelen kan je niet meer buitensluiten (`password_set` i.p.v. tijdheuristiek); CSRF op Discord-ontkoppelen; Discord-koppeling van een al gekoppeld account wordt geweigerd.
+* Queue-worker deserialiseert alleen `Job`-klassen. Webhook-URL strikt gevalideerd (alleen discord.com/api/webhooks/…), versleuteld opgeslagen, nooit teruggetoond.
+* `auth.providers`-filter: alleen lokale paden en hex-kleuren; ingebouwde providers niet te overschrijven.
+
+### 🐛 Fixes
+* Discord-blokken cachen fouten 30–45 s (geen Discord-call per paginaweergave); meerdere Discord-rollen naar dezelfde CMS-rol vechten niet meer; `server_id` wordt bij opslaan gevalideerd; Markup-blok verborgen in het palet zonder recht; sidebar-icoon geëscaped.
+
+---
+
 ## [1.29.0] — 2026-10-01 — Eigen editors en plugin-systeem
 
 Nieuw: bericht-editor, blok-instellingen met markup, markup-blok, sjabloon-overrides en plugins.

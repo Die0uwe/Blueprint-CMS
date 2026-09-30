@@ -63,7 +63,7 @@ abstract class OAuthClient
     {
         // CSRF validatie
         $expectedState = $_SESSION['oauth_state_' . $this->getProviderSlug()] ?? '';
-        if (!hash_equals($expectedState, $state)) {
+        if (!is_string($expectedState) || $expectedState === '' || $state === '' || !hash_equals($expectedState, $state)) {
             throw new \RuntimeException('OAuth state mismatch — mogelijke CSRF aanval.');
         }
         unset($_SESSION['oauth_state_' . $this->getProviderSlug()]);

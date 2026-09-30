@@ -13,7 +13,8 @@
     "hooks": [
         "user.login",
         "user.logout",
-        "user.register"
+        "user.register",
+        "news.published"
     ],
     "permissions": [
         "discord.sync",
@@ -22,13 +23,16 @@
     ],
     "blocks": [
         "discord-widget",
-        "discord-online"
+        "discord-online",
+        "discord-status"
     ],
     "settings": [
         {"key": "client_id",     "label": "Client ID",     "type": "string"},
         {"key": "client_secret", "label": "Client Secret", "type": "encrypted"},
         {"key": "guild_id",      "label": "Guild/Server ID","type": "string"},
         {"key": "bot_token",     "label": "Bot Token",     "type": "encrypted"},
-        {"key": "redirect_uri",  "label": "Redirect URI",  "type": "string"}
+        {"key": "redirect_uri",  "label": "Redirect URI",  "type": "string"},
+        {"key": "webhook_url",   "label": "Webhook-URL voor meldingen (beheer liever via Beheer → Discord → Meldingen)", "type": "encrypted"},
+        {"key": "announce_news", "label": "Nieuwe nieuwsartikelen melden in Discord", "type": "bool"}
     ]
 }

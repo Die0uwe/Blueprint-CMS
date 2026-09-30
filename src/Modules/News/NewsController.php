@@ -111,7 +111,10 @@ final class NewsController
         $data['slug']      = $this->repo->uniqueSlug($data['title']);
         $data['author_id'] = $this->auth->id();
 
-        $this->repo->create($data);
+        $newId = $this->repo->create($data);
+        if ($data['status'] === 'published') {
+            $this->announcePublished((int) $newId, $data['title'], $data['slug']);
+        }
 
         return Response::redirect('/admin/news?ok=aangemaakt');
     }
@@ -149,6 +152,9 @@ final class NewsController
         // Slug blijft bewust stabiel na aanmaken (bestaande permalinks/SEO
         // blijven zo werken) — alleen titel/inhoud/status zijn hier wijzigbaar.
         $this->repo->update($id, $data);
+        if ($data['status'] === 'published' && $article['status'] !== 'published' && empty($article['published_at'])) {
+            $this->announcePublished($id, $data['title'], (string) $article['slug']);
+        }
 
         return Response::redirect('/admin/news?ok=bijgewerkt');
     }
@@ -161,6 +167,15 @@ final class NewsController
         $this->repo->delete($id);
 
         return Response::redirect('/admin/news?ok=verwijderd');
+    }
+
+    /** Hook 'news.published' (alleen bij de eerste publicatie); een hook-fout mag het opslaan nooit breken. */
+    private function announcePublished(int $id, string $title, string $slug): void
+    {
+        try {
+            \CommunityFusion\Core\Application::getInstance()->getHooks()->doAction('news.published', ['id' => $id, 'title' => $title, 'slug' => $slug, 'url' => rtrim((string) ($_ENV['APP_URL'] ?? ''), '/') . '/news/' . $slug]);
+        } catch (\Throwable) {
+        }
     }
 
     /**

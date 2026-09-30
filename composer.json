@@ -38,6 +38,7 @@
             "CommunityFusion\\Modules\\FiveM\\": "modules/fivem/src/",
             "CommunityFusion\\Modules\\Ollama\\": "modules/ollama/src/",
             "CommunityFusion\\Modules\\Google\\": "modules/google/src/",
+            "CommunityFusion\\Modules\\GitHub\\": "modules/github/src/",
             "CommunityFusion\\Modules\\BattleNet\\": "modules/battlenet/src/",
             "CommunityFusion\\Modules\\YouTube\\": "modules/youtube/src/",
             "CommunityFusion\\Modules\\Kick\\": "modules/kick/src/"

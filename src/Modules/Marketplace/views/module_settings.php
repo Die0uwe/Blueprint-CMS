@@ -2,6 +2,7 @@
 // ============================================================================
 // Copyright (C) 2026  DieOuwe — GPL-3.0-or-later
 // ============================================================================
+// Optioneel: $moduleOff (bool) — module niet ingeschakeld in cf_modules → waarschuwing.
 // $slug (string), $schema (array uit module.json 'settings'), $values (array
 // huidige, ontsleutelde waarden uit cf_settings via SettingsRepository),
 // $flash (bool) — vanuit ModuleSettingsController::edit().
@@ -44,6 +45,10 @@ $name      = $manifest['name'] ?? ucfirst($slug);
       <div class="form-wrap">
         <?php if ($flash): ?>
           <div class="cf-alert cf-alert-success">Instellingen opgeslagen.</div>
+        <?php endif; ?>
+
+        <?php if (!empty($moduleOff)): ?>
+          <div class="cf-alert cf-alert-error" role="alert">⚠️ Deze module staat <strong>uit</strong>. Je instellingen worden wel bewaard, maar zolang de module niet is ingeschakeld worden blokken, inloggen en koppelingen niet geladen. Schakel hem in via <a href="/admin/marketplace?tab=installed">Marketplace → Geïnstalleerd</a>.</div>
         <?php endif; ?>
 
         <?php $hint = oauth_provider_hint($slug); if ($hint !== null): ?>
@@ -124,6 +129,14 @@ function oauth_provider_hint(string $slug): ?string
             in Discord-instellingen → Geavanceerd) → \"Server-ID kopiëren\".<br>
             <strong>Bot Token</strong> (optioneel, voor betrouwbaardere rol-sync): zelfde applicatie →
             tab <em>Bot</em> → \"Reset Token\".",
+        'github' => "
+            <strong>GitHub</strong> — registreer een OAuth App via
+            <a href=\"https://github.com/settings/developers\" target=\"_blank\" rel=\"noopener\">GitHub → Settings → Developer settings → OAuth Apps</a>
+            (<em>New OAuth App</em>). Vul bij <em>Authorization callback URL</em> exact in: " . $cb('github') . "<br>
+            Client ID staat direct zichtbaar; klik <em>Generate a new client secret</em> voor de Client Secret
+            (wordt maar één keer getoond). De module vraagt de scopes <code>read:user user:email</code>:
+            alleen het primaire, <em>geverifieerde</em> e-mailadres wordt gebruikt. Koppelen gebeurt op het
+            GitHub-gebruikers-ID, nooit automatisch op e-mailadres.",
         'twitch' => "
             <strong>Twitch</strong> — registreer een app op de
             <a href=\"https://dev.twitch.tv/console/apps\" target=\"_blank\" rel=\"noopener\">Twitch Developer Console</a>.

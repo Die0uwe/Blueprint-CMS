@@ -134,6 +134,15 @@ final class Application
         // Hook systeem
         $this->container->singleton(HookManager::class, fn() => $this->hooks);
 
+        // Welke externe login-providers zijn aan + geconfigureerd? Gedeeld door
+        // loginpagina, login-blok en profielpagina (filter: 'auth.providers').
+        $this->container->singleton(\CommunityFusion\Core\Auth\OAuth\ProviderRegistry::class, function() {
+            return \CommunityFusion\Core\Auth\OAuth\ProviderRegistry::fromDb(
+                $this->container->make(Connection::class),
+                $this->hooks,
+            );
+        });
+
         // Audit-log (Wave 5) — vóór AuthManager geregistreerd, want die
         // heeft 'm nodig voor auth.login/auth.login_failed.
         $this->container->singleton(\CommunityFusion\Core\Audit\AuditLogger::class, function() {
@@ -286,7 +295,9 @@ final class Application
             )
         );
         $this->container->make(\CommunityFusion\Core\Block\BlockRegistry::class)->register(
-            new \CommunityFusion\Blocks\Types\LoginBlock()
+            new \CommunityFusion\Blocks\Types\LoginBlock(
+                $this->container->make(\CommunityFusion\Core\Auth\OAuth\ProviderRegistry::class)
+            )
         );
         $this->container->make(\CommunityFusion\Core\Block\BlockRegistry::class)->register(
             new \CommunityFusion\Blocks\Types\StatsBlock(

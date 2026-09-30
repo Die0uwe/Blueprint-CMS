@@ -111,6 +111,14 @@ final class DiscordOAuthController
                 $this->logSync($userId, 'registered_or_login', "Discord user: {$discordUser['username']}");
             } else {
                 $userId = (int) $this->auth->id();
+                // Dit Discord-account hoort al bij een ander CMS-account: niet stilletjes 'gekoppeld' melden
+                $owner = $this->db->fetchOne(
+                    "SELECT user_id FROM cf_user_oauth WHERE provider = 'discord' AND provider_user_id = ?",
+                    [(string) $discordUser['id']]
+                );
+                if ($owner !== null && (int) $owner['user_id'] !== $userId) {
+                    return Response::redirect('/profiel?discord=already_linked');
+                }
                 $this->logSync($userId, 'connected', "Discord user: {$discordUser['username']}");
             }
 
@@ -146,6 +154,16 @@ final class DiscordOAuthController
             return Response::json(['error' => 'Niet ingelogd.'], 401);
         }
 
+        \CommunityFusion\Core\Security\CsrfProtection::validateRequest();
+
+        // Niet ontkoppelen als het account daarna nergens meer mee kan inloggen
+        if (!\CommunityFusion\Core\Auth\OAuth\AccountLinkPolicy::canDisconnect($this->db, (int) $this->auth->id(), 'discord')) {
+            if ($request->isJson() || $request->isAjax()) {
+                return Response::json(['error' => 'Dit is je enige manier om in te loggen; koppel eerst een ander account of stel een wachtwoord in.'], 422);
+            }
+            return Response::redirect('/profiel?discord=last_login');
+        }
+
         $oauth = $this->makeOAuthClient();
         $oauth->disconnect((int) $this->auth->id());
 
@@ -177,37 +195,9 @@ final class DiscordOAuthController
 
             if (empty($member)) return;
 
-            $discordRoles = $member['roles'] ?? [];
-            $mappings     = $this->db->fetchAll(
-                "SELECT discord_role_id, cms_role_id, auto_remove FROM cf_discord_role_mapping"
-            );
-
-            foreach ($mappings as $mapping) {
-                $hasDiscordRole = in_array($mapping['discord_role_id'], $discordRoles, true);
-                $hasCmsRole     = (bool) $this->db->fetchOne(
-                    "SELECT 1 FROM cf_user_roles WHERE user_id = ? AND role_id = ?",
-                    [$userId, $mapping['cms_role_id']]
-                );
-
-                if ($hasDiscordRole && !$hasCmsRole) {
-                    $this->db->execute(
-                        "INSERT IGNORE INTO cf_user_roles (user_id, role_id) VALUES (?, ?)",
-                        [$userId, $mapping['cms_role_id']]
-                    );
-                    $this->logSync($userId, 'role_added', "CMS role ID: {$mapping['cms_role_id']}");
-
-                } elseif (!$hasDiscordRole && $hasCmsRole && $mapping['auto_remove']) {
-                    $this->db->execute(
-                        "DELETE FROM cf_user_roles WHERE user_id = ? AND role_id = ?",
-                        [$userId, $mapping['cms_role_id']]
-                    );
-                    $this->logSync($userId, 'role_removed', "CMS role ID: {$mapping['cms_role_id']}");
-                }
-            }
-
-            // Clear RBAC cache
-            $this->cache->delete("rbac.user.{$userId}.permissions");
-            $this->cache->delete("rbac.user.{$userId}.roles");
+            // Toepassen via DiscordRoleSync: weigert beschermde rollen (super_admin/admin), logt en leegt de RBAC-cache.
+            $discordRoles = array_map('strval', (array) ($member['roles'] ?? []));
+            (new DiscordRoleSync($this->db, $this->cache))->applyRoles($userId, $discordRoles);
 
         } catch (\Throwable $e) {
             error_log("Discord rol sync fout voor user {$userId}: " . $e->getMessage());

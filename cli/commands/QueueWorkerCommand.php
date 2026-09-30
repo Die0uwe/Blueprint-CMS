@@ -54,7 +54,13 @@ final class QueueWorkerCommand
             echo "[" . date('H:i:s') . "] Verwerking job #{$job['id']} (queue: {$job['queue']})\n";
 
             try {
-                $jobInstance = unserialize($job['payload']);
+                // Alleen Job-subklassen deserialiseren (geen willekeurige klassen/gadgets uit de database)
+                $payload = (string) $job['payload'];
+                if (!preg_match('/^O:\d+:"([A-Za-z_\\\\][A-Za-z0-9_\\\\]*)":/', $payload, $cm)
+                    || !is_subclass_of($cm[1], \CommunityFusion\Core\Queue\Job::class)) {
+                    throw new \RuntimeException("Ongeldig job payload (geen Job-klasse)");
+                }
+                $jobInstance = unserialize($payload, ['allowed_classes' => [$cm[1]]]);
 
                 if (!is_object($jobInstance) || !method_exists($jobInstance, 'handle')) {
                     throw new \RuntimeException("Ongeldig job payload");

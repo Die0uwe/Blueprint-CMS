@@ -10,6 +10,7 @@ namespace CommunityFusion\Modules\Users;
 use CommunityFusion\Core\Request;
 use CommunityFusion\Core\Response;
 use CommunityFusion\Core\Auth\AuthManager;
+use CommunityFusion\Core\Auth\OAuth\ProviderRegistry;
 use CommunityFusion\Core\Template\ThemeManager;
 use CommunityFusion\Core\Security\CsrfProtection;
 
@@ -18,6 +19,7 @@ final class AuthController
     public function __construct(
         private readonly AuthManager  $auth,
         private readonly ThemeManager $theme,
+        private readonly ProviderRegistry $providers,
     ) {}
 
     public function loginForm(Request $request): Response
@@ -25,7 +27,11 @@ final class AuthController
         if ($this->auth->check()) {
             return Response::redirect('/');
         }
-        $html = $this->theme->render('auth/login.twig', ['page_title' => 'Inloggen']);
+        $html = $this->theme->render('auth/login.twig', [
+            'page_title'      => 'Inloggen',
+            // Alleen providers die aan + geconfigureerd zijn (ProviderRegistry).
+            'oauth_providers' => $this->providers->available(),
+        ]);
         return Response::html($html);
     }
 
@@ -42,8 +48,9 @@ final class AuthController
         }
 
         $html = $this->theme->render('auth/login.twig', [
-            'page_title' => 'Inloggen',
-            'error'      => 'Ongeldige inloggegevens.',
+            'page_title'      => 'Inloggen',
+            'error'           => 'Ongeldige inloggegevens.',
+            'oauth_providers' => $this->providers->available(),
         ]);
         return Response::html($html, 401);
     }

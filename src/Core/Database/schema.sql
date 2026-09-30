@@ -12,6 +12,7 @@ CREATE TABLE `cf_users` (
     `username`          VARCHAR(50) NOT NULL,
     `email`             VARCHAR(255) NOT NULL,
     `password_hash`     VARCHAR(255) NOT NULL,
+    `password_set`      TINYINT(1) NOT NULL DEFAULT 1 COMMENT '0 = via OAuth aangemaakt, geen eigen wachtwoord',
     `display_name`      VARCHAR(100) NULL,
     `avatar_url`        VARCHAR(500) NULL,
     `bio`               TEXT NULL,

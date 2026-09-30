@@ -49,7 +49,12 @@ final class DiscordOnlineBlock extends AbstractBlock
         // Alleen succesvolle antwoorden cachen, zodat een net ingeschakelde widget meteen werkt.
         $key  = "discord.widget.{$serverId}";
         $data = $this->cache->get($key);
+        $errKey = "discord.widget.err.{$serverId}";
         if (!is_array($data)) {
+            $failed = $this->cache->get($errKey);
+            if (is_string($failed) && $failed !== '') {
+                return '<p style="color:var(--muted);font-size:.85rem;">🔌 ' . htmlspecialchars($failed, ENT_QUOTES) . '</p>';
+            }
             $ch = curl_init("https://discord.com/api/guilds/{$serverId}/widget.json");
             curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 4, CURLOPT_PROTOCOLS => CURLPROTO_HTTPS]);
             $body = curl_exec($ch);
@@ -60,11 +65,12 @@ final class DiscordOnlineBlock extends AbstractBlock
                 $this->cache->set($key, $data, 60);
             } else {
                 $why = match (true) {
-                    $code === 403 => 'De widget staat uit: zet in Discord Serverinstellingen → Widget "Server-widget inschakelen" aan en kies een uitnodigingskanaal.',
+                    $code === 403 => 'De widget staat uit: schakel hem in via Beheer → Discord → Widget (met een uitnodigingskanaal).',
                     $code === 404 => 'Server niet gevonden: controleer het Server ID.',
                     $code === 429 => 'Discord geeft tijdelijk te veel verzoeken terug; probeer het zo opnieuw.',
                     default       => 'Discord is nu niet bereikbaar.',
                 };
+                $this->cache->set($errKey, $why, 30);   // fouten kort cachen: geen Discord-call per paginaweergave
                 return '<p style="color:var(--muted);font-size:.85rem;">🔌 ' . htmlspecialchars($why, ENT_QUOTES) . '</p>';
             }
         }

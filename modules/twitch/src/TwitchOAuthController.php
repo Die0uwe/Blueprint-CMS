@@ -131,6 +131,14 @@ final class TwitchOAuthController
             return Response::json(['error' => 'Niet ingelogd.'], 401);
         }
 
+        // Nooit ontkoppelen als dit de enige manier is om in te loggen.
+        if (!\CommunityFusion\Core\Auth\OAuth\AccountLinkPolicy::canDisconnect($this->db, (int) $this->auth->id(), 'twitch')) {
+            if ($request->isJson() || $request->isAjax()) {
+                return Response::json(['error' => 'Ontkoppelen niet mogelijk: je kunt daarna niet meer inloggen.'], 409);
+            }
+            return Response::redirect('/profiel?twitch=last_login');
+        }
+
         $oauth = $this->makeOAuthClient();
         $oauth->disconnect((int) $this->auth->id());
 

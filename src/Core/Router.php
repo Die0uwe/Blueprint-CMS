@@ -178,6 +178,7 @@ final class Router
         $this->post('/profiel/avatar',  'CommunityFusion\Modules\Users\ProfileController@updateAvatar',  $auth);
         $this->post('/profiel/taal',    'CommunityFusion\Modules\Users\ProfileController@updateLanguage', $auth);
         $this->post('/profiel/bio',     'CommunityFusion\Modules\Users\ProfileController@updateBio',      $auth);
+        $this->post('/profiel/koppelingen/{slug:[a-z0-9-]+}/ontkoppelen', 'CommunityFusion\Modules\Users\ProfileController@disconnectProvider', $auth);
         // v1.27.0 — publiek ledenprofiel, zelfde username-patroon als de bestaande
         // /blog/{username}-routes hierboven verderop in dit bestand.
         $this->get('/leden/{username:[a-zA-Z0-9_.-]+}', 'CommunityFusion\Modules\Users\ProfileController@publicShow');

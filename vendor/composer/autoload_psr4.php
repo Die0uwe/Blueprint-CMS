@@ -24,6 +24,7 @@ return array(
     "CommunityFusion\\Modules\\FiveM\\" => array($baseDir . '/modules/fivem/src'),
     "CommunityFusion\\Modules\\Ollama\\" => array($baseDir . '/modules/ollama/src'),
     "CommunityFusion\\Modules\\Google\\" => array($baseDir . '/modules/google/src'),
+    "CommunityFusion\\Modules\\GitHub\\" => array($baseDir . '/modules/github/src'),
     "CommunityFusion\\Modules\\BattleNet\\" => array($baseDir . '/modules/battlenet/src'),
     "CommunityFusion\\Modules\\YouTube\\" => array($baseDir . '/modules/youtube/src'),
     "CommunityFusion\\Modules\\Kick\\" => array($baseDir . '/modules/kick/src'),

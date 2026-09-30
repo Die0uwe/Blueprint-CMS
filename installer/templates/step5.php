@@ -52,6 +52,7 @@
         'discord'          => '🎮',
         'twitch'           => '📺',
         'google'           => '🔑',
+        'github'           => '🐙',
         'battlenet'        => '🌀',
         'youtube'          => '▶️',
         'kick'             => '🟢',

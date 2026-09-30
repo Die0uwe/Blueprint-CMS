@@ -13,11 +13,15 @@
         <div class="cf-alert cf-alert-success">{{ trans('profile.bio_updated') }}</div>
       {% endif %}
 
-      {% for p in oauth_providers %}
-        {% if p.status == 'connected' %}
-          <div class="cf-alert cf-alert-success">{{ p.label }}-account gekoppeld.</div>
-        {% elseif p.status == 'disconnected' %}
-          <div class="cf-alert cf-alert-success">{{ p.label }}-account ontkoppeld.</div>
+      {% for f in oauth_flash|default([]) %}
+        {% if f.status == 'connected' %}
+          <div class="cf-alert cf-alert-success">{{ f.label }}-{{ trans('profile.flash_connected') }}</div>
+        {% elseif f.status == 'disconnected' %}
+          <div class="cf-alert cf-alert-success">{{ f.label }}-{{ trans('profile.flash_disconnected') }}</div>
+        {% elseif f.status == 'already_linked' %}
+          <div class="cf-alert cf-alert-error">{{ trans('profile.flash_already_linked') }}</div>
+        {% elseif f.status == 'last_login' %}
+          <div class="cf-alert cf-alert-error">{{ f.label }} {{ trans('profile.flash_last_login') }}</div>
         {% endif %}
       {% endfor %}
 
@@ -73,28 +77,40 @@
       <hr style="margin:1.5rem 0;border-color:var(--border);">
 
       <h3 style="margin-bottom:.75rem;">{{ trans('profile.linked_accounts') }}</h3>
-      {% if connections|length == 0 %}
-        <p style="color:var(--muted);font-size:.9rem;">{{ trans('profile.no_linked_accounts') }}</p>
+      {# Eén rij per provider uit de ProviderRegistry: gekoppeld (met
+         ontkoppelknop, POST + CSRF) of koppelbaar (link naar de module).
+         Niet-koppelbare, niet-gekoppelde providers worden niet getoond. #}
+      {% if linked_accounts|length == 0 %}
+        <p style="color:var(--muted);font-size:.9rem;">{{ trans('profile.no_providers_available') }}</p>
       {% endif %}
-      {% for c in connections %}
-        <div style="display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid var(--border);">
-          <span>{{ c.provider|capitalize }} — {{ c.data.username ?? c.data.login ?? c.data.battletag ?? c.data.name ?? '—' }}</span>
-          <form method="POST" action="/auth/{{ c.provider }}/disconnect" style="margin:0;">
-            {{ csrf_field()|raw }}
-            <button type="submit" class="cf-btn cf-btn-danger" style="padding:.25rem .75rem;font-size:.8rem;">{{ trans('profile.disconnect') }}</button>
-          </form>
+      {% for a in linked_accounts %}
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:.75rem;padding:.6rem 0;border-bottom:1px solid var(--border);">
+          <div style="min-width:0;">
+            <span style="display:inline-block;width:1.6rem;height:1.6rem;line-height:1.6rem;text-align:center;border-radius:6px;background:{{ a.color }};color:{{ a.text_color }};margin-right:.4rem;">{{ a.icon }}</span>
+            <strong>{{ a.label }}</strong>
+            {% if a.linked %}
+              <span style="color:var(--muted);font-size:.85rem;">— {{ trans('profile.status_connected') }}{% if a.name %}: {{ a.name }}{% endif %}</span>
+            {% else %}
+              <span style="color:var(--muted);font-size:.85rem;">— {{ trans('profile.status_not_connected') }}</span>
+            {% endif %}
+            {% if a.linked and not a.can_disconnect %}
+              <div style="font-size:.78rem;color:var(--muted);margin-top:.2rem;">🔒 {{ trans('profile.disconnect_blocked') }}</div>
+            {% endif %}
+          </div>
+          <div style="flex-shrink:0;">
+            {% if a.linked %}
+              {% if a.can_disconnect %}
+                <form method="POST" action="{{ a.disconnect_url }}" style="margin:0;">
+                  {{ csrf_field()|raw }}
+                  <button type="submit" class="cf-btn cf-btn-danger" style="padding:.25rem .75rem;font-size:.8rem;">{{ trans('profile.disconnect') }}</button>
+                </form>
+              {% endif %}
+            {% elseif a.can_connect %}
+              <a href="{{ a.link_url }}" class="cf-btn" style="background:{{ a.color }};color:{{ a.text_color }};border:1px solid var(--border);padding:.25rem .75rem;font-size:.8rem;">{{ a.label }} {{ trans('profile.connect_suffix') }}</a>
+            {% endif %}
+          </div>
         </div>
       {% endfor %}
-
-      {# Golf 10: was hardcoded op alleen Discord — nu een knop per provider
-         die nog niet gekoppeld is, voor alle vier ondersteunde providers. #}
-      <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-top:1rem;">
-        {% for p in oauth_providers %}
-          {% if connections|filter(c => c.provider == p.slug)|length == 0 %}
-            <a href="/auth/{{ p.slug }}" class="cf-btn" style="background:{{ p.color }};color:#fff;">{{ p.label }} {{ trans('profile.connect_suffix') }}</a>
-          {% endif %}
-        {% endfor %}
-      </div>
 
     </div>
   </div>

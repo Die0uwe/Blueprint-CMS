@@ -178,6 +178,7 @@ return [
         'discord'   => ['client_id' => '', 'client_secret' => '', 'redirect_uri' => ''],
         'twitch'    => ['client_id' => '', 'client_secret' => '', 'redirect_uri' => ''],
         'google'    => ['client_id' => '', 'client_secret' => '', 'redirect_uri' => ''],
+        'github'    => ['client_id' => '', 'client_secret' => '', 'redirect_uri' => ''],
         'battlenet' => ['client_id' => '', 'client_secret' => '', 'redirect_uri' => '', 'region' => 'eu'],
     ],
     'storage' => [

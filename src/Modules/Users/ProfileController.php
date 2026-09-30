@@ -10,6 +10,8 @@ namespace CommunityFusion\Modules\Users;
 use CommunityFusion\Core\Request;
 use CommunityFusion\Core\Response;
 use CommunityFusion\Core\Auth\AuthManager;
+use CommunityFusion\Core\Auth\OAuth\AccountLinkPolicy;
+use CommunityFusion\Core\Auth\OAuth\ProviderRegistry;
 use CommunityFusion\Core\Database\Connection;
 use CommunityFusion\Core\Template\ThemeManager;
 use CommunityFusion\Core\Security\CsrfProtection;
@@ -40,6 +42,7 @@ final class ProfileController
         private readonly ThemeManager    $theme,
         private readonly UploadManager   $uploads,
         private readonly ForumRepository $forum,
+        private readonly ProviderRegistry $providers,
     ) {}
 
     public function show(Request $request): Response
@@ -48,36 +51,127 @@ final class ProfileController
             return Response::redirect('/login?redirect=/profiel');
         }
 
-        $connections = $this->db->fetchAll(
-            "SELECT provider, provider_data, created_at FROM cf_user_oauth WHERE user_id = ?",
-            [$this->auth->id()]
-        );
-
+        $userId = (int) $this->auth->id();
         $html = $this->theme->render('users/profile.twig', [
-            'page_title'  => 'Mijn profiel',
-            'user'        => $this->auth->user(),
-            'language'    => $request->query('language'),
-            'bio_status'  => $request->query('bio'),
-            'connections' => array_map(
-                fn(array $c) => [
-                    'provider' => $c['provider'],
-                    'data'     => json_decode($c['provider_data'] ?? '{}', true) ?? [],
-                    'since'    => $c['created_at'],
-                ],
-                $connections
-            ),
-            // Golf 10: generiek gemaakt voor alle vier OAuth-providers i.p.v.
-            // hardcoded discord_status/twitch_status — profile.twig loopt nu
-            // over 'oauth_providers' i.p.v. losse if-blokken per provider.
-            'oauth_providers' => [
-                ['slug' => 'discord',   'label' => 'Discord',    'color' => '#5865F2', 'status' => $request->query('discord')],
-                ['slug' => 'twitch',    'label' => 'Twitch',     'color' => '#9146FF', 'status' => $request->query('twitch')],
-                ['slug' => 'google',    'label' => 'Google',     'color' => '#4285F4', 'status' => $request->query('google')],
-                ['slug' => 'battlenet', 'label' => 'Battle.net', 'color' => '#148eff', 'status' => $request->query('battlenet')],
-            ],
+            'page_title'      => 'Mijn profiel',
+            'user'            => $this->auth->user(),
+            'language'        => $request->query('language'),
+            'bio_status'      => $request->query('bio'),
+            // "Gekoppelde accounts": één rij per provider uit de ProviderRegistry.
+            'linked_accounts' => $this->buildLinkedAccounts($userId),
+            'oauth_flash'     => $this->buildOAuthFlash($request),
         ]);
 
         return Response::html($html);
+    }
+
+    /**
+     * POST /profiel/koppelingen/{slug}/ontkoppelen — generiek voor alle
+     * providers. Weigert als het account daarna niet meer kan inloggen
+     * (zie AccountLinkPolicy). CSRF-beveiligd.
+     */
+    public function disconnectProvider(Request $request): Response
+    {
+        if (!$this->auth->check()) {
+            return Response::redirect('/login?redirect=/profiel');
+        }
+
+        CsrfProtection::validateRequest();
+
+        $slug = (string) $request->param('slug');
+        if (preg_match('/^[a-z0-9-]{1,40}$/D', $slug) !== 1) {
+            return Response::redirect('/profiel');
+        }
+
+        $userId = (int) $this->auth->id();
+        if (!AccountLinkPolicy::canDisconnect($this->db, $userId, $slug)) {
+            return Response::redirect('/profiel?' . rawurlencode($slug) . '=last_login');
+        }
+
+        $this->db->execute(
+            "DELETE FROM cf_user_oauth WHERE user_id = ? AND provider = ?",
+            [$userId, $slug]
+        );
+
+        return Response::redirect('/profiel?' . rawurlencode($slug) . '=disconnected');
+    }
+
+    /**
+     * Rijen voor het overzicht. Getoond wordt elke provider die nu
+     * koppelbaar is (aan + geconfigureerd) of waaraan het account al
+     * gekoppeld is (zodat je altijd kunt ontkoppelen, ook als de module
+     * inmiddels uit staat). Koppelingen van providers die de registry niet
+     * (meer) kent, worden ook getoond.
+     */
+    private function buildLinkedAccounts(int $userId): array
+    {
+        $links = [];
+        foreach ($this->db->fetchAll(
+            "SELECT provider, provider_data, created_at FROM cf_user_oauth WHERE user_id = ?",
+            [$userId]
+        ) as $row) {
+            $links[$row['provider']] = $row;
+        }
+
+        $rows = [];
+        $seen = [];
+        foreach ($this->providers->all() as $p) {
+            $link = $links[$p['slug']] ?? null;
+            $seen[$p['slug']] = true;
+            $canConnect = $p['enabled'] && $p['configured'];
+            if ($link === null && !$canConnect) {
+                continue; // niet koppelbaar en niet gekoppeld: niet tonen
+            }
+            $rows[] = $this->accountRow($p, $link, $canConnect, $userId);
+        }
+
+        foreach ($links as $slug => $link) {
+            if (isset($seen[$slug])) continue;
+            $rows[] = $this->accountRow([
+                'slug' => $slug, 'label' => ucfirst($slug), 'icon' => '🔗',
+                'color' => '#444444', 'text_color' => '#ffffff',
+                'link_url' => "/auth/{$slug}", 'disconnect_url' => "/profiel/koppelingen/{$slug}/ontkoppelen",
+            ], $link, false, $userId);
+        }
+
+        return $rows;
+    }
+
+    private function accountRow(array $p, ?array $link, bool $canConnect, int $userId): array
+    {
+        $data = $link !== null ? (json_decode($link['provider_data'] ?? '{}', true) ?: []) : [];
+        $name = '';
+        foreach (['username', 'login', 'battletag', 'global_name', 'name'] as $k) {
+            if (!empty($data[$k]) && is_string($data[$k])) { $name = $data[$k]; break; }
+        }
+
+        return [
+            'slug'           => $p['slug'],
+            'label'          => $p['label'],
+            'icon'           => $p['icon'],
+            'color'          => $p['color'],
+            'text_color'     => $p['text_color'],
+            'linked'         => $link !== null,
+            'name'           => $name,
+            'since'          => $link['created_at'] ?? null,
+            'can_connect'    => $canConnect,
+            'can_disconnect' => $link !== null && AccountLinkPolicy::canDisconnect($this->db, $userId, $p['slug']),
+            'link_url'       => $p['link_url'],
+            'disconnect_url' => $p['disconnect_url'],
+        ];
+    }
+
+    /** Statusmeldingen uit ?{provider}=connected|disconnected|already_linked|last_login. */
+    private function buildOAuthFlash(Request $request): array
+    {
+        $flash = [];
+        foreach ($this->providers->all() as $p) {
+            $status = $request->query($p['slug']);
+            if (in_array($status, ['connected', 'disconnected', 'already_linked', 'last_login'], true)) {
+                $flash[] = ['label' => $p['label'], 'status' => $status];
+            }
+        }
+        return $flash;
     }
 
     public function updateAvatar(Request $request): Response

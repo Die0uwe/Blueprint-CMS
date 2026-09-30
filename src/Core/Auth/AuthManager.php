@@ -229,17 +229,28 @@ final class AuthManager
             'threads'     => 3,
         ]);
 
-        $userId = $this->db->insert('users', [
+        $row = [
             'username'          => $username,
             'email'             => $email,
             'password_hash'     => $randomHash,
+            'password_set'      => 0,
             'display_name'      => $profile['username'] ?? $username,
             'avatar_url'        => $profile['avatar_url'] ?? null,
             'is_verified'       => !empty($profile['email_verified']) ? 1 : 0,
             'email_verified_at' => !empty($profile['email_verified']) ? date('Y-m-d H:i:s') : null,
             'locale'            => 'nl',
             'timezone'          => 'Europe/Amsterdam',
-        ]);
+        ];
+        try {
+            $userId = $this->db->insert('users', $row);
+        } catch (\PDOException $e) {
+            // Installatie waarop `php cli/console.php migrate` de kolom password_set nog niet heeft toegevoegd
+            if (($e->errorInfo[1] ?? null) !== 1054) {
+                throw $e;
+            }
+            unset($row['password_set']);
+            $userId = $this->db->insert('users', $row);
+        }
 
         $this->assignDefaultRole((int) $userId);
 

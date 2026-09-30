@@ -26,6 +26,8 @@ final class ColumnMigrator
         'cf_pages'      => ['content_markup' => 'MEDIUMTEXT NULL'],
         'cf_news'       => ['content_markup' => 'MEDIUMTEXT NULL'],
         'cf_blog_posts' => ['content_markup' => 'MEDIUMTEXT NULL'],
+        // 0 = account via OAuth aangemaakt, nooit een eigen wachtwoord gekozen (zie AccountLinkPolicy)
+        'cf_users'      => ['password_set' => 'TINYINT(1) NOT NULL DEFAULT 1'],
     ];
 
     /**
@@ -46,6 +48,14 @@ final class ColumnMigrator
                     $applied[] = "{$table}.{$column}";
                 }
             }
+        }
+        // Eenmalig na het toevoegen van cf_users.password_set: bestaande OAuth-only accounts herkennen
+        // (eerste koppeling binnen 120 s na aanmaak van het account) en op 0 zetten.
+        if ($columns === null && in_array('cf_users.password_set', $applied, true) && self::tableExists($pdo, 'cf_user_oauth')) {
+            $pdo->exec(
+                'UPDATE cf_users u JOIN (SELECT user_id, MIN(created_at) AS first_link FROM cf_user_oauth GROUP BY user_id) o ON o.user_id = u.id
+                 SET u.password_set = 0 WHERE TIMESTAMPDIFF(SECOND, u.created_at, o.first_link) <= 120'
+            );
         }
         return $applied;
     }
