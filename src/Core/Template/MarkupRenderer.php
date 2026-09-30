@@ -36,7 +36,7 @@ final class MarkupRenderer
             'max_bytes' => 204800, 'max_for_tags' => 3, 'time_limit' => 3,
         ];
         if ($config === null) {
-            $file = (defined('CF_ROOT') ? CF_ROOT : dirname(__DIR__, 3)) . '/config/markup-block.php';
+            $file = dirname(__DIR__, 3) . '/config/markup-block.php';   // relatief aan de code, niet aan CF_ROOT
             $config = is_file($file) ? (array)(require $file) : [];
         }
         $this->config = array_merge($default, $config);

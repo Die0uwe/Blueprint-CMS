@@ -294,7 +294,8 @@ use CommunityFusion\Core\Security\CsrfProtection;
                    ondragleave="this.classList.remove('drag-over')"
                    ondrop="handleDrop(event, '<?= $zoneSlug ?>')">
 
-                <div class="zone-label"><?= htmlspecialchars($zoneLabel) ?></div>
+                <div class="zone-label"><?= htmlspecialchars($zoneLabel) ?>
+                  <button type="button" class="block-btn" title="Voorbeeld van deze zone" aria-label="Voorbeeld van <?= htmlspecialchars($zoneLabel) ?>" onclick="zonePreview('<?= $zoneSlug ?>', '<?= htmlspecialchars($zoneLabel, ENT_QUOTES) ?>')">👁 Voorbeeld</button></div>
 
                 <?php if (empty($blocks)): ?>
                   <div class="zone-empty">Sleep een blok hier naartoe</div>
@@ -349,6 +350,17 @@ use CommunityFusion\Core\Security\CsrfProtection;
           <input class="cf-input" type="text" id="set-title" maxlength="200">
         </div>
         <div id="settingsFields"></div>
+        <div id="markupSection" hidden style="margin-top:1rem;border-top:1px solid var(--border);padding-top:1rem;">
+          <div class="cf-label" id="markupHead">Markup</div>
+          <p id="markupNote" style="color:var(--muted);font-size:.8rem;margin:.3rem 0 .6rem;"></p>
+          <textarea class="cf-input" id="markupText" rows="10" spellcheck="false" style="font-family:monospace;white-space:pre;" aria-label="Markup"></textarea>
+          <div style="display:flex;gap:.6rem;margin-top:.6rem;">
+            <button type="button" class="cf-btn cf-btn-ghost" id="markupPreviewBtn">👁 Voorbeeld</button>
+            <button type="button" class="cf-btn" id="markupSaveBtn">Markup opslaan</button>
+          </div>
+          <p id="markupErr" style="color:#ef4444;font-size:.85rem;display:none;"></p>
+          <iframe id="markupFrame" title="Voorbeeld" sandbox="" referrerpolicy="no-referrer" hidden style="width:100%;height:220px;margin-top:.6rem;border:1px solid var(--border);border-radius:8px;background:#0a0c14;"></iframe>
+        </div>
         <p id="settingsErr" style="color:#ef4444;font-size:.85rem;display:none;"></p>
         <div style="display:flex;justify-content:flex-end;gap:.8rem;margin-top:1.5rem;">
           <button type="button" class="cf-btn cf-btn-ghost" onclick="closeSettings()">Annuleren</button>
@@ -356,6 +368,15 @@ use CommunityFusion\Core\Security\CsrfProtection;
         </div>
       </form>
     </div>
+  </div>
+</div>
+
+<!-- Zone-voorbeeld -->
+<div class="modal-overlay" id="zoneModal">
+  <div class="modal" style="max-width:720px;width:95%;">
+    <div class="modal-header"><span id="zoneTitle">Voorbeeld</span><button class="modal-close" type="button" onclick="document.getElementById('zoneModal').classList.remove('open')" aria-label="Sluiten">✕</button></div>
+    <div class="modal-body"><iframe id="zoneFrame" title="Zone-voorbeeld" sandbox="" referrerpolicy="no-referrer" style="width:100%;height:420px;border:1px solid var(--border);border-radius:8px;background:#0a0c14;"></iframe>
+    <p style="color:var(--muted);font-size:.78rem;margin-top:.5rem;">Zoals bezoekers de zichtbare blokken van deze zone zien (zonder scripts en zonder site-CSS).</p></div>
   </div>
 </div>
 
@@ -549,6 +570,7 @@ async function openSettings(id) {
   const box = document.getElementById('settingsFields');
   box.replaceChildren(...d.fields.map((f) => settingsField(f, d.config[f.key])));
   if (!d.fields.length) { const p = document.createElement('p'); p.style.color = 'var(--muted)'; p.textContent = 'Dit blok heeft geen eigen instellingen.'; box.appendChild(p); }
+  setupMarkup(d);
   document.getElementById('settingsModal').classList.add('open');
 }
 
@@ -566,6 +588,50 @@ document.getElementById('settingsForm').addEventListener('submit', async (e) => 
   err.style.display = 'block';
 });
 document.getElementById('settingsModal').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeSettings(); });
+
+
+// ── Markup-sectie (alleen met recht blocks.override_template) ─────────────
+let markupScope = null;
+const mEl = (id) => document.getElementById(id);
+function markupError(msg) { const e = mEl('markupErr'); e.textContent = msg || ''; e.style.display = msg ? 'block' : 'none'; }
+function setupMarkup(d) {
+  const sec = mEl('markupSection');
+  sec.hidden = !d.can_markup || !d.markup;
+  markupFrameReset();
+  if (sec.hidden) return;
+  markupScope = d.markup.scope;
+  mEl('markupText').value = d.markup.value || '';
+  mEl('markupHead').textContent = d.markup.scope === 'instance' ? 'Markup van dit blok' : `Sjabloon voor alle "${d.markup.slug}"-blokken`;
+  mEl('markupNote').textContent = d.markup.scope === 'instance'
+    ? 'HTML en Twig in een sandbox. Beschikbaar: title en today. PHP wordt nooit uitgevoerd.'
+    : 'Vervangt de standaard-HTML van ALLE blokken van dit type. Beschikbaar: title, today en config.<naam>. Leeg laten en opslaan = terug naar standaard.' + (d.markup.has_override ? ' (Er is nu een eigen sjabloon actief.)' : '');
+  markupError('');
+}
+function markupFrameReset() { const f = mEl('markupFrame'); f.hidden = true; f.removeAttribute('srcdoc'); }
+async function markupCall(url, body) {
+  const r = await fetch(url, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-Token': CSRF }, body: JSON.stringify({ ...body, _csrf_token: CSRF }) });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || `Fout ${r.status}`);
+  return d;
+}
+mEl('markupPreviewBtn').addEventListener('click', async () => {
+  try { const d = await markupCall('/admin/blocks/markup/preview', { markup: mEl('markupText').value }); markupError(''); const f = mEl('markupFrame'); f.srcdoc = d.html; f.hidden = false; }
+  catch (e) { markupError(e.message); }
+});
+mEl('markupSaveBtn').addEventListener('click', async () => {
+  if (settingsBlockId === null) return;
+  try { await markupCall(`/admin/blocks/${settingsBlockId}/markup`, { markup: mEl('markupText').value }); markupError(''); showToast('✅ Markup opgeslagen'); }
+  catch (e) { markupError(e.message); }
+});
+async function zonePreview(zone, label) {
+  const r = await fetch(`/admin/blocks/zone/${zone}/preview`, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) { showToast(d.error || 'Voorbeeld mislukt', 'error'); return; }
+  mEl('zoneTitle').textContent = 'Voorbeeld — ' + label;
+  mEl('zoneFrame').srcdoc = d.html;
+  mEl('zoneModal').classList.add('open');
+}
+mEl('zoneModal').addEventListener('click', (e) => { if (e.target === e.currentTarget) e.currentTarget.classList.remove('open'); });
 
 // ── Modal ─────────────────────────────────────────────────────────────────
 function openAddModal() { document.getElementById('addModal').classList.add('open'); }

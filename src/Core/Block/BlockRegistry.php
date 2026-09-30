@@ -24,6 +24,13 @@ final class BlockRegistry
     /** @var array<string, BlockInterface> slug → instance */
     private array $types = [];
 
+    private ?BlockOverrides $overrides = null;
+
+    public function setOverrides(BlockOverrides $overrides): void
+    {
+        $this->overrides = $overrides;
+    }
+
     public function __construct(
         private readonly Connection   $db,
         private readonly CacheManager $cache,
@@ -144,7 +151,17 @@ final class BlockRegistry
     {
         try {
             $type->validateConfig($config);
-            $inner = $type->render($config, $context);
+            $context['block_id'] = (int) ($row['id'] ?? 0);
+            $context['block_title'] = (string) ($row['title'] ?? '');
+            $inner = null;
+            if ($this->overrides !== null && $this->overrides->has($type->getSlug())) {
+                try {
+                    $inner = $this->overrides->render($type->getSlug(), $config, $context['block_title']);
+                } catch (\Throwable) {
+                    $inner = null;   // kapotte override: terugvallen op het standaardsjabloon
+                }
+            }
+            $inner ??= $type->render($config, $context);
 
             $title = $row['title'] ? '<h3 class="cf-block-title">' . htmlspecialchars($row['title']) . '</h3>' : '';
 

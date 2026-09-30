@@ -260,6 +260,19 @@ final class Application
             );
         });
 
+        // Sjabloon-overrides (storage/block-overrides) + markup-block
+        $markupRenderer = new \CommunityFusion\Core\Template\MarkupRenderer();
+        $this->container->instance(\CommunityFusion\Core\Template\MarkupRenderer::class, $markupRenderer);
+        $blockOverrides = new \CommunityFusion\Core\Block\BlockOverrides(CF_ROOT . '/storage/block-overrides', $markupRenderer);
+        $this->container->instance(\CommunityFusion\Core\Block\BlockOverrides::class, $blockOverrides);
+        $this->container->make(\CommunityFusion\Core\Block\BlockRegistry::class)->setOverrides($blockOverrides);
+        $this->container->make(\CommunityFusion\Core\Block\BlockRegistry::class)->register(
+            new \CommunityFusion\Blocks\Types\MarkupBlock(
+                $this->container->make(\CommunityFusion\Core\Database\Connection::class),
+                $markupRenderer
+            )
+        );
+
         // Registreer core block types
         $this->container->make(\CommunityFusion\Core\Block\BlockRegistry::class)->register(
             new \CommunityFusion\Blocks\Types\TextBlock()

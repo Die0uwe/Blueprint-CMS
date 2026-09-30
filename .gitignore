@@ -21,3 +21,5 @@
 !/storage/queue/.gitkeep
 !/storage/uploads/.gitkeep
 !/public/uploads/.gitkeep
+/storage/block-overrides/*
+!/storage/block-overrides/.gitkeep
