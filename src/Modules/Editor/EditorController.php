@@ -86,7 +86,7 @@ final class EditorController
         $toolbar = $isBlog ? [] : $this->toolbar($type, $canPhp);
         $csrf = CsrfProtection::getToken();
         $config = [
-            'type' => $type, 'id' => $id, 'canPhp' => $canPhp, 'plainOnly' => $isBlog,
+            'type' => $type, 'id' => $id, 'title' => (string)$item['title'], 'canPhp' => $canPhp, 'plainOnly' => $isBlog,
             'toolbar' => $toolbar, 'draft' => $draftText, 'draftAt' => $draftAt ?? null,
             'maxBytes' => $isBlog ? self::BLOG_MAX_BYTES : $this->renderer()->maxBytes(),
         ];

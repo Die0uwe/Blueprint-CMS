@@ -20,33 +20,18 @@ use CommunityFusion\Core\Security\CsrfProtection;
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Blokken Beheer — Blueprint CMS Admin</title>
 <link rel="stylesheet" href="/assets/css/blueprint.css">
+<?php include __DIR__ . '/../../Shared/views/admin_styles.php'; ?>
 <style>
-  :root { --sidebar-w: 240px; }
-  .admin-wrap  { display:flex; min-height:100vh; }
-  .admin-sidebar {
-    width: var(--sidebar-w); background: var(--surface);
-    border-right:1px solid var(--border); display:flex;
-    flex-direction:column; position:fixed; top:0; left:0; height:100vh; z-index:50;
-  }
-  .admin-logo { padding:1.2rem 1.5rem; font-size:1.1rem; font-weight:800;
-    background:linear-gradient(135deg,#a855f7,#6c3df4); -webkit-background-clip:text;
-    -webkit-text-fill-color:transparent; border-bottom:1px solid var(--border); }
-  .admin-nav { padding:1rem; }
-  .admin-nav-link { display:flex;align-items:center;gap:.7rem;padding:.55rem .9rem;
-    border-radius:8px;font-size:.875rem;color:var(--text-dim);transition:all .15s;margin-bottom:2px; }
-  .admin-nav-link:hover,.admin-nav-link.active { background:rgba(108,61,244,.15);color:var(--accent2); }
-  .admin-main { margin-left:var(--sidebar-w); flex:1; }
-  .admin-topbar { height:56px;background:rgba(17,24,39,.95);border-bottom:1px solid var(--border);
-    display:flex;align-items:center;justify-content:space-between;padding:0 1.5rem;
-    position:sticky;top:0;z-index:40; }
-  .admin-content { padding:2rem; }
-
   /* Layout builder */
   .block-builder {
     display: grid;
-    grid-template-columns: 280px 1fr;
+    grid-template-columns: 280px minmax(0, 1fr);
     gap: 1.5rem;
     align-items: start;
+  }
+  @media (max-width: 1000px) {
+    .block-builder { grid-template-columns: minmax(0, 1fr); }
+    .palette { position: static; }
   }
 
   /* Block palette */
@@ -115,14 +100,21 @@ use CommunityFusion\Core\Security\CsrfProtection;
       "topmenu topmenu topmenu"
       "sidebar_left content sidebar_right"
       "footer footer footer";
-    grid-template-columns: 180px 1fr 180px;
+    grid-template-columns: minmax(170px, 1fr) minmax(0, 2fr) minmax(170px, 1fr);
     grid-template-rows: auto auto 1fr auto;
     gap: .75rem;
     min-height: 500px;
   }
 
   /* Zone droptargets */
+  @media (max-width: 700px) {
+    .preview-body {
+      grid-template-areas: "header" "topmenu" "content" "sidebar_left" "sidebar_right" "footer";
+      grid-template-columns: minmax(0, 1fr); grid-template-rows: none; min-height: 0;
+    }
+  }
   .zone-drop {
+    min-width: 0;
     border: 2px dashed var(--border);
     border-radius: 8px;
     min-height: 60px;
@@ -162,19 +154,23 @@ use CommunityFusion\Core\Security\CsrfProtection;
     cursor: grab;
     transition: border-color .15s, box-shadow .15s;
     position: relative;
+    flex-wrap: wrap;           /* knoppen schuiven naar een tweede regel in smalle zones i.p.v. buiten de zone te vallen */
+    min-width: 0;
   }
+  .placed-block > div:not(.block-actions):not(.block-vis) { flex: 1 1 6rem; min-width: 0; overflow-wrap: anywhere; }
   .placed-block:hover { border-color: var(--accent); box-shadow: 0 2px 8px rgba(108,61,244,.2); }
   .placed-block.dragging { opacity: .4; }
   .placed-block .block-drag-handle { color: var(--muted); cursor: grab; font-size: .9rem; }
   .placed-block .block-name { flex: 1; font-weight: 600; }
   .placed-block .block-type { color: var(--muted); font-size: .72rem; }
-  .placed-block .block-actions { display:flex; gap:.3rem; }
+  .placed-block .block-actions { display:flex; gap:.3rem; margin-left:auto; }
   .block-btn {
     padding: .2rem .5rem; border-radius: 4px; font-size: .7rem;
     border: 1px solid var(--border); background: transparent;
     color: var(--muted); cursor: pointer; transition: all .15s;
   }
   .block-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+  .modal :focus-visible, .block-btn:focus-visible, .palette-item:focus-visible { outline: 2px solid var(--accent2); outline-offset: 2px; }
   .block-btn.delete:hover { border-color: var(--error); color: var(--error); }
   .block-vis { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
   .block-vis.on  { background: var(--success); }
@@ -201,6 +197,7 @@ use CommunityFusion\Core\Security\CsrfProtection;
   }
   .modal-overlay.open { display: flex; }
   .modal {
+    color-scheme: dark;
     background: var(--surface); border: 1px solid var(--border);
     border-radius: var(--radius-lg); width: 500px; max-width: 95vw;
     max-height: 85vh; overflow-y: auto;
@@ -218,29 +215,14 @@ use CommunityFusion\Core\Security\CsrfProtection;
 <?= CsrfProtection::field() ?>
 <div class="admin-wrap">
 
-  <!-- Sidebar (zelfde als dashboard) -->
-  <aside class="admin-sidebar">
-    <div class="admin-logo">🔮 Blueprint CMS</div>
-    <nav class="admin-nav">
-      <a href="/admin" class="admin-nav-link">📊 Dashboard</a>
-      <a href="/admin/news" class="admin-nav-link">📰 Nieuws</a>
-      <a href="/admin/pages" class="admin-nav-link">📄 Pagina's</a>
-      <a href="/admin/users" class="admin-nav-link">👥 Gebruikers</a>
-      <a href="/admin/blocks" class="admin-nav-link active">🧩 Blokken</a>
-      <a href="/admin/themes" class="admin-nav-link">🎨 Thema's</a>
-      <a href="/admin/modules" class="admin-nav-link">⚙️ Modules</a>
-      <a href="/admin/settings" class="admin-nav-link">🛠️ Instellingen</a>
-      <a href="/" class="admin-nav-link">🌐 Bekijk Site</a>
-      <a href="/logout" class="admin-nav-link">👋 Uitloggen</a>
-    </nav>
-  </aside>
+  <?php $activeNav = 'blocks'; include __DIR__ . '/../../Shared/views/admin_sidebar.php'; ?>
 
   <div class="admin-main">
     <header class="admin-topbar">
       <h1>🧩 Blokken Beheer</h1>
-      <div style="display:flex;gap:.8rem;align-items:center;">
-        <span style="font-size:.78rem;color:var(--muted);">Drag & Drop om te herordenen · Wijzigingen worden automatisch opgeslagen</span>
-        <button class="cf-btn" onclick="openAddModal()">+ Blok Toevoegen</button>
+      <div style="display:flex;gap:.8rem;align-items:center;flex-wrap:wrap;">
+        <span style="font-size:.78rem;color:var(--muted);">Sleep blokken naar een zone, of gebruik "Blok toevoegen" · Wijzigingen worden direct opgeslagen</span>
+        <button type="button" class="cf-btn" onclick="openAddModal()">+ Blok Toevoegen</button>
       </div>
     </header>
 
@@ -268,7 +250,8 @@ use CommunityFusion\Core\Security\CsrfProtection;
                draggable="true"
                data-type="<?= htmlspecialchars($slug) ?>"
                data-name="<?= htmlspecialchars($type->getName()) ?>"
-               ondragstart="paletteDragStart(event)">
+               data-fields="<?= htmlspecialchars((string) json_encode(\CommunityFusion\Core\Block\BlockSettings::describe($type->getConfigSchema()), JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE), ENT_QUOTES) ?>"
+               ondragstart="paletteDragStart(event)" ondragend="dragEnd()">
             <div>
               <div style="font-size:1.3rem;"><?= $icon ?></div>
             </div>
@@ -307,7 +290,7 @@ use CommunityFusion\Core\Security\CsrfProtection;
                        draggable="true"
                        data-block-id="<?= $block['id'] ?>"
                        data-zone="<?= $zoneSlug ?>"
-                       ondragstart="blockDragStart(event)">
+                       ondragstart="blockDragStart(event)" ondragend="dragEnd()">
                     <span class="block-drag-handle">⠿</span>
                     <div class="block-vis <?= $isVisible ? 'on' : 'off' ?>"></div>
                     <div>
@@ -315,11 +298,11 @@ use CommunityFusion\Core\Security\CsrfProtection;
                       <div class="block-type"><?= htmlspecialchars($block['type_slug']) ?></div>
                     </div>
                     <div class="block-actions">
-                      <button class="block-btn" onclick="toggleVisible(<?= $block['id'] ?>, <?= $isVisible ? 0 : 1 ?>)">
+                      <button type="button" class="block-btn" title="<?= $isVisible ? 'Verbergen' : 'Tonen' ?>" aria-label="<?= $isVisible ? 'Blok verbergen' : 'Blok tonen' ?>" onclick="toggleVisible(<?= $block['id'] ?>, <?= $isVisible ? 0 : 1 ?>)">
                         <?= $isVisible ? '👁️' : '🚫' ?>
                       </button>
-                      <button class="block-btn" title="Instellingen" aria-label="Instellingen van dit blok" onclick="openSettings(<?= (int) $block['id'] ?>)">⚙️</button>
-                      <button class="block-btn delete" onclick="deleteBlock(<?= $block['id'] ?>)">🗑️</button>
+                      <button type="button" class="block-btn" title="Instellingen" aria-label="Instellingen van dit blok" onclick="openSettings(<?= (int) $block['id'] ?>)">⚙️</button>
+                      <button type="button" class="block-btn delete" title="Verwijderen" aria-label="Blok verwijderen" onclick="deleteBlock(<?= $block['id'] ?>)">🗑️</button>
                     </div>
                   </div>
                   <?php endforeach; ?>
@@ -338,7 +321,7 @@ use CommunityFusion\Core\Security\CsrfProtection;
 
 <!-- Blok-instellingen (gegenereerd uit getConfigSchema() van het blocktype) -->
 <div class="modal-overlay" id="settingsModal">
-  <div class="modal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="setTitle">
     <div class="modal-header">
       <span id="setTitle">⚙️ Instellingen</span>
       <button class="modal-close" type="button" onclick="closeSettings()" aria-label="Sluiten">✕</button>
@@ -358,10 +341,10 @@ use CommunityFusion\Core\Security\CsrfProtection;
             <button type="button" class="cf-btn cf-btn-ghost" id="markupPreviewBtn">👁 Voorbeeld</button>
             <button type="button" class="cf-btn" id="markupSaveBtn">Markup opslaan</button>
           </div>
-          <p id="markupErr" style="color:#ef4444;font-size:.85rem;display:none;"></p>
+          <p id="markupErr" role="alert" style="color:#ef4444;font-size:.85rem;display:none;"></p>
           <iframe id="markupFrame" title="Voorbeeld" sandbox="" referrerpolicy="no-referrer" hidden style="width:100%;height:220px;margin-top:.6rem;border:1px solid var(--border);border-radius:8px;background:#0a0c14;"></iframe>
         </div>
-        <p id="settingsErr" style="color:#ef4444;font-size:.85rem;display:none;"></p>
+        <p id="settingsErr" role="alert" style="color:#ef4444;font-size:.85rem;display:none;"></p>
         <div style="display:flex;justify-content:flex-end;gap:.8rem;margin-top:1.5rem;">
           <button type="button" class="cf-btn cf-btn-ghost" onclick="closeSettings()">Annuleren</button>
           <button type="submit" class="cf-btn" id="setSave">Opslaan</button>
@@ -373,8 +356,8 @@ use CommunityFusion\Core\Security\CsrfProtection;
 
 <!-- Zone-voorbeeld -->
 <div class="modal-overlay" id="zoneModal">
-  <div class="modal" style="max-width:720px;width:95%;">
-    <div class="modal-header"><span id="zoneTitle">Voorbeeld</span><button class="modal-close" type="button" onclick="document.getElementById('zoneModal').classList.remove('open')" aria-label="Sluiten">✕</button></div>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="zoneTitle" style="max-width:720px;width:95%;">
+    <div class="modal-header"><span id="zoneTitle">Voorbeeld</span><button class="modal-close" type="button" onclick="hideModal(document.getElementById('zoneModal'))" aria-label="Sluiten">✕</button></div>
     <div class="modal-body"><iframe id="zoneFrame" title="Zone-voorbeeld" sandbox="" referrerpolicy="no-referrer" style="width:100%;height:420px;border:1px solid var(--border);border-radius:8px;background:#0a0c14;"></iframe>
     <p style="color:var(--muted);font-size:.78rem;margin-top:.5rem;">Zoals bezoekers de zichtbare blokken van deze zone zien (zonder scripts en zonder site-CSS).</p></div>
   </div>
@@ -382,15 +365,15 @@ use CommunityFusion\Core\Security\CsrfProtection;
 
 <!-- Add Block Modal -->
 <div class="modal-overlay" id="addModal">
-  <div class="modal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="addTitle">
     <div class="modal-header">
-      ➕ Blok Toevoegen
-      <button class="modal-close" onclick="closeAddModal()">✕</button>
+      <span id="addTitle">➕ Blok Toevoegen</span>
+      <button class="modal-close" type="button" onclick="closeAddModal()" aria-label="Sluiten">✕</button>
     </div>
     <div class="modal-body">
       <form id="addBlockForm">
         <div class="cf-form-group">
-          <label class="cf-label">Block Type</label>
+          <label class="cf-label" for="modalTypeSlug">Blocktype</label>
           <select class="cf-select" name="type_slug" id="modalTypeSlug">
             <?php foreach ($allTypes as $slug => $type): ?>
               <option value="<?= htmlspecialchars($slug) ?>"><?= htmlspecialchars($type->getName()) ?></option>
@@ -398,7 +381,7 @@ use CommunityFusion\Core\Security\CsrfProtection;
           </select>
         </div>
         <div class="cf-form-group">
-          <label class="cf-label">Zone</label>
+          <label class="cf-label" for="modalZone">Zone</label>
           <select class="cf-select" name="zone" id="modalZone">
             <?php foreach ($zones as $z => $label): ?>
               <option value="<?= $z ?>"><?= htmlspecialchars($label) ?></option>
@@ -406,8 +389,8 @@ use CommunityFusion\Core\Security\CsrfProtection;
           </select>
         </div>
         <div class="cf-form-group">
-          <label class="cf-label">Titel (optioneel)</label>
-          <input class="cf-input" type="text" name="title" placeholder="Blok-titel boven de content">
+          <label class="cf-label" for="modalTitle">Titel (optioneel)</label>
+          <input class="cf-input" type="text" name="title" id="modalTitle" placeholder="Blok-titel boven de content">
         </div>
         <div style="display:flex;justify-content:flex-end;gap:.8rem;margin-top:1.5rem;">
           <button type="button" class="cf-btn cf-btn-ghost" onclick="closeAddModal()">Annuleren</button>
@@ -418,7 +401,7 @@ use CommunityFusion\Core\Security\CsrfProtection;
   </div>
 </div>
 
-<div id="toast"></div>
+<div id="toast" role="status" aria-live="polite"></div>
 
 <script>
 const CSRF = document.querySelector('input[name="_csrf_token"]')?.value || '';
@@ -450,6 +433,12 @@ function blockDragStart(e) {
   e.currentTarget.classList.add('dragging');
 }
 
+function dragEnd() {
+  document.querySelectorAll('.placed-block.dragging').forEach(el => el.classList.remove('dragging'));
+  document.querySelectorAll('.zone-drop.drag-over').forEach(el => el.classList.remove('drag-over'));
+  dragType = null; dragBlockId = null; dragSourceZone = null;
+}
+
 function handleDrop(e, zone) {
   e.preventDefault();
   e.currentTarget.classList.remove('drag-over');
@@ -477,14 +466,28 @@ async function api(method, url, body = null) {
   // uitgelezen, stond dit hele scherm dus non-functioneel. Zelfde patroon
   // als Marketplace/views/index.php. Gevonden tijdens de S13-inventarisatiepas.
   opts.body = JSON.stringify({ ...(body || {}), _csrf_token: CSRF });
-  const r = await fetch(url, opts);
-  return r.json();
+  try {
+    const r = await fetch(url, opts);
+    const d = await r.json().catch(() => null);
+    return d ?? { error: `Fout ${r.status}` };   // geen JSON (bv. een 403- of 500-pagina): toch een nette melding
+  } catch {
+    return { error: 'Geen verbinding met de server' };
+  }
 }
 
+// Blocktypes met verplichte instellingen (bv. Tekst, HTML) kunnen niet met een lege config worden aangemaakt:
+// dan openen we eerst het instellingenvenster in "nieuw blok"-modus. Overige types worden meteen geplaatst.
+function paletteItem(typeSlug) { return document.querySelector(`.palette-item[data-type="${CSS.escape(typeSlug)}"]`); }
 async function addBlock(typeSlug, zone, title = '') {
+  const item = paletteItem(typeSlug);
+  let fields = [];
+  try { fields = JSON.parse(item?.dataset.fields || '[]'); } catch { fields = []; }
+  if (fields.some((f) => f.required)) { openCreate(typeSlug, item.dataset.name || typeSlug, zone, title, fields); return true; }
   const d = await api('POST', '/admin/blocks/store', { type_slug: typeSlug, zone, title, config: {} });
-  if (d.success) { showToast('✅ Blok toegevoegd'); setTimeout(() => location.reload(), 800); }
-  else showToast(d.error || 'Fout', 'error');
+  if (d.success) { showToast('✅ Blok toegevoegd'); setTimeout(() => location.reload(), 800); return true; }
+  if (d.fields) { openCreate(typeSlug, item?.dataset.name || typeSlug, zone, title, fields, d); return true; }
+  showToast(d.error || 'Fout', 'error');
+  return false;
 }
 
 async function moveBlock(blockId, newZone) {
@@ -523,7 +526,35 @@ document.querySelectorAll('.zone-drop').forEach(zone => {
 
 // ── Blok-instellingen: generieke renderer op basis van het schema ─────────
 let settingsBlockId = null;
-function closeSettings() { document.getElementById('settingsModal').classList.remove('open'); settingsBlockId = null; }
+let createCtx = null;   // {type, zone} zolang het instellingenvenster een nieuw blok aanmaakt
+
+// Modals: focus naar binnen bij openen, terug naar de opener bij sluiten, Esc sluit, Tab blijft binnen het venster.
+const modalOpener = new Map();
+function showModal(el, focusSel) {
+  modalOpener.set(el.id, document.activeElement);
+  el.classList.add('open');
+  const target = (focusSel && el.querySelector(focusSel)) || el.querySelector('input:not([type=hidden]), select, textarea, button');
+  target?.focus();
+}
+function hideModal(el) {
+  el.classList.remove('open');
+  const back = modalOpener.get(el.id); modalOpener.delete(el.id);
+  if (back && document.contains(back)) back.focus();
+}
+document.addEventListener('keydown', (e) => {
+  const open = [...document.querySelectorAll('.modal-overlay.open')].pop();
+  if (!open) return;
+  if (e.key === 'Escape') { e.preventDefault(); open.id === 'settingsModal' ? closeSettings() : open.id === 'addModal' ? closeAddModal() : hideModal(open); return; }
+  if (e.key === 'Tab') {
+    const f = [...open.querySelectorAll('a[href], button, input:not([type=hidden]), select, textarea')].filter((x) => !x.disabled && x.offsetParent !== null);
+    if (!f.length) return;
+    const first = f[0], last = f[f.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }
+});
+
+function closeSettings() { hideModal(document.getElementById('settingsModal')); settingsBlockId = null; createCtx = null; }
 
 function settingsField(f, value) {
   const wrap = document.createElement('div');
@@ -555,6 +586,7 @@ function settingsField(f, value) {
     input.id = id; wrap.append(label, input);
   }
   input.dataset.key = f.key; input.dataset.type = f.type;
+  if (f.required && f.type !== 'boolean') input.required = true;
   if (f.help) { const h = document.createElement('small'); h.style.color = 'var(--muted)'; h.textContent = f.help; wrap.appendChild(h); }
   return wrap;
 }
@@ -563,7 +595,7 @@ async function openSettings(id) {
   const r = await fetch(`/admin/blocks/${id}/settings`, { headers: { 'X-Requested-With': 'XMLHttpRequest', Accept: 'application/json' }, credentials: 'same-origin' });
   const d = await r.json().catch(() => ({}));
   if (!r.ok) { showToast(d.error || 'Kon instellingen niet laden', 'error'); return; }
-  settingsBlockId = id;
+  settingsBlockId = id; createCtx = null;
   document.getElementById('setTitle').textContent = '⚙️ ' + d.name;
   document.getElementById('set-title').value = d.title || '';
   document.getElementById('settingsErr').style.display = 'none';
@@ -571,21 +603,48 @@ async function openSettings(id) {
   box.replaceChildren(...d.fields.map((f) => settingsField(f, d.config[f.key])));
   if (!d.fields.length) { const p = document.createElement('p'); p.style.color = 'var(--muted)'; p.textContent = 'Dit blok heeft geen eigen instellingen.'; box.appendChild(p); }
   setupMarkup(d);
-  document.getElementById('settingsModal').classList.add('open');
+  document.getElementById('setSave').textContent = 'Opslaan';
+  showModal(document.getElementById('settingsModal'), '#set-title');
+}
+
+// "Nieuw blok"-modus: dezelfde gegenereerde velden, maar opslaan maakt het blok aan (POST /admin/blocks/store).
+function openCreate(typeSlug, name, zone, title, fields, errResponse = null) {
+  settingsBlockId = null; createCtx = { type: typeSlug, zone };
+  document.getElementById('setTitle').textContent = '➕ ' + name;
+  document.getElementById('set-title').value = title || '';
+  const box = document.getElementById('settingsFields');
+  box.replaceChildren(...fields.map((f) => settingsField(f, f.default)));
+  document.getElementById('markupSection').hidden = true;
+  markupFrameReset();
+  const err = document.getElementById('settingsErr');
+  err.style.display = 'none';
+  if (errResponse) showSettingsError(errResponse);
+  document.getElementById('setSave').textContent = 'Toevoegen →';
+  showModal(document.getElementById('settingsModal'), '#settingsFields [data-key]');
+}
+function showSettingsError(d) {
+  const err = document.getElementById('settingsErr');
+  err.textContent = (d.error || 'Fout') + (d.fields ? ' — ' + Object.entries(d.fields).map(([k, v]) => `${k}: ${v}`).join('; ') : '');
+  err.style.display = 'block';
 }
 
 document.getElementById('settingsForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  if (settingsBlockId === null) return;
+  if (settingsBlockId === null && createCtx === null) return;
   const config = {};
   document.querySelectorAll('#settingsFields [data-key]').forEach((el) => {
     config[el.dataset.key] = el.dataset.type === 'boolean' ? (el.checked ? '1' : '0') : el.value;
   });
-  const d = await api('POST', `/admin/blocks/${settingsBlockId}/update`, { title: document.getElementById('set-title').value, config });
-  if (d.success) { showToast('✅ Instellingen opgeslagen'); closeSettings(); setTimeout(() => location.reload(), 500); return; }
-  const err = document.getElementById('settingsErr');
-  err.textContent = (d.error || 'Fout') + (d.fields ? ' — ' + Object.entries(d.fields).map(([k, v]) => `${k}: ${v}`).join('; ') : '');
-  err.style.display = 'block';
+  const title = document.getElementById('set-title').value;
+  const saveBtn = document.getElementById('setSave');
+  saveBtn.disabled = true;
+  try {
+    const d = createCtx
+      ? await api('POST', '/admin/blocks/store', { type_slug: createCtx.type, zone: createCtx.zone, title, config })
+      : await api('POST', `/admin/blocks/${settingsBlockId}/update`, { title, config });
+    if (d.success) { showToast(createCtx ? '✅ Blok toegevoegd' : '✅ Instellingen opgeslagen'); closeSettings(); setTimeout(() => location.reload(), 500); return; }
+    showSettingsError(d);
+  } finally { saveBtn.disabled = false; }
 });
 document.getElementById('settingsModal').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeSettings(); });
 
@@ -616,7 +675,7 @@ async function markupCall(url, body) {
 }
 mEl('markupPreviewBtn').addEventListener('click', async () => {
   try { const d = await markupCall('/admin/blocks/markup/preview', { markup: mEl('markupText').value }); markupError(''); const f = mEl('markupFrame'); f.srcdoc = d.html; f.hidden = false; }
-  catch (e) { markupError(e.message); }
+  catch (e) { markupError(e.message); markupFrameReset(); }
 });
 mEl('markupSaveBtn').addEventListener('click', async () => {
   if (settingsBlockId === null) return;
@@ -629,19 +688,23 @@ async function zonePreview(zone, label) {
   if (!r.ok) { showToast(d.error || 'Voorbeeld mislukt', 'error'); return; }
   mEl('zoneTitle').textContent = 'Voorbeeld — ' + label;
   mEl('zoneFrame').srcdoc = d.html;
-  mEl('zoneModal').classList.add('open');
+  showModal(mEl('zoneModal'), '.modal-close');
 }
-mEl('zoneModal').addEventListener('click', (e) => { if (e.target === e.currentTarget) e.currentTarget.classList.remove('open'); });
+mEl('zoneModal').addEventListener('click', (e) => { if (e.target === e.currentTarget) hideModal(e.currentTarget); });
 
 // ── Modal ─────────────────────────────────────────────────────────────────
-function openAddModal() { document.getElementById('addModal').classList.add('open'); }
-function closeAddModal() { document.getElementById('addModal').classList.remove('open'); }
+function openAddModal() { showModal(document.getElementById('addModal'), '#modalTypeSlug'); }
+function closeAddModal() { hideModal(document.getElementById('addModal')); }
 
 document.getElementById('addBlockForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const fd = new FormData(e.target);
-  await addBlock(fd.get('type_slug'), fd.get('zone'), fd.get('title') || '');
-  closeAddModal();
+  const btn = e.target.querySelector('button[type=submit]');
+  btn.disabled = true;
+  try {
+    const handled = await addBlock(fd.get('type_slug'), fd.get('zone'), fd.get('title') || '');
+    if (handled) { document.getElementById('addModal').classList.remove('open'); modalOpener.delete('addModal'); }
+  } finally { btn.disabled = false; }
 });
 
 document.getElementById('addModal').addEventListener('click', (e) => {

@@ -17,6 +17,7 @@ $e = static fn (string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBS
 <link rel="stylesheet" href="/assets/css/blueprint.css">
 <?php include __DIR__ . '/../../Shared/views/admin_styles.php'; ?>
 <link rel="stylesheet" href="/assets/css/admin-editor.css">
+<link rel="icon" href="data:,">
 </head>
 <body>
 <div class="admin-wrap">
@@ -45,12 +46,14 @@ $e = static fn (string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBS
         <?php else: ?>
         <span class="ed-hint">Blog-berichten zijn platte tekst: HTML wordt niet uitgevoerd.</span>
         <?php endif; ?>
-        <span class="ed-spacer"></span>
-        <?php if (!$isBlog): ?>
-        <label class="ed-check"><input type="checkbox" id="ed-preview-toggle" checked> Preview</label>
-        <?php endif; ?>
-        <span id="ed-status" class="ed-status" role="status" aria-live="polite"></span>
-        <button type="button" class="cf-btn" id="ed-save" title="Opslaan (Ctrl+S)">Opslaan</button>
+        <span id="ed-auto-note" class="ed-hint" hidden>Kleurmarkering staat uit: de tekst is te groot.</span>
+        <span class="ed-right">
+          <?php if (!$isBlog): ?>
+          <label class="ed-check"><input type="checkbox" id="ed-preview-toggle" checked> Preview</label>
+          <?php endif; ?>
+          <span id="ed-status" class="ed-status" role="status" aria-live="polite"></span>
+          <button type="button" class="cf-btn" id="ed-save" title="Opslaan (Ctrl+S)">Opslaan</button>
+        </span>
       </div>
 
       <div class="ed-panes<?= $isBlog ? ' no-preview' : '' ?>" id="ed-panes">

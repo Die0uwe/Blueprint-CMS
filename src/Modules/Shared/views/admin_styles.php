@@ -22,7 +22,7 @@
     -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     border-bottom: 1px solid var(--border);
   }
-  .admin-nav { padding: 1rem; flex: 1; }
+  .admin-nav { padding: 1rem; flex: 1; min-height: 0; overflow-y: auto; color-scheme: dark; }   /* anders vallen de laatste links (Plugins, Uitloggen) op lage schermen buiten beeld */
   .admin-nav-section {
     font-size: .7rem; font-weight: 700; text-transform: uppercase;
     letter-spacing: .1em; color: var(--muted); padding: .8rem .5rem .3rem;
@@ -34,7 +34,7 @@
   }
   .admin-nav-link:hover, .admin-nav-link.active { background: rgba(108,61,244,.15); color: var(--accent2); }
   .admin-nav-link .nav-icon { font-size: 1rem; width: 20px; text-align: center; }
-  .admin-main { margin-left: var(--sidebar-w); flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+  .admin-main { margin-left: var(--sidebar-w); flex: 1; display: flex; flex-direction: column; min-height: 100vh; min-width: 0; }
   .admin-topbar {
     height: 56px; background: rgba(17,24,39,.95); border-bottom: 1px solid var(--border);
     display: flex; align-items: center; justify-content: space-between; padding: 0 1.5rem;
@@ -42,4 +42,16 @@
   }
   .admin-topbar h1 { font-size: 1rem; font-weight: 700; }
   .admin-content { padding: 2rem; flex: 1; }
+  /* De standaard focusring is bijna zwart en valt op het donkere thema weg. */
+  .admin-wrap :focus-visible { outline: 2px solid var(--accent2, #a855f7); outline-offset: 2px; }
+
+  /* Smalle schermen: de vaste zijbalk wordt een gewone blok bovenaan in plaats van 240px van de breedte op te eisen. */
+  @media (max-width: 800px) {
+    .admin-wrap { flex-direction: column; }
+    .admin-sidebar { position: static; width: auto; height: auto; max-height: 40vh; border-right: 0; border-bottom: 1px solid var(--border); }
+    .admin-main { margin-left: 0; min-height: 0; }
+    .admin-topbar { height: auto; min-height: 56px; flex-wrap: wrap; gap: .5rem; padding: .6rem 1rem; position: static; }
+    .admin-content { padding: 1rem; }
+    .admin-content .cf-table, .admin-content table { display: block; overflow-x: auto; }
+  }
 </style>
