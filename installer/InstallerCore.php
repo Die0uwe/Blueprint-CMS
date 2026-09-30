@@ -233,6 +233,11 @@ PHP;
                 }
             }
         }
+
+        // Nieuwe kolommen op bestaande tabellen (CREATE TABLE kan die niet toevoegen).
+        // Idempotent: alleen wat ontbreekt wordt aangemaakt.
+        require_once dirname(__DIR__) . '/src/Core/Database/ColumnMigrator.php';
+        \CommunityFusion\Core\Database\ColumnMigrator::run($pdo);
     }
 }
 

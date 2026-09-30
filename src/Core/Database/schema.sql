@@ -603,3 +603,66 @@ INSERT IGNORE INTO `cf_permissions` (`name`, `group`, `description`) VALUES
 INSERT IGNORE INTO `cf_role_permissions` (`role_id`, `permission_id`)
 SELECT r.id, p.id FROM `cf_roles` r, `cf_permissions` p
 WHERE r.name = 'admin' AND p.name IN ('guild.manage', 'ollama.admin');
+
+-- ============================================================
+-- v1.29.0 — Plugin-laag en editors (docs/editors-plugins-plan.md, stap a)
+-- Nieuwe kolommen (content_markup) worden NIET hier maar door
+-- ColumnMigrator toegevoegd: die kan ook bestaande installaties bijwerken.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `cf_plugins` (
+    `id`            INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `slug`          VARCHAR(64) NOT NULL,
+    `name`          VARCHAR(100) NOT NULL,
+    `version`       VARCHAR(32) NOT NULL,
+    `active`        TINYINT(1) NOT NULL DEFAULT 0,
+    `installed_at`  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `settings_json` LONGTEXT NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uq_plugin_slug` (`slug`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `cf_plugin_migrations` (
+    `id`         INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `slug`       VARCHAR(64) NOT NULL,
+    `migration`  VARCHAR(150) NOT NULL,
+    `applied_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uq_plugin_migration` (`slug`, `migration`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `cf_block_content` (
+    `id`             INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `block_id`       INT UNSIGNED NOT NULL,
+    `content_json`   LONGTEXT NULL,
+    `content_markup` LONGTEXT NULL,
+    `updated_by`     INT UNSIGNED NULL,
+    `updated_at`     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uq_block_content_block` (`block_id`),
+    CONSTRAINT `fk_bc_block` FOREIGN KEY (`block_id`) REFERENCES `cf_blocks`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `cf_editor_drafts` (
+    `id`          INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `user_id`     INT UNSIGNED NOT NULL,
+    `target_type` VARCHAR(20) NOT NULL,
+    `target_id`   INT UNSIGNED NOT NULL DEFAULT 0,
+    `content`     LONGTEXT NOT NULL,
+    `updated_at`  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uq_draft_target` (`user_id`, `target_type`, `target_id`),
+    CONSTRAINT `fk_draft_user` FOREIGN KEY (`user_id`) REFERENCES `cf_users`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT IGNORE INTO `cf_permissions` (`name`, `group`, `description`) VALUES
+('editor.use',               'editor',  'De eigen editors gebruiken (bericht-editor en blok-editor)'),
+('editor.markup.php',        'editor',  'PHP-tags tonen en bewerken in de markup-editor (wordt nooit uitgevoerd)'),
+('plugins.manage',           'plugins', 'Plugins activeren, deactiveren, verwijderen en uploaden'),
+('blocks.override_template', 'blocks',  'Twig-templates van blokken overschrijven');
+
+-- editor.use: elke rol die al nieuws of pagina's mag beheren
+INSERT IGNORE INTO `cf_role_permissions` (`role_id`, `permission_id`)
+SELECT DISTINCT rp.role_id, pe.id
+FROM `cf_role_permissions` rp
+JOIN `cf_permissions` ps ON ps.id = rp.permission_id AND ps.name IN ('news.create', 'pages.manage')
+JOIN `cf_permissions` pe ON pe.name = 'editor.use';
