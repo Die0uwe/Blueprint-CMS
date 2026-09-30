@@ -23,28 +23,28 @@ final class DiscordWidgetBlock extends AbstractBlock
     public function getConfigSchema(): array
     {
         return [
-            'server_id' => ['type' => 'string',  'label' => 'Server ID (overschrijft module instelling)', 'required' => false],
+            'server_id' => ['type' => 'string',  'label' => 'Server ID (leeg = Guild ID uit de Discord-moduleinstellingen)', 'required' => false,
+                            'help' => 'Zet in Discord: Serverinstellingen → Widget → "Server-widget inschakelen" aan én kies een uitnodigingskanaal.'],
             'theme'     => ['type' => 'select',  'label' => 'Thema', 'options' => ['dark', 'light'], 'default' => 'dark'],
-            'width'     => ['type' => 'integer', 'label' => 'Breedte (px)', 'default' => 350],
-            'height'    => ['type' => 'integer', 'label' => 'Hoogte (px)',  'default' => 500],
+            'width'     => ['type' => 'integer', 'label' => 'Breedte (px)', 'default' => 350, 'min' => 200, 'max' => 1000],
+            'height'    => ['type' => 'integer', 'label' => 'Hoogte (px)',  'default' => 500, 'min' => 200, 'max' => 1000],
         ];
     }
 
     public function render(array $config, array $context = []): string
     {
-        $serverId = htmlspecialchars(
-            $config['server_id'] ?: ($this->moduleConfig['guild_id'] ?? ''),
-            ENT_QUOTES
-        );
+        $serverId = trim((string) (($config['server_id'] ?? '') ?: ($this->moduleConfig['guild_id'] ?? '')));
 
-        if (empty($serverId)) {
-            return '<p style="color:var(--muted);font-size:.85rem;">⚠️ Discord Server ID niet ingesteld. Configureer de Discord module.</p>';
+        if ($serverId === '') {
+            return '<p style="color:var(--muted);font-size:.85rem;">⚠️ Discord Server ID niet ingesteld. Vul het Server ID in via de blok-instellingen (⚙️) of via de Discord-moduleinstellingen.</p>';
+        }
+        if (!preg_match('/^\d{15,25}$/', $serverId)) {
+            return '<p style="color:var(--muted);font-size:.85rem;">⚠️ Ongeldig Discord Server ID (alleen cijfers, 17–19 lang).</p>';
         }
 
         $theme  = ($config['theme'] ?? 'dark') === 'light' ? 'light' : 'dark';
         $width  = max(200, min(1000, (int) ($config['width']  ?? 350)));
         $height = max(200, min(1000, (int) ($config['height'] ?? 500)));
-        $inviteUrl = "https://discord.gg"; // placeholder — configureerbaar via module settings
 
         return <<<HTML
         <div class="cf-discord-widget">

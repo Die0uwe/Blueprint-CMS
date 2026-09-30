@@ -6,6 +6,7 @@ declare(strict_types=1);
 namespace CommunityFusion\Modules\Blocks;
 
 use CommunityFusion\Core\Block\BlockRegistry;
+use CommunityFusion\Core\Block\BlockSettings;
 use CommunityFusion\Core\Database\Connection;
 use CommunityFusion\Core\Request;
 use CommunityFusion\Core\Response;
@@ -64,8 +65,13 @@ final class BlockController
         if ($type === null) {
             return Response::json(['error' => 'Block type niet gevonden.'], 404);
         }
+        $norm = BlockSettings::normalize($type->getConfigSchema(), is_array($config) ? $config : []);
+        if ($norm['errors'] !== []) {
+            return Response::json(['error' => 'Ongeldige instellingen.', 'fields' => $norm['errors']], 422);
+        }
+        $config = $norm['config'];
         try {
-            $type->validateConfig(is_array($config) ? $config : []);
+            $type->validateConfig($config);
         } catch (\Throwable $e) {
             return Response::json(['error' => $e->getMessage()], 422);
         }
@@ -98,20 +104,67 @@ final class BlockController
         return Response::redirect('/admin/blocks');
     }
 
+    /** JSON voor het instellingenscherm: schema + huidige waarden van één blok. */
+    public function settings(Request $request): Response
+    {
+        $block = $this->registry->getBlock((int) $request->param('id'));
+        $type  = $block ? $this->registry->find((string) $block['type_slug']) : null;
+        if ($block === null || $type === null) {
+            return Response::json(['error' => 'Blok niet gevonden.'], 404);
+        }
+        $schema = $type->getConfigSchema();
+        $saved  = json_decode((string) ($block['config'] ?? '{}'), true);
+        return Response::json([
+            'id' => (int) $block['id'], 'type' => $block['type_slug'], 'name' => $type->getName(),
+            'title' => (string) ($block['title'] ?? ''), 'is_visible' => (int) $block['is_visible'],
+            'fields' => BlockSettings::describe($schema),
+            'config' => array_replace(BlockSettings::defaults($schema), is_array($saved) ? $saved : []),
+        ]);
+    }
+
+    /**
+     * Wijzigt alleen wat is meegestuurd. (Voorheen werd config altijd overschreven met [] zodra
+     * je een blok alleen verborg of verplaatste.)
+     */
     public function update(Request $request): Response
     {
         CsrfProtection::validateRequest();
-        $id     = (int) $request->param('id');
-        $title  = $request->input('title', '');
-        $config = $request->input('config', []);
-        $vis    = (int) $request->input('is_visible', 1);
-        $zone   = $request->input('zone', '');
+        $id    = (int) $request->param('id');
+        $block = $this->registry->getBlock($id);
+        $type  = $block ? $this->registry->find((string) $block['type_slug']) : null;
+        if ($block === null || $type === null) {
+            return Response::json(['error' => 'Blok niet gevonden.'], 404);
+        }
 
-        $data = ['title' => $title ?: null, 'config' => json_encode($config), 'is_visible' => $vis];
-        if (!empty($zone) && array_key_exists($zone, self::ZONES)) {
+        $data = [];
+        $title = $request->input('title', null);
+        if (is_string($title)) {
+            $data['title'] = mb_substr(trim($title), 0, 200) ?: null;
+        }
+        $vis = $request->input('is_visible', null);
+        if ($vis !== null) {
+            $data['is_visible'] = (int) ((int) $vis === 1);
+        }
+        $zone = $request->input('zone', '');
+        if (is_string($zone) && $zone !== '' && array_key_exists($zone, self::ZONES)) {
             $data['zone'] = $zone;
         }
-        $this->registry->updateBlock($id, $data);
+        $config = $request->input('config', null);
+        if ($config !== null) {
+            $norm = BlockSettings::normalize($type->getConfigSchema(), is_array($config) ? $config : []);
+            if ($norm['errors'] !== []) {
+                return Response::json(['error' => 'Ongeldige instellingen.', 'fields' => $norm['errors']], 422);
+            }
+            try {
+                $type->validateConfig($norm['config']);
+            } catch (\Throwable $e) {
+                return Response::json(['error' => $e->getMessage()], 422);
+            }
+            $data['config'] = json_encode($norm['config'], JSON_UNESCAPED_UNICODE);
+        }
+        if ($data !== []) {
+            $this->registry->updateBlock($id, $data);
+        }
 
         if ($request->isJson() || $request->isAjax()) {
             return Response::json(['success' => true]);
@@ -172,7 +225,7 @@ final class BlockController
     {
         $placed = [];
         foreach (self::ZONES as $zone => $_) {
-            $placed[$zone] = $this->registry->getZoneBlocks($zone);
+            $placed[$zone] = $this->registry->getZoneBlocksForAdmin($zone);
         }
         return $placed;
     }

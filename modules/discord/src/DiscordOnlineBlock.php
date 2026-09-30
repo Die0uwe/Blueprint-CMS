@@ -39,25 +39,34 @@ final class DiscordOnlineBlock extends AbstractBlock
 
     public function render(array $config, array $context = []): string
     {
-        $serverId = $config['server_id'] ?: ($this->moduleConfig['guild_id'] ?? '');
+        $serverId = trim((string) (($config['server_id'] ?? '') ?: ($this->moduleConfig['guild_id'] ?? '')));
 
-        if (empty($serverId)) {
-            return '<p style="color:var(--muted);font-size:.85rem;">⚠️ Discord Server ID niet ingesteld.</p>';
+        if ($serverId === '' || !preg_match('/^\d{15,25}$/', $serverId)) {
+            return '<p style="color:var(--muted);font-size:.85rem;">⚠️ Discord Server ID ontbreekt of is ongeldig. Vul het in via de blok-instellingen (⚙️).</p>';
         }
 
         // Cache de widget data
-        $data = $this->cache->remember("discord.widget.{$serverId}", 60, function() use ($serverId) {
-            $url  = "https://discord.com/api/guilds/{$serverId}/widget.json";
-            $ch   = curl_init($url);
-            curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 4]);
+        // Alleen succesvolle antwoorden cachen, zodat een net ingeschakelde widget meteen werkt.
+        $key  = "discord.widget.{$serverId}";
+        $data = $this->cache->get($key);
+        if (!is_array($data)) {
+            $ch = curl_init("https://discord.com/api/guilds/{$serverId}/widget.json");
+            curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 4, CURLOPT_PROTOCOLS => CURLPROTO_HTTPS]);
             $body = curl_exec($ch);
-            $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
             curl_close($ch);
-            return $code === 200 ? json_decode($body, true) : null;
-        });
-
-        if (empty($data)) {
-            return '<p style="color:var(--muted);font-size:.85rem;">🔌 Discord widget niet beschikbaar. Zorg dat de widget ingeschakeld is in de server-instellingen.</p>';
+            $data = $code === 200 ? json_decode((string) $body, true) : null;
+            if (is_array($data)) {
+                $this->cache->set($key, $data, 60);
+            } else {
+                $why = match (true) {
+                    $code === 403 => 'De widget staat uit: zet in Discord Serverinstellingen → Widget "Server-widget inschakelen" aan en kies een uitnodigingskanaal.',
+                    $code === 404 => 'Server niet gevonden: controleer het Server ID.',
+                    $code === 429 => 'Discord geeft tijdelijk te veel verzoeken terug; probeer het zo opnieuw.',
+                    default       => 'Discord is nu niet bereikbaar.',
+                };
+                return '<p style="color:var(--muted);font-size:.85rem;">🔌 ' . htmlspecialchars($why, ENT_QUOTES) . '</p>';
+            }
         }
 
         $members    = $data['members'] ?? [];
@@ -65,7 +74,7 @@ final class DiscordOnlineBlock extends AbstractBlock
         $members    = array_slice($members, 0, $maxMembers);
         $guildName  = htmlspecialchars($data['name'] ?? 'Discord Server');
         $online     = count($data['members'] ?? []);
-        $inviteUrl  = htmlspecialchars($config['invite_url'] ?: ($data['instant_invite'] ?? '#'), ENT_QUOTES);
+        $inviteUrl  = htmlspecialchars((($config['invite_url'] ?? '') ?: ($data['instant_invite'] ?? '#')), ENT_QUOTES);
         $showInvite = (bool) ($config['show_invite'] ?? true);
 
         $membersHtml = '';
@@ -109,5 +118,5 @@ final class DiscordOnlineBlock extends AbstractBlock
         HTML;
     }
 
-    public function getCacheTtl(): int { return 60; } // 1 minuut
+    public function getCacheTtl(): int { return 0; } // de widget-data wordt zelf 60 s gecachet (alleen bij succes)
 }

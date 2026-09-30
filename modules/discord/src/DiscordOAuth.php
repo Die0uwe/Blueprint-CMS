@@ -29,7 +29,8 @@ final class DiscordOAuth extends OAuthClient
             'response_type' => 'code',
             'scope'         => implode(' ', $this->scopes ?: ['identify', 'email', 'guilds.members.read']),
             'state'         => $state,
-            'prompt'        => 'none', // Geen extra consent screen als al eerder toestemming gegeven
+            // Geen prompt=none: dat slaat het toestemmingsscherm over en laat een nieuwe gebruiker
+            // bij Discord op een fout uitkomen (Discord OAuth2-docs). Standaardgedrag is correct.
         ]);
     }
 

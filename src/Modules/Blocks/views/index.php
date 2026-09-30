@@ -317,6 +317,7 @@ use CommunityFusion\Core\Security\CsrfProtection;
                       <button class="block-btn" onclick="toggleVisible(<?= $block['id'] ?>, <?= $isVisible ? 0 : 1 ?>)">
                         <?= $isVisible ? '👁️' : '🚫' ?>
                       </button>
+                      <button class="block-btn" title="Instellingen" aria-label="Instellingen van dit blok" onclick="openSettings(<?= (int) $block['id'] ?>)">⚙️</button>
                       <button class="block-btn delete" onclick="deleteBlock(<?= $block['id'] ?>)">🗑️</button>
                     </div>
                   </div>
@@ -330,6 +331,30 @@ use CommunityFusion\Core\Security\CsrfProtection;
         </div>
 
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Blok-instellingen (gegenereerd uit getConfigSchema() van het blocktype) -->
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span id="setTitle">⚙️ Instellingen</span>
+      <button class="modal-close" type="button" onclick="closeSettings()" aria-label="Sluiten">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="settingsForm" autocomplete="off">
+        <div class="cf-form-group">
+          <label class="cf-label" for="set-title">Titel (optioneel)</label>
+          <input class="cf-input" type="text" id="set-title" maxlength="200">
+        </div>
+        <div id="settingsFields"></div>
+        <p id="settingsErr" style="color:#ef4444;font-size:.85rem;display:none;"></p>
+        <div style="display:flex;justify-content:flex-end;gap:.8rem;margin-top:1.5rem;">
+          <button type="button" class="cf-btn cf-btn-ghost" onclick="closeSettings()">Annuleren</button>
+          <button type="submit" class="cf-btn" id="setSave">Opslaan</button>
+        </div>
+      </form>
     </div>
   </div>
 </div>
@@ -473,6 +498,74 @@ document.querySelectorAll('.zone-drop').forEach(zone => {
     }
   });
 });
+
+
+// ── Blok-instellingen: generieke renderer op basis van het schema ─────────
+let settingsBlockId = null;
+function closeSettings() { document.getElementById('settingsModal').classList.remove('open'); settingsBlockId = null; }
+
+function settingsField(f, value) {
+  const wrap = document.createElement('div');
+  wrap.className = 'cf-form-group';
+  const id = 'set-f-' + f.key;
+  const label = document.createElement('label');
+  label.className = 'cf-label'; label.htmlFor = id;
+  label.textContent = f.label + (f.required ? ' *' : '');
+  let input;
+  if (f.type === 'boolean') {
+    input = document.createElement('input'); input.type = 'checkbox'; input.checked = !!value;
+    label.prepend(input, ' ');
+    input.id = id; wrap.appendChild(label);
+  } else {
+    if (f.type === 'select') {
+      input = document.createElement('select'); input.className = 'cf-select';
+      for (const o of f.options) { const op = document.createElement('option'); op.value = o.value; op.textContent = o.label; input.appendChild(op); }
+      input.value = value ?? f.default ?? '';
+    } else if (f.type === 'textarea' || f.type === 'code') {
+      input = document.createElement('textarea'); input.className = 'cf-input'; input.rows = f.type === 'code' ? 8 : 4;
+      if (f.type === 'code') input.style.fontFamily = 'monospace';
+      input.value = value ?? '';
+    } else {
+      input = document.createElement('input'); input.className = 'cf-input';
+      input.type = f.type === 'integer' ? 'number' : (f.type === 'url' ? 'url' : 'text');
+      if (f.type === 'integer') { if (f.min !== null) input.min = f.min; if (f.max !== null) input.max = f.max; }
+      input.value = value ?? '';
+    }
+    input.id = id; wrap.append(label, input);
+  }
+  input.dataset.key = f.key; input.dataset.type = f.type;
+  if (f.help) { const h = document.createElement('small'); h.style.color = 'var(--muted)'; h.textContent = f.help; wrap.appendChild(h); }
+  return wrap;
+}
+
+async function openSettings(id) {
+  const r = await fetch(`/admin/blocks/${id}/settings`, { headers: { 'X-Requested-With': 'XMLHttpRequest', Accept: 'application/json' }, credentials: 'same-origin' });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) { showToast(d.error || 'Kon instellingen niet laden', 'error'); return; }
+  settingsBlockId = id;
+  document.getElementById('setTitle').textContent = '⚙️ ' + d.name;
+  document.getElementById('set-title').value = d.title || '';
+  document.getElementById('settingsErr').style.display = 'none';
+  const box = document.getElementById('settingsFields');
+  box.replaceChildren(...d.fields.map((f) => settingsField(f, d.config[f.key])));
+  if (!d.fields.length) { const p = document.createElement('p'); p.style.color = 'var(--muted)'; p.textContent = 'Dit blok heeft geen eigen instellingen.'; box.appendChild(p); }
+  document.getElementById('settingsModal').classList.add('open');
+}
+
+document.getElementById('settingsForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (settingsBlockId === null) return;
+  const config = {};
+  document.querySelectorAll('#settingsFields [data-key]').forEach((el) => {
+    config[el.dataset.key] = el.dataset.type === 'boolean' ? (el.checked ? '1' : '0') : el.value;
+  });
+  const d = await api('POST', `/admin/blocks/${settingsBlockId}/update`, { title: document.getElementById('set-title').value, config });
+  if (d.success) { showToast('✅ Instellingen opgeslagen'); closeSettings(); setTimeout(() => location.reload(), 500); return; }
+  const err = document.getElementById('settingsErr');
+  err.textContent = (d.error || 'Fout') + (d.fields ? ' — ' + Object.entries(d.fields).map(([k, v]) => `${k}: ${v}`).join('; ') : '');
+  err.style.display = 'block';
+});
+document.getElementById('settingsModal').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeSettings(); });
 
 // ── Modal ─────────────────────────────────────────────────────────────────
 function openAddModal() { document.getElementById('addModal').classList.add('open'); }

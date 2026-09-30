@@ -76,6 +76,29 @@ final class BlockRegistry
         });
     }
 
+    /** Alle blocks in een zone, ook verborgen (voor het beheerscherm; nooit voor de publieke site). */
+    public function getZoneBlocksForAdmin(string $zone): array
+    {
+        return $this->db->fetchAll(
+            "SELECT b.*, bt.slug as type_slug
+             FROM cf_blocks b
+             JOIN cf_block_types bt ON bt.id = b.block_type_id
+             WHERE b.zone = ?
+             ORDER BY b.position ASC",
+            [$zone]
+        );
+    }
+
+    /** Eén block-instantie met typeslug, of null. */
+    public function getBlock(int $id): ?array
+    {
+        $row = $this->db->fetchOne(
+            "SELECT b.*, bt.slug as type_slug FROM cf_blocks b JOIN cf_block_types bt ON bt.id = b.block_type_id WHERE b.id = ?",
+            [$id]
+        );
+        return $row ?: null;
+    }
+
     /**
      * Render alle blocks in een zone naar HTML.
      */
