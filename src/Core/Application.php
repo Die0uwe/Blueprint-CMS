@@ -316,6 +316,10 @@ final class Application
         // Laad geregistreerde modules
         $this->loadModules();
 
+        // Laad actieve plugins (plugins/*/plugin.json) — altijd ná de core-modules,
+        // zodat een plugin hun blocks, hooks en routes kan aanvullen.
+        $this->loadPlugins();
+
         // PHP instellingen
         $this->configureRuntime($config);
 
@@ -434,6 +438,29 @@ final class Application
             }
         } catch (\Throwable) {
             // DB nog niet beschikbaar (installatiefase) — negeren
+        }
+    }
+
+    /**
+     * Laad actieve plugins. Een fout in (of rond) plugins mag de site nooit onderuit halen:
+     * PluginManager::loadActive() isoleert elke plugin en logt fouten.
+     */
+    private function loadPlugins(): void
+    {
+        try {
+            $manager = new \CommunityFusion\Core\Plugin\PluginManager(
+                $this->container->make(Connection::class),
+                CF_ROOT . '/plugins',
+                defined('CF_VERSION') ? (string) CF_VERSION : '0.0.0',
+                new \CommunityFusion\Core\Audit\AuditLogger($this->container->make(Connection::class)),
+            );
+            $this->container->instance(\CommunityFusion\Core\Plugin\PluginManager::class, $manager);
+            $manager->loadActive(
+                $this->hooks,
+                $this->container->make(\CommunityFusion\Core\Block\BlockRegistry::class),
+            );
+        } catch (\Throwable $e) {
+            error_log('Plugins konden niet worden geladen: ' . $e->getMessage());
         }
     }
 

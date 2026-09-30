@@ -378,57 +378,22 @@ final class PackageManager
      */
     private function deployPackage(string $slug, string $type, string $sourceRoot): array
     {
-        ManifestValidator::assertSlug($slug);
         $base = realpath($type === 'theme' ? $this->themesPath() : $this->modulesPath());
         if ($base === false) {
             throw new PackageException('Doelmap ontbreekt.');
         }
-        $dest    = $base . '/' . $slug;
-        $staging = $base . '/.' . $slug . '.new-' . SafeFs::randomSuffix();
-        $backup  = null;
-
-        try {
-            SafeFs::copyTree($sourceRoot, $staging);
-            if (is_dir($dest)) {
-                $backup = $base . '/.' . $slug . '.bak-' . SafeFs::randomSuffix();
-                if (!rename($dest, $backup)) {
-                    throw new PackageException('Kan bestaande installatie niet veiligstellen.');
-                }
-            }
-            if (!rename($staging, $dest)) {
-                if ($backup !== null) {
-                    rename($backup, $dest);
-                }
-                throw new PackageException('Kan nieuwe installatie niet activeren.');
-            }
-        } catch (\Throwable $e) {
-            if (is_dir($staging)) {
-                SafeFs::deleteTree($base, $staging);
-            }
-            throw $e instanceof PackageException ? $e : new PackageException($e->getMessage(), 0, $e);
-        }
-
-        return ['dest' => $dest, 'backup' => $backup, 'base' => $base];
+        return AtomicDeploy::deploy($base, $slug, $sourceRoot);
     }
 
     /** Zet de vorige versie terug (of verwijder de nieuwe als er geen vorige was). */
     private function rollbackDeploy(array $deploy): void
     {
-        try {
-            SafeFs::deleteTree($deploy['base'], $deploy['dest']);
-            if ($deploy['backup'] !== null) {
-                rename($deploy['backup'], $deploy['dest']);
-            }
-        } catch (\Throwable $e) {
-            error_log('Rollback van pakket mislukt: ' . $e->getMessage());
-        }
+        AtomicDeploy::rollback($deploy);
     }
 
     private function commitDeploy(array $deploy): void
     {
-        if ($deploy['backup'] !== null) {
-            SafeFs::deleteTree($deploy['base'], $deploy['backup']);
-        }
+        AtomicDeploy::commit($deploy);
     }
 
     private function registerInstalled(array $manifest, string $installPath): void
