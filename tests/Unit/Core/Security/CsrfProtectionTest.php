@@ -61,6 +61,29 @@ final class CsrfProtectionTest extends TestCase
     }
 
     #[Test]
+    public function validateRequestRejectsAnArrayTokenWithA403(): void
+    {
+        CsrfProtection::getToken();
+        $_POST['_csrf_token'] = ['x'];
+
+        try {
+            CsrfProtection::validateRequest();
+            self::fail('Een array-token had geweigerd moeten worden.');
+        } catch (\CommunityFusion\Core\HttpException $e) {
+            self::assertSame(403, $e->getCode());
+        }
+    }
+
+    #[Test]
+    public function validateRequestRejectsAnEmptyTokenEvenWhenTheSessionHasNone(): void
+    {
+        $_POST['_csrf_token'] = '';
+
+        $this->expectException(\CommunityFusion\Core\HttpException::class);
+        CsrfProtection::validateRequest();
+    }
+
+    #[Test]
     public function fieldRendersAnEscapedHiddenInputContainingTheToken(): void
     {
         $token = CsrfProtection::getToken();

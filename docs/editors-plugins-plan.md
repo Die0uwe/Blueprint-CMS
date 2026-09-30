@@ -85,5 +85,6 @@ Gerangschikt op waarde/inspanning; de eerste vijf passen direct bij dit plan.
 
 - [x] Verkenning (5 specialisten)
 - [x] Plan geschreven
-- [ ] Akkoord Ouwe
-- [ ] Stap 0 … g
+- [x] Akkoord Ouwe (2026-09-30, alle voorstellen §5 overgenomen)
+- [x] Stap 0 — security-fundering (v1.28.1): ManifestValidator, ZipInspector, SafeFs, SsrfGuard/SafeDownloader, atomisch deployen met rollback, CSRF-fix. 69 unit-tests groen (mini-runner; PHPUnit niet installeerbaar in sandbox)
+- [ ] Stap a … g

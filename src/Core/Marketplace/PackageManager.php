@@ -43,64 +43,75 @@ final class PackageManager
      */
     public function install(string $packageSlug, string $downloadUrl): InstallResult
     {
+        $packageSlug = ManifestValidator::assertSlug($packageSlug);
         $this->ensureDirectories();
 
-        // 1. Download ZIP
-        $zipPath = $this->download($packageSlug, $downloadUrl);
+        // 1. Download ZIP (SSRF-veilig, met grootte-limiet)
+        $zipPath = $this->downloadPath() . '/dl_' . SafeFs::randomSuffix() . '.zip';
+        (new SafeDownloader())->fetch($downloadUrl, $zipPath);
 
-        // 2. Valideer en extraheer
-        $manifest = $this->extractAndValidate($zipPath, $packageSlug);
-
-        // 3. Kopieer naar juiste locatie
-        $installPath = $this->deployPackage($packageSlug, $manifest['type'] ?? 'module');
-
-        // 4. Registreer in DB
-        $this->registerInstalled($manifest, $installPath);
-
-        // 5. Voer module installer uit indien aanwezig
-        $this->runModuleInstaller($packageSlug, $manifest);
-
-        // 6. Verwijder tijdelijke bestanden
-        $this->cleanup($zipPath);
-
-        // 7. Invalideer relevante caches
-        $this->cache->delete("marketplace.installed");
-        $this->cache->delete("modules.all");
-
-        return new InstallResult(
-            success:     true,
-            slug:        $packageSlug,
-            name:        $manifest['name'] ?? $packageSlug,
-            version:     $manifest['version'] ?? '1.0.0',
-            type:        $manifest['type'] ?? 'module',
-            installPath: $installPath,
-        );
+        return $this->installZip($zipPath, $packageSlug);
     }
 
     /**
      * Installeer vanuit een geüploaded ZIP bestand.
+     * De slug komt uit het (gevalideerde) manifest, niet uit de bestandsnaam.
      */
     public function installFromUpload(string $tmpPath, string $originalName): InstallResult
     {
         $this->ensureDirectories();
 
-        // Bepaal slug uit bestandsnaam (my-module-v1.0.zip → my-module)
-        $slug = preg_replace('/[-_]v?\d[\d.]*$/', '', pathinfo($originalName, PATHINFO_FILENAME));
-        $slug = strtolower(preg_replace('/[^a-z0-9-]/', '-', $slug));
+        if (strtolower(pathinfo($originalName, PATHINFO_EXTENSION)) !== 'zip') {
+            throw new PackageException('Alleen .zip-bestanden zijn toegestaan.');
+        }
+        $zipPath = $this->downloadPath() . '/up_' . SafeFs::randomSuffix() . '.zip';
+        if (!move_uploaded_file($tmpPath, $zipPath)) {
+            throw new PackageException('Upload kon niet worden opgeslagen.');
+        }
 
-        $zipPath = $this->downloadPath() . '/' . $slug . '.zip';
-        move_uploaded_file($tmpPath, $zipPath);
+        return $this->installZip($zipPath, null);
+    }
 
-        $manifest    = $this->extractAndValidate($zipPath, $slug);
-        $installPath = $this->deployPackage($slug, $manifest['type'] ?? 'module');
-        $this->registerInstalled($manifest, $installPath);
-        $this->runModuleInstaller($slug, $manifest);
-        $this->cleanup($zipPath);
+    /**
+     * Gemeenschappelijke installatiestappen: inspecteren → valideren → atomisch deployen
+     * → registreren → installer draaien. Bij een fout na het deployen wordt de vorige
+     * versie teruggezet.
+     */
+    private function installZip(string $zipPath, ?string $expectedSlug): InstallResult
+    {
+        $workDir = null;
+        try {
+            [$manifest, $root, $workDir] = $this->extractAndValidate($zipPath, $expectedSlug);
+            $slug = $manifest['slug'];
+            $type = $manifest['type'];
+
+            $deploy = $this->deployPackage($slug, $type, $root);
+            try {
+                $this->registerInstalled($manifest, $deploy['dest']);
+                $this->runModuleInstaller($slug, $manifest);
+            } catch (\Throwable $e) {
+                $this->rollbackDeploy($deploy);
+                throw $e instanceof PackageException ? $e : new PackageException('Installatie mislukt: ' . $e->getMessage(), 0, $e);
+            }
+            $this->commitDeploy($deploy);
+        } finally {
+            $this->cleanup($zipPath);
+            if ($workDir !== null) {
+                SafeFs::deleteTree($this->downloadPath(), $workDir);
+            }
+        }
 
         $this->cache->delete("marketplace.installed");
         $this->cache->delete("modules.all");
 
-        return new InstallResult(true, $slug, $manifest['name'] ?? $slug, $manifest['version'] ?? '1.0.0', $manifest['type'] ?? 'module', $installPath);
+        return new InstallResult(
+            success:     true,
+            slug:        $slug,
+            name:        $manifest['name'],
+            version:     $manifest['version'],
+            type:        $type,
+            installPath: $deploy['dest'],
+        );
     }
 
     // ─── DEÏNSTALLATIE ───────────────────────────────────────────────────────
@@ -111,6 +122,7 @@ final class PackageManager
      */
     public function uninstall(string $slug): bool
     {
+        ManifestValidator::assertSlug($slug);
         $installed = $this->getInstalled($slug);
         if (!$installed) {
             throw new PackageException("Package '{$slug}' is niet geïnstalleerd.");
@@ -130,14 +142,17 @@ final class PackageManager
             if ($class && class_exists($class)) {
                 try {
                     (new $class($this->getApp()))->uninstall();
-                } catch (\Throwable) {}
+                } catch (\Throwable $e) {
+                    error_log("Uninstall-hook van '{$slug}' mislukt: " . $e->getMessage());
+                }
             }
         }
 
-        // Verwijder bestanden
+        // Verwijder bestanden — alleen binnen modules/ of themes/, nooit een ander pad uit de DB
         $installPath = $installed['install_path'];
         if ($installPath && is_dir($installPath)) {
-            $this->deleteDirectory($installPath);
+            $base = $installed['type'] === 'theme' ? $this->themesPath() : $this->modulesPath();
+            SafeFs::deleteTree($base, $installPath);
         }
 
         // Verwijder uit DB
@@ -192,12 +207,8 @@ final class PackageManager
             throw new PackageException("Geen download URL beschikbaar voor '{$slug}'.");
         }
 
-        // Verwijder bestaande installatie (zonder uninstall hook)
-        $installed = $this->getInstalled($slug);
-        if ($installed && $installed['install_path'] && is_dir($installed['install_path'])) {
-            $this->deleteDirectory($installed['install_path']);
-        }
-
+        // Geen pre-delete meer: deployPackage() vervangt de map atomisch en zet bij een
+        // fout de vorige versie terug.
         return $this->install($slug, $package['download_url']);
     }
 
@@ -296,112 +307,128 @@ final class PackageManager
 
     // ─── PRIVATE HELPERS ─────────────────────────────────────────────────────
 
-    private function download(string $slug, string $url): string
+    /**
+     * Inspecteer, pak uit in een unieke werkmap en valideer het manifest.
+     *
+     * @return array{0:array<string,mixed>,1:string,2:string} [manifest, bronmap, werkmap]
+     * @throws PackageException
+     */
+    private function extractAndValidate(string $zipPath, ?string $expectedSlug): array
     {
-        $zipPath = $this->downloadPath() . "/{$slug}.zip";
-
-        $ch = curl_init($url);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_TIMEOUT        => 120,
-            CURLOPT_SSL_VERIFYPEER => true,
-        ]);
-
-        $content = curl_exec($ch);
-        $status  = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $error   = curl_error($ch);
-        curl_close($ch);
-
-        if ($error || $status !== 200) {
-            throw new PackageException("Download mislukt voor '{$slug}': HTTP {$status} — {$error}");
+        $workDir = $this->downloadPath() . '/work_' . SafeFs::randomSuffix();
+        if (!mkdir($workDir, 0755, true) && !is_dir($workDir)) {
+            throw new PackageException('Kan werkmap niet aanmaken.');
         }
 
-        if (file_put_contents($zipPath, $content) === false) {
-            throw new PackageException("Kan ZIP niet opslaan naar {$zipPath}");
-        }
-
-        return $zipPath;
-    }
-
-    private function extractAndValidate(string $zipPath, string $slug): array
-    {
-        $extractTo = $this->downloadPath() . "/{$slug}_extracted";
-
-        // Verwijder eventuele vorige extractie
-        if (is_dir($extractTo)) $this->deleteDirectory($extractTo);
-        mkdir($extractTo, 0755, true);
-
-        $zip = new \ZipArchive();
-        $result = $zip->open($zipPath);
-        if ($result !== true) {
-            throw new PackageException("Kan ZIP niet openen (code: {$result})");
-        }
-
-        // Veiligheidscheck: geen path traversal in ZIP entries
-        for ($i = 0; $i < $zip->numFiles; $i++) {
-            $name = $zip->getNameIndex($i);
-            if (str_contains($name, '..') || str_starts_with($name, '/')) {
+        try {
+            $zip = new \ZipArchive();
+            $result = $zip->open($zipPath);
+            if ($result !== true) {
+                throw new PackageException("Kan ZIP niet openen (code: {$result})");
+            }
+            try {
+                (new ZipInspector())->inspect($zip);   // weigert vóór uitpakken
+                if (!$zip->extractTo($workDir)) {
+                    throw new PackageException('Uitpakken mislukt.');
+                }
+            } finally {
                 $zip->close();
-                throw new PackageException("Onveilige ZIP entry gedetecteerd: {$name}");
             }
-        }
 
-        $zip->extractTo($extractTo);
-        $zip->close();
-
-        // Vind manifest — kan in root of in submap zitten
-        $manifest = null;
-        $manifestPath = null;
-        foreach (['module.json', 'theme.json', '*/module.json', '*/theme.json'] as $pattern) {
-            $found = glob($extractTo . '/' . $pattern);
-            if (!empty($found)) {
-                $manifestPath = $found[0];
-                $manifest     = json_decode(file_get_contents($manifestPath), true);
-                break;
+            // Manifest in de root of in één submap
+            $manifestPath = null;
+            foreach (['module.json', 'theme.json', '*/module.json', '*/theme.json'] as $pattern) {
+                $found = glob($workDir . '/' . $pattern);
+                if (!empty($found)) {
+                    $manifestPath = $found[0];
+                    break;
+                }
             }
-        }
-
-        if (!$manifest) {
-            $this->deleteDirectory($extractTo);
-            throw new PackageException("Geen module.json of theme.json gevonden in ZIP");
-        }
-
-        // Valideer verplichte velden
-        foreach (['slug', 'name', 'version'] as $field) {
-            if (empty($manifest[$field])) {
-                $this->deleteDirectory($extractTo);
-                throw new PackageException("Verplicht veld '{$field}' ontbreekt in manifest");
+            if ($manifestPath === null) {
+                throw new PackageException('Geen module.json of theme.json gevonden in ZIP');
             }
+
+            $raw = json_decode((string)file_get_contents($manifestPath), true);
+            if (!is_array($raw)) {
+                throw new PackageException('Manifest is geen geldige JSON.');
+            }
+            $manifest = (new ManifestValidator())->validate($raw, $expectedSlug);
+
+            $expectedFile = $manifest['type'] === 'theme' ? 'theme.json' : 'module.json';
+            if (basename($manifestPath) !== $expectedFile) {
+                throw new PackageException("Type '{$manifest['type']}' vraagt om {$expectedFile}.");
+            }
+
+            // Bronmap = map van het manifest; moet binnen de werkmap liggen
+            $manifestDir = dirname($manifestPath);
+            $root = $manifestDir === $workDir ? $workDir : SafeFs::assertInside($workDir, $manifestDir);
+        } catch (\Throwable $e) {
+            SafeFs::deleteTree($this->downloadPath(), $workDir);
+            throw $e instanceof PackageException ? $e : new PackageException($e->getMessage(), 0, $e);
         }
 
-        // Sla extractie-pad op in manifest voor deployPackage()
-        $manifest['_extracted_path'] = dirname($manifestPath);
-
-        return $manifest;
+        return [$manifest, $root, $workDir];
     }
 
-    private function deployPackage(string $slug, string $type): string
+    /**
+     * Zet het pakket klaar via een tijdelijke map en verwissel dat atomisch met de bestaande
+     * installatie (die als back-up blijft staan tot commitDeploy()).
+     *
+     * @return array{dest:string,backup:?string,base:string}
+     */
+    private function deployPackage(string $slug, string $type, string $sourceRoot): array
     {
-        $sourcePath = $this->downloadPath() . "/{$slug}_extracted";
-        $destPath   = ($type === 'theme' ? $this->themesPath() : $this->modulesPath()) . "/{$slug}";
+        ManifestValidator::assertSlug($slug);
+        $base = realpath($type === 'theme' ? $this->themesPath() : $this->modulesPath());
+        if ($base === false) {
+            throw new PackageException('Doelmap ontbreekt.');
+        }
+        $dest    = $base . '/' . $slug;
+        $staging = $base . '/.' . $slug . '.new-' . SafeFs::randomSuffix();
+        $backup  = null;
 
-        // Verwijder bestaande installatie
-        if (is_dir($destPath)) $this->deleteDirectory($destPath);
+        try {
+            SafeFs::copyTree($sourceRoot, $staging);
+            if (is_dir($dest)) {
+                $backup = $base . '/.' . $slug . '.bak-' . SafeFs::randomSuffix();
+                if (!rename($dest, $backup)) {
+                    throw new PackageException('Kan bestaande installatie niet veiligstellen.');
+                }
+            }
+            if (!rename($staging, $dest)) {
+                if ($backup !== null) {
+                    rename($backup, $dest);
+                }
+                throw new PackageException('Kan nieuwe installatie niet activeren.');
+            }
+        } catch (\Throwable $e) {
+            if (is_dir($staging)) {
+                SafeFs::deleteTree($base, $staging);
+            }
+            throw $e instanceof PackageException ? $e : new PackageException($e->getMessage(), 0, $e);
+        }
 
-        // Vind de werkelijke bronmap (kan in submap zitten na extractie)
-        $manifest = json_decode(file_get_contents($sourcePath . '/module.json') ?: file_get_contents(glob($sourcePath . '/*/module.json')[0] ?? ''), true);
-        $realSource = isset($manifest['_extracted_path']) ? $manifest['_extracted_path'] : $sourcePath;
+        return ['dest' => $dest, 'backup' => $backup, 'base' => $base];
+    }
 
-        if (!is_dir($realSource)) $realSource = $sourcePath;
+    /** Zet de vorige versie terug (of verwijder de nieuwe als er geen vorige was). */
+    private function rollbackDeploy(array $deploy): void
+    {
+        try {
+            SafeFs::deleteTree($deploy['base'], $deploy['dest']);
+            if ($deploy['backup'] !== null) {
+                rename($deploy['backup'], $deploy['dest']);
+            }
+        } catch (\Throwable $e) {
+            error_log('Rollback van pakket mislukt: ' . $e->getMessage());
+        }
+    }
 
-        // Kopieer naar bestemming
-        $this->copyDirectory($realSource, $destPath);
-
-        // Verwijder tijdelijke extractie
-        $this->deleteDirectory($sourcePath);
-
-        return $destPath;
+    private function commitDeploy(array $deploy): void
+    {
+        if ($deploy['backup'] !== null) {
+            SafeFs::deleteTree($deploy['base'], $deploy['backup']);
+        }
     }
 
     private function registerInstalled(array $manifest, string $installPath): void
@@ -475,48 +502,16 @@ final class PackageManager
         }
     }
 
-    private function copyDirectory(string $from, string $to): void
-    {
-        if (!is_dir($to)) mkdir($to, 0755, true);
-
-        $items = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($from, \RecursiveDirectoryIterator::SKIP_DOTS),
-            \RecursiveIteratorIterator::SELF_FIRST
-        );
-
-        foreach ($items as $item) {
-            $target = $to . '/' . $items->getSubPathname();
-            if ($item->isDir()) {
-                if (!is_dir($target)) mkdir($target, 0755, true);
-            } else {
-                copy($item->getRealPath(), $target);
-            }
-        }
-    }
-
-    private function deleteDirectory(string $path): void
-    {
-        if (!is_dir($path)) return;
-
-        $items = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($path, \RecursiveDirectoryIterator::SKIP_DOTS),
-            \RecursiveIteratorIterator::CHILD_FIRST
-        );
-
-        foreach ($items as $item) {
-            $item->isDir() ? rmdir($item->getRealPath()) : unlink($item->getRealPath());
-        }
-        rmdir($path);
-    }
-
     private function cleanup(string $zipPath): void
     {
-        if (file_exists($zipPath)) unlink($zipPath);
+        if (is_file($zipPath)) {
+            unlink($zipPath);
+        }
     }
 }
 
 // ╔══════════════════════════════════════════════════════════════════════╗
-// ║  File: PackageManager.php | Role: Core | Version: 1.0.0             ║
+// ║  File: PackageManager.php | Role: Core | Version: 1.1.0             ║
 // ║  Created: 2026-06-06 | Status: New                                  ║
 // ║  Notes: Download, validate, extract, deploy, register, update       ║
 // ║  Created by Dieouwe — www.dieouwe.nl | discord.gg/y8Pu5qsEbQ        ║

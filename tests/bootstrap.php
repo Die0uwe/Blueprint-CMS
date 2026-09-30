@@ -12,6 +12,17 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
+// CF_ROOT wijst in tests naar een wegwerpmap, zodat PackageManager nooit echte modules/ raakt.
+if (!defined('CF_ROOT')) {
+    $cfRoot = sys_get_temp_dir() . '/cf-test-root-' . getmypid();
+    foreach (['modules', 'themes', 'storage/marketplace/downloads'] as $sub) {
+        if (!is_dir($cfRoot . '/' . $sub)) {
+            mkdir($cfRoot . '/' . $sub, 0755, true);
+        }
+    }
+    define('CF_ROOT', $cfRoot);
+}
+
 if (session_status() === PHP_SESSION_NONE) {
     // CLI heeft geen cookies/headers; we starten de sessie puur voor de
     // in-memory $_SESSION superglobal die de auth/CSRF-klassen gebruiken.

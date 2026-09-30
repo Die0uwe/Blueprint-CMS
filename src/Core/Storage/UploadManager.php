@@ -198,7 +198,7 @@ final class UploadManager
         $full = realpath($this->storagePath . '/' . $relativePath);
         $base = realpath($this->storagePath);
 
-        if ($full === false || $base === false || !str_starts_with($full, $base)) {
+        if ($full === false || $base === false || !str_starts_with($full, rtrim($base, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR)) {
             return null;
         }
 

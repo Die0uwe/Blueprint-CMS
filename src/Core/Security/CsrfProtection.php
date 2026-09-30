@@ -29,7 +29,10 @@ final class CsrfProtection
     }
     public static function verify(string $token): bool
     {
-        return hash_equals($_SESSION['_csrf_token'] ?? '', $token);
+        $expected = $_SESSION['_csrf_token'] ?? '';
+        // Een lege sessie-token mag nooit matchen met een lege ingezonden token
+        // (hash_equals('', '') is true): anders omzeilt een POST met _csrf_token= de check.
+        return is_string($expected) && $expected !== '' && hash_equals($expected, $token);
     }
     public static function field(): string
     {
@@ -39,7 +42,8 @@ final class CsrfProtection
     public static function validateRequest(): void
     {
         $token = $_POST['_csrf_token'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
-        if (!self::verify($token)) {
+        // _csrf_token[]=x geeft een array: geen TypeError/500, maar een nette 403.
+        if (!is_string($token) || !self::verify($token)) {
             // Was \RuntimeException(..., 403) — zelfde bug als AuthManager::authorize()
             // had vóór HttpException bestond (zie dat bestand): Application::handleException()
             // herkent alleen `instanceof HttpException`, dus een kale RuntimeException kwam

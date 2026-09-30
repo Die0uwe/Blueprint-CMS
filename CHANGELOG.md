@@ -18,6 +18,34 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ---
 
+## [1.28.1] — 2026-09-30 — Beveiliging van pakket-installatie (Marketplace) en CSRF
+
+Aanleiding: security-audit vóór de bouw van het plugin-systeem (zie `docs/editors-plugins-plan.md`, stap 0).
+Geen nieuwe functies; wel strengere controles. **Geen database-wijzigingen.**
+
+### 🔒 Gecontroleerde security-klassen
+
+| Klasse | Wat was er mis | Oplossing |
+|---|---|---|
+| Path traversal / willekeurig verwijderen | `slug` ging ongesaneerd naar `deleteDirectory()`: `slug=..` of een lege slug (`-1.zip`) kon `modules/` leegmaken | Slug-regex `^[a-z0-9-]{1,64}$`; verwijderen alleen via `SafeFs::deleteTree()` strikt binnen de basismap, nooit de basismap zelf, geen symlinks volgen; ook bij `uninstall()` (pad uit DB) |
+| Willekeurig kopiëren | `_extracted_path` uit de `module.json` in de ZIP werd vertrouwd | Sleutels met `_` worden uit manifesten gestript; bronmap wordt door de code bepaald en moet binnen de werkmap liggen |
+| Zip-slip / zip-bomb / symlinks | Alleen `..` en leidende `/` werden gecontroleerd | `ZipInspector` vóór uitpakken: backslash, `:`, control-tekens, `.`/`..`-segmenten, symlinks, max 2000 bestanden, 10 MB per bestand, 50 MB totaal, compressieratio ≤ 100, extensie-allowlist (geen `.phar`, `.phtml`, `.htaccess`, verborgen bestanden, dubbele extensies) |
+| Manifest-injectie | `slug`, `class`, `type` werden niet gevalideerd; slug uit bestandsnaam kon afwijken van de manifest-slug | `ManifestValidator`: slug, versie, type (module/theme), `class` alleen in `CommunityFusion\Modules\` of `\Plugins\`, thema zonder PHP-klasse, veilige `autoload`- en permissienamen. Bij upload komt de slug nu uit het manifest |
+| SSRF | `download_url` uit de request, redirects ongelimiteerd, geen IP-controle | `SsrfGuard` + `SafeDownloader`: alleen https, poort 443, alleen publieke IP's (ook IPv6, CGNAT, link-local/metadata), verbinding vastgezet op het gecontroleerde IP (geen DNS-rebinding), max 3 handmatige redirects die elk opnieuw gecontroleerd worden, 50 MB-limiet tijdens het downloaden |
+| Race / data-verlies bij update | `update()` wiste de module vóór de download slaagde; vaste tempnamen | Uitpakken in unieke werkmap; deploy via tijdelijke map + atomische `rename`; bij een fout na het deployen wordt de vorige versie teruggezet |
+| CSRF | `verify('')` was `true` als de sessie nog geen token had (`hash_equals('', '')`); `_csrf_token[]=x` gaf een 500 | Lege sessie-token matcht nooit; array-token geeft een nette 403 |
+| Path traversal (kleine) | `UploadManager::resolve()` controleerde het voorvoegsel zonder `/` (een zustermap `uploads-evil` kon passeren) | Vergelijking met `DIRECTORY_SEPARATOR` |
+| Foutafhandeling | lege `catch` bij uninstall-hook; `move_uploaded_file` niet gecontroleerd | Fout wordt gelogd; upload-fout wordt gemeld |
+
+### 🧪 Tests
+Nieuw: `ManifestValidatorTest`, `ZipInspectorTest`, `SafeFsTest`, `SsrfGuardTest`, `PackageManagerDeployTest`; uitbreiding `CsrfProtectionTest`.
+Let op: in de bouwomgeving kon PHPUnit niet worden geïnstalleerd (Packagist/GitHub geblokkeerd). De 69 unit-tests zijn gedraaid met een lokale, PHPUnit-compatibele mini-runner (69 geslaagd, 226 asserties); draai `composer test` op een machine met dev-dependencies voor de officiële run. PHPStan is nog niet gedraaid.
+
+### ⚠️ Bekend en bewust niet in deze release
+Rate limiting met `X-Forwarded-For`-fix, `BlockController::update()` (overschrijft config bij alleen verbergen/verplaatsen), `visibility_roles` in `renderZone`/publieke API en een `CsrfMiddleware` volgen in aparte, kleine releases.
+
+---
+
 ## [1.28.0] — 2026-09-30 — `vendor/` gecommit: geen losse Composer-stap meer nodig om te deployen
 
 Aanleiding: gevraagd of de vendor-map niet gewoon in de repository kon, i.p.v. de losse
