@@ -16,7 +16,7 @@ GPL-3.0-or-later
 [![PHP](https://img.shields.io/badge/PHP-8.3%2B-777BB4?style=flat-square&logo=php)](https://php.net)
 [![MariaDB](https://img.shields.io/badge/MariaDB-10.11%2B-003545?style=flat-square&logo=mariadb)](https://mariadb.org)
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.26.2-brightgreen?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-1.26.3-brightgreen?style=flat-square)](CHANGELOG.md)
 [![CI](https://img.shields.io/github/actions/workflow/status/Die0uwe/bluprint-cms/ci.yml?branch=main&style=flat-square&label=CI)](.github/workflows/ci.yml)
 
 *Geïnspireerd door PHP-Fusion · Down Under Fusion · ImpressCMS*
@@ -184,6 +184,7 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 | **Stappenplan/Roadmap** | ✅ v1.26.0 | Vierde en laatste onderdeel van de sessie-opdracht: `docs/ROADMAP.md` — samenvatting van alle v1.25.x-fixes, de resterende audit-backlog per domein (Security/Architectuur/Database/Frontend-i18n) geprioriteerd op ernst, en een gefaseerd vervolgtraject (fundament verstevigen → S12 Premium → Rust/Ark heroverwegen). Zie CHANGELOG v1.26.0. |
 | **HOOG: witte pagina i.p.v. installer** | ✅ v1.26.1 | Gebruikersmelding: na upload naar hosting leek de site "leeg", geen installer bereikbaar. Root cause: `public/index.php` deed een onvoorwaardelijke `require` van `vendor/autoload.php`, vóór de installer-dispatch — ontbrak die map (composer install nooit gedraaid, gangbaar bij een kale ZIP-upload zonder SSH), dan crashte élke request met een volledig leeg wit scherm en geen enkele aanwijzing. Nu een duidelijke Nederlandstalige uitlegpagina met concrete vervolgstappen (SSH of lokaal composer install + upload). Live getest: beide scenario's (ontbrekend/aanwezig) gedragen zich correct. Zie CHANGELOG v1.26.1. |
 | **HOOG: mislukte stap 5 brak de installer blijvend** | ✅ v1.26.2 | Gebruikersmelding: installer "liep vast bij opslaan" (Discord+Google geselecteerd), site toonde daarna niets meer. Live gereproduceerd: `installer/steps/Step5.php` schreef `config/config.php` vóór de databasepoging i.p.v. erna — faalde die PDO-stap (verkeerd wachtwoord, weggevallen verbinding), dan stond config.php er al en verdween de installer blijvend uit beeld (`isCompleted()` checkt alleen `file_exists`), terwijl er nooit een geldige installatie had plaatsgevonden. Config-schrijfstap verplaatst naar ná een geslaagde DB-poging. Live getest: mislukte stap 5 laat de installer nu herstartbaar; een geslaagde vervolgpoging werkt normaal. Zie CHANGELOG v1.26.2. |
+| **KRITIEK: `getallheaders()` ontbreekt op sommige hosting → elke pagina crashte** | ✅ v1.26.3 | Vervolgmelding van dezelfde gebruiker: nieuwe kale HTTP 500 direct na installatie, zodra de site voor het eerst echt laadt. Live gereproduceerd: `Request::fromGlobals()` riep `getallheaders()` aan zonder fallback — die functie bestaat alleen gegarandeerd onder Apache mod_php/php-fpm, niet onder CLI, de PHP-ingebouwde server (waarmee dit project altijd lokaal is getest, dus de bug bleef tot nu onopgemerkt) of bepaalde CGI/FastCGI-hosting. Een niet-afgevangen `Error`, dus élke request crashte — niet alleen de homepage. Nu een eigen `readHeaders()`-fallback die headers uit `$_SERVER` opbouwt wanneer `getallheaders()` ontbreekt, inclusief een `REDIRECT_HTTP_AUTHORIZATION`-fallback voor CGI-hosting die de Authorization-header normaal wegfiltert. Live getest: volledige installer-flow + homepage + login + admin + marketplace (Discord/Google), allemaal HTTP 200/302 zoals verwacht. Zie CHANGELOG v1.26.3. |
 
 ---
 
@@ -203,7 +204,7 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 
 ---
 
-## ⚠️ Bekende beperkingen (stand v1.26.2)
+## ⚠️ Bekende beperkingen (stand v1.26.3)
 
 Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben opgelost — zie
 `docs/wave-0-gap-analysis.md` en `CHANGELOG.md` voor de volledige context per punt.
@@ -529,6 +530,21 @@ Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben o
 > via FTP verwijderen. Config-schrijfstap verplaatst naar ná een geslaagde DB-poging. Live
 > getest: een mislukte stap 5 laat de installer nu gewoon herstartbaar, een geslaagde
 > vervolgpoging werkt normaal. Zie CHANGELOG v1.26.2.
+>
+> **v1.26.3: KRITIEK — `getallheaders()` ontbreekt op sommige hosting, elke pagina na
+> installatie crashte.** Vervolgmelding van dezelfde gebruiker: een nieuwe kale HTTP 500, dit
+> keer zodra de site voor het eerst écht laadt (direct na de installer). Live gereproduceerd:
+> `Request::fromGlobals()` riep `getallheaders()` aan zonder fallback. Die functie is alleen
+> gegarandeerd beschikbaar onder Apache mod_php en php-fpm — niet onder CLI, niet onder de
+> PHP-ingebouwde server (de testmethode die dit hele project altijd heeft gebruikt, dus deze bug
+> bleef tot nu verborgen), en niet op een deel van gedeelde/budget-hosting (CGI, suPHP, bepaalde
+> FastCGI-pools). Een niet-afgevangen `Error`, dus letterlijk elke request crashte, niet alleen de
+> homepage. Fix: een eigen `readHeaders()` die headers uit `$_SERVER` opbouwt zodra
+> `getallheaders()` ontbreekt, plus een `REDIRECT_HTTP_AUTHORIZATION`-fallback voor CGI-hosting
+> die de Authorization-header wegfiltert (anders zou elke JWT/Bearer-API-call daar sowieso al
+> stil blijven falen). Live getest: volledige installer-flow + eerste homepage-load + login +
+> admin + marketplace (Discord/Google) — allemaal de verwachte 200/302, geen crash meer. Zie
+> CHANGELOG v1.26.3.
 
 - ~~`/admin`-routes zijn niet permissie-gated~~ — **opgelost in v1.10.0.** Zie CHANGELOG:
   `PermissionMiddleware` + `admin.access`/`settings.edit`/`blocks.manage`/`marketplace.*`.
@@ -678,9 +694,9 @@ GPL-3.0-or-later — © 2026 [DieOuwe](https://www.dieouwe.nl) / [Slayer Allianc
 
 <!--
 ╔══════════════════════════════════════════════════════════════════════╗
-║  File: README.md | Role: Docs | Version: 1.26.2                      ║
-║  Updated: 2026-09-30 — HOOG: een mislukte installatiestap 5 schreef  ║
-║           config/config.php al vóór de DB-poging, wat de installer  ║
-║           blijvend brak. Config wordt nu pas ná succes weggeschreven.║
+║  File: README.md | Role: Docs | Version: 1.26.3                      ║
+║  Updated: 2026-09-30 — KRITIEK: getallheaders() bestaat niet op elke ║
+║           SAPI/hosting — Request::fromGlobals() crashte daardoor op  ║
+║           élke pagina-load. Nu een $_SERVER-gebaseerde fallback.     ║
 ╚══════════════════════════════════════════════════════════════════════╝
 -->

@@ -37,7 +37,7 @@ final class Request
 
     public static function fromGlobals(): self
     {
-        $headers = getallheaders() ?: [];
+        $headers = self::readHeaders();
         $body    = $_POST;
 
         // PHP vult $_POST NOOIT voor een `Content-Type: application/json`
@@ -77,6 +77,69 @@ final class Request
             files:   $_FILES,
             server:  $_SERVER,
         );
+    }
+
+    /**
+     * Portable vervanging voor getallheaders().
+     *
+     * v1.26.3 — KRITIEK: getallheaders() bestaat alléén onder Apache mod_php
+     * en (sinds PHP 7.3) onder php-fpm — niet onder de CLI-SAPI, niet onder
+     * de PHP-ingebouwde server (`php -S`, waarmee dit hele project steeds
+     * lokaal is getest — zie CHANGELOG voor de eerdere "live getest"-claims
+     * die daardoor deze crash nooit raakten), en op gedeelde/budget-hosting
+     * (CGI, suPHP, bepaalde FastCGI-pools zonder fpm-SAPI) evenmin. Waar de
+     * functie ontbreekt geeft PHP een "Call to undefined function
+     * getallheaders()" — een Error, geen Exception, en dus alleen op te
+     * vangen door de \Throwable-catch in Application::handleRequest() als
+     * die al draait; hier, in Request::fromGlobals(), gebeurde dat nog
+     * vóór de router ooit een route kon proberen, dus ELKE request op zo'n
+     * omgeving crashte, inclusief de allereerste homepage-load direct na
+     * een geslaagde installatie. Precies dit patroon leverde het door de
+     * gebruiker gemelde "stap 6 → HTTP 500" op: de installer zelf gebruikt
+     * Request niet, dus die liep altijd door tot en met de voltooiingsstap;
+     * de eerste pagina die Request::fromGlobals() wél aanroept is de
+     * homepage die na de installer-redirect (?step=6) laadt.
+     *
+     * Fix: bouw de headers zelf op uit $_SERVER (de universele, SAPI-
+     * onafhankelijke bron — elke webserver-SAPI vult $_SERVER['HTTP_*']),
+     * en gebruik getallheaders() alleen nog als snelle voorkeursroute wanneer
+     * die toevallig wél bestaat. $_SERVER['HTTP_AUTHORIZATION'] wordt door
+     * sommige CGI/FastCGI-configuraties nooit gevuld uit veiligheidsoverwe-
+     * gingen — REDIRECT_HTTP_AUTHORIZATION is dan de enige plek waar de
+     * Authorization-header nog te vinden is; zonder deze fallback zouden
+     * JWT/Bearer-API-calls (zie Request::bearerToken(), kernprincipe
+     * "API-first") op zulke hosting altijd stilzwijgend falen.
+     *
+     * @return array<string, string>
+     */
+    private static function readHeaders(): array
+    {
+        if (function_exists('getallheaders')) {
+            $headers = getallheaders();
+            if (is_array($headers)) {
+                return $headers;
+            }
+        }
+
+        $headers = [];
+        foreach ($_SERVER as $key => $value) {
+            if (str_starts_with($key, 'HTTP_')) {
+                $name = str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($key, 5)))));
+                $headers[$name] = $value;
+            } elseif (in_array($key, ['CONTENT_TYPE', 'CONTENT_LENGTH', 'CONTENT_MD5'], true)) {
+                $name = str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', $key))));
+                $headers[$name] = $value;
+            }
+        }
+
+        if (!isset($headers['Authorization'])) {
+            $auth = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? null;
+            if (is_string($auth) && $auth !== '') {
+                $headers['Authorization'] = $auth;
+            }
+        }
+
+        return $headers;
     }
 
     public function getMethod(): string { return $this->method; }

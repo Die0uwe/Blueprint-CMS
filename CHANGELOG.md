@@ -18,6 +18,67 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ---
 
+## [1.26.3] — 2026-09-30 — KRITIEK: `getallheaders()` bestaat niet op elke SAPI — élke pagina na installatie crashte met HTTP 500
+
+Aanleiding: dezelfde gebruiker meldde, ná het vervangen van de vendor-map en het opnieuw
+doorlopen van de installer, een nieuwe kale HTTP 500 — deze keer specifiek bij het laden van de
+site meteen na de voltooiing van stap 5 ("stap 6"). Live gereproduceerd door de volledige
+installer-flow opnieuw te draaien (stap 1 t/m 5, Discord + Google geselecteerd) en vervolgens de
+eerste homepage-load na installatie op te vragen.
+
+### 🔴 De bug
+
+`src/Core/Request.php::fromGlobals()` riep `getallheaders()` aan zonder enige fallback.
+Die functie bestaat **niet overal**: ze is alleen gegarandeerd beschikbaar onder Apache mod_php en
+(sinds PHP 7.3) onder php-fpm. Onder de CLI-SAPI, onder de PHP-ingebouwde server (`php -S` — de
+testmethode die voor dit hele project steeds is gebruikt, zie hieronder) én op een deel van
+gedeelde/budget-hosting (CGI, suPHP, bepaalde FastCGI-pools die niet als "fpm" draaien) bestaat de
+functie simpelweg niet. Het resultaat is een `Error: Call to undefined function getallheaders()`
+— een PHP `Error`, geen `Exception` — die al werd gegooid vóórdat `Router::dispatch()` ooit een
+route kon proberen, dus **elke** request crashte hierop: niet alleen de homepage, maar login,
+admin, marketplace, de hele site.
+
+Waarom dit nooit eerder opviel: de installer zelf gebruikt de `Request`-klasse niet (die heeft
+zijn eigen `$_GET`/`$_POST`-afhandeling), dus alle eerdere "live getest, installer werkt
+volledig"-verificaties in dit project kwamen nooit voorbij stap 5. De eerste pagina die
+`Request::fromGlobals()` aanroept is de homepage die ná de installer-redirect (`?step=6`) laadt —
+precies het moment waarop de gebruiker de crash meldde.
+
+### 🔧 Fix
+
+`Request::fromGlobals()` gebruikt nu een eigen `readHeaders()`-methode: `getallheaders()` blijft de
+voorkeursroute wanneer die toevallig bestaat (Apache/fpm — geen gedragswijziging daar), maar
+zonder die functie worden de headers zelf opgebouwd uit `$_SERVER` — de universele, SAPI-
+onafhankelijke bron die elke webserver vult. Als bonus is meteen een tweede, verwante blinde vlek
+gedicht: sommige CGI/FastCGI-configuraties vullen `$_SERVER['HTTP_AUTHORIZATION']` om
+veiligheidsredenen nooit, alleen `REDIRECT_HTTP_AUTHORIZATION` — zonder de nieuwe fallback
+daarop zou elke JWT/Bearer-API-call (`Request::bearerToken()`, kernprincipe "API-first") op zulke
+hosting stilzwijgend blijven falen, ook al was `getallheaders()` daar wél beschikbaar.
+
+### ✅ Live getest
+
+Tegen een echte MariaDB-instantie, volledige installer-flow vanaf een lege database (stap 1 t/m 5,
+Discord + Google geselecteerd), gevolgd door:
+
+- **Homepage direct na installatie** (`?step=6`): vóór de fix een kale HTTP 500
+  ("Er is een fout opgetreden."); ná de fix HTTP 200 met de correcte, ingevulde site-inhoud.
+- **Inloggen als de zojuist aangemaakte admin**: 302 naar `/` (geslaagd).
+- **`/admin` dashboard**: HTTP 200.
+- **`/admin/marketplace`**: HTTP 200, zowel "Discord" als "Google" zichtbaar in de lijst.
+- Losse `Authorization: Bearer ...`-header handmatig meegegeven aan `Request::fromGlobals()`
+  zonder dat `getallheaders()` beschikbaar was: header correct gelezen via de nieuwe fallback.
+
+Tijdens dezelfde reproductie ook een tweede, incidenteel probleem gevonden en gefixt: het
+build-script waarmee de `vendor/`-ZIP voor gebruikers zonder Composer/SSH-toegang wordt
+samengesteld sloeg per ongeluk Twig's eigen `src/Node/Expression/Test/`-map over (bedoeld om
+unit-testmappen te filteren, maar "Test" is toevallig ook de naam van een echte Twig-taalfeature-
+map). Dit zat niet in de git-repository — alleen in eerder aan deze gebruiker geleverde ZIP's —
+en is opgelost in de nieuwe `vendor-voor-strato.zip`.
+
+Testomgeving nadien volledig opgeruimd.
+
+---
+
 ## [1.26.2] — 2026-09-30 — HOOG: mislukte installatiestap 5 liet een kapotte, onherstelbare `config/config.php` achter
 
 Aanleiding: een gebruiker meldde dat de installer "vastliep bij opslaan" (module-selectie met
