@@ -11,6 +11,7 @@ declare(strict_types=1);
  *   cache:clear         Verwijder alle cache
  *   migrate             Voer database migraties uit
  *   module:install      Installeer een module
+ *   plugin:*            Plugins beheren (list, install, activate, deactivate, migrate)
  */
 
 define('CF_ROOT',   dirname(__DIR__));
@@ -40,6 +41,7 @@ match (true) {
     $command === 'cache:clear'     => (new CommunityFusion\Cli\Commands\CacheClearCommand())->handle($argv),
     $command === 'migrate'         => (new CommunityFusion\Cli\Commands\MigrateCommand())->handle($argv),
     $command === 'module:install'  => (new CommunityFusion\Cli\Commands\ModuleInstallCommand())->handle($argv),
+    str_starts_with($command, 'plugin:') => (new CommunityFusion\Cli\Commands\PluginCommand())->handle($argv),
     default => printHelp(),
 };
 
@@ -55,6 +57,7 @@ Commando's:
   cache:clear                                  Verwijder alle cache
   migrate                                      Voer DB migraties uit
   module:install <slug>                        Installeer een module
+  plugin:list | plugin:install <zip> | plugin:activate <slug> | plugin:deactivate <slug> | plugin:migrate <slug>
 
 HELP;
 }

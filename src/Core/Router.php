@@ -209,6 +209,16 @@ final class Router
         $this->post('/admin/settings', 'CommunityFusion\Modules\Settings\AdminController@updateSettings', $perm('settings.edit'));
 
         // Blokken admin
+        // Plugins (stap f)
+        $this->get('/admin/plugins',                                'CommunityFusion\Modules\Plugins\PluginAdminController@index',        $perm('plugins.manage'));
+        $this->post('/admin/plugins/uploaden',                      'CommunityFusion\Modules\Plugins\PluginAdminController@upload',       $perm('plugins.manage'));
+        $this->post('/admin/plugins/{slug:[a-z0-9-]+}/activeren',   'CommunityFusion\Modules\Plugins\PluginAdminController@activate',     $perm('plugins.manage'));
+        $this->post('/admin/plugins/{slug:[a-z0-9-]+}/deactiveren', 'CommunityFusion\Modules\Plugins\PluginAdminController@deactivate',   $perm('plugins.manage'));
+        $this->post('/admin/plugins/{slug:[a-z0-9-]+}/migreren',    'CommunityFusion\Modules\Plugins\PluginAdminController@migrate',      $perm('plugins.manage'));
+        $this->post('/admin/plugins/{slug:[a-z0-9-]+}/verwijderen', 'CommunityFusion\Modules\Plugins\PluginAdminController@uninstall',    $perm('plugins.manage'));
+        $this->get('/admin/plugins/{slug:[a-z0-9-]+}/instellingen', 'CommunityFusion\Modules\Plugins\PluginAdminController@settings',     $perm('plugins.manage'));
+        $this->post('/admin/plugins/{slug:[a-z0-9-]+}/instellingen','CommunityFusion\Modules\Plugins\PluginAdminController@saveSettings', $perm('plugins.manage'));
+
         $this->get('/admin/blocks',                     'CommunityFusion\Modules\Blocks\BlockController@index',  $perm('blocks.manage'));
         $this->get('/admin/blocks/create',              'CommunityFusion\Modules\Blocks\BlockController@create', $perm('blocks.manage'));
         $this->post('/admin/blocks/store',              'CommunityFusion\Modules\Blocks\BlockController@store',  $perm('blocks.manage'));

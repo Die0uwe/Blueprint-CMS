@@ -109,6 +109,7 @@ return [
             'settings'           => 'Instellingen',
             'logs'               => 'Logs',
             'marketplace'        => 'Marketplace',
+            'plugins'            => 'Plugins',
             'view_site'          => 'Bekijk Site',
             'logout'             => 'Uitloggen',
         ],

@@ -109,6 +109,7 @@ return [
             'settings'           => 'Settings',
             'logs'               => 'Logs',
             'marketplace'        => 'Marketplace',
+            'plugins'            => 'Plugins',
             'view_site'          => 'View Site',
             'logout'             => 'Log out',
         ],

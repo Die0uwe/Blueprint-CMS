@@ -108,6 +108,7 @@ return [
             'settings'           => 'Einstellungen',
             'logs'               => 'Protokolle',
             'marketplace'        => 'Marktplatz',
+            'plugins'            => 'Plugins',
             'view_site'          => 'Seite ansehen',
             'logout'             => 'Abmelden',
         ],

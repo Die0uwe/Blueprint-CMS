@@ -69,7 +69,28 @@ $navItem = static function (string $key, string $href, string $icon, string $lab
     $navItem('settings', '/admin/settings', '🛠️', Trans::get('admin.sidebar.settings'));
     $navItem('logs', '/admin/logs', '📋', Trans::get('admin.sidebar.logs'));
     $navItem('marketplace', '/admin/marketplace', '🏪', Trans::get('admin.sidebar.marketplace'));
+    $navItem('plugins', '/admin/plugins', '🧰', Trans::get('admin.sidebar.plugins'));
     ?>
+
+    <?php
+    // Plugins mogen menu-items toevoegen via het filter 'admin.menu'. Elk item wordt gecontroleerd:
+    // alleen relatieve /admin/...-paden, korte tekst, geen HTML (alles wordt geëscaped).
+    try {
+        $extra = \CommunityFusion\Core\Application::getInstance()->getHooks()->applyFilters('admin.menu', []);
+    } catch (\Throwable) {
+        $extra = [];
+    }
+    $extraItems = [];
+    foreach (is_array($extra) ? array_slice($extra, 0, 20) : [] as $it) {
+        if (is_array($it) && isset($it['key'], $it['href'], $it['label'])
+            && is_string($it['key']) && is_string($it['href']) && is_string($it['label'])
+            && preg_match('#^/admin/[A-Za-z0-9/_\-]{1,100}$#', $it['href']) && mb_strlen($it['label']) <= 40) {
+            $extraItems[] = [$it['key'], $it['href'], is_string($it['icon'] ?? null) ? mb_substr($it['icon'], 0, 4) : '🧩', $it['label']];
+        }
+    }
+    if ($extraItems !== []): ?>
+    <div class="admin-nav-section">Plugins</div>
+    <?php foreach ($extraItems as $ei) { $navItem(...$ei); } endif; ?>
 
   </nav>
   <div style="padding:1rem;border-top:1px solid var(--border);">
