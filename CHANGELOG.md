@@ -18,6 +18,58 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ---
 
+## [1.28.0] — 2026-09-30 — `vendor/` gecommit: geen losse Composer-stap meer nodig om te deployen
+
+Aanleiding: gevraagd of de vendor-map niet gewoon in de repository kon, i.p.v. de losse
+`vendor-voor-strato.zip` die tot nu toe steeds handmatig bij een git-download gemerged moest
+worden vóór het uploaden naar FTP-only/geen-SSH-hosting zoals Strato.
+
+### 📦 De verandering
+
+Er was hier al nooit een `composer.lock` (`packagist.org` is in geen enkele sandbox bereikbaar
+geweest waarin dit project gebouwd is — zie CHANGELOG v1.12.0), dus een losse `composer install`
+op een echte server gaf sowieso al geen harde garantie dat die exact dezelfde pakketversies zou
+kiezen als hier lokaal getest. Gegeven die realiteit is de productie-`vendor/`-map (alleen de
+vier échte `require`-packages uit `composer.json` + hun sub-dependencies — Twig, `psr/container`,
+`psr/simple-cache`, `vlucas/phpdotenv` — géén dev-tools, géén tests/docs) nu rechtstreeks
+gecommit. `/vendor/` is uit `.gitignore` gehaald.
+
+### 🧹 Eerst opgeschoond
+
+Vóór het committen bleek de sandbox-build (v1.12.0, met de hand samengesteld uit échte, van
+GitHub gecloonde broncode) twee soorten dode gewicht mee te slepen die alleen zichtbaar werden nu
+er echt naar gekeken werd om ze permanent in git te zetten:
+
+- **Twig's hele monorepo-`extra/`-map** (de bridge-packages `cache-extra`, `cssinliner-extra`,
+  `html-extra`, `inky-extra`, `intl-extra`, `markdown-extra`, `string-extra`,
+  `twig-extra-bundle` — dit zijn in werkelijkheid losse Composer-packages die toevallig in
+  hetzelfde GitHub-repo als `twig/twig` zelf leven) en Twig's eigen `bin/`-linter. Niets
+  hiervan wordt door `vendor/autoload.php`'s PSR-4-map gerefereerd — puur dood gewicht (904KB).
+- **Dev-tool-configbestanden per sub-package**: `phpunit.xml.dist`, `phpstan.neon.dist`/
+  `phpstan-baseline.neon`, `.editorconfig`, `Makefile`, `vendor-bin/` (bij `phpoption/phpoption`
+  en `vlucas/phpdotenv`) — configuratie voor tools die niet eens geïnstalleerd zijn.
+
+Resultaat: **3,5MB / 595 bestanden → 2,6MB / 414 bestanden**, zonder functieverlies.
+
+### ✅ Live getest
+
+- Autoloader-smoketest ná opschonen: `Twig\Environment` en `Dotenv\Dotenv` laden nog steeds
+  correct via `vendor/autoload.php`.
+- `vendor/` zat al vóór deze wijziging achter dezelfde `.htaccess`-blokkade als `config/`/
+  `storage/`/`.env` (`RewriteRule ^(config|storage|vendor|tests|cli|src|modules|themes|
+  composer\.json|composer\.lock|\.env)(/|$) - [F,L]`, root-`.htaccess`) — deze wijziging
+  verandert dus niets aan de beveiliging, alleen aan wat een download meteen bevat.
+- **`git archive` van de exacte commit** (dus precies wat een GitHub "Download ZIP" zou geven)
+  uitgepakt in een verse, lege map, gevolgd door de volledige livetest-cyclus tegen een echte
+  MariaDB-instantie: installer-flow stap 1 t/m 5, homepage-load, login, een forumtopic +
+  reactie plaatsen, bio opslaan via `/profiel/bio` en tonen op `/leden/{username}` — allemaal
+  zonder één handmatige vendor-stap. Zie de "Bekende beperkingen"-sectie in README.md voor het
+  volledige overzicht van wat dit wel en niet oplost.
+
+Testomgeving nadien volledig opgeruimd.
+
+---
+
 ## [1.27.0] — 2026-09-30 — Nieuw: minimaal publiek ledenprofiel (`/leden/{username}`)
 
 Aanleiding: gevraagd of er al zoiets bestond als "een persoonlijke pagina/kaart à la Facebook, een

@@ -16,7 +16,7 @@ GPL-3.0-or-later
 [![PHP](https://img.shields.io/badge/PHP-8.3%2B-777BB4?style=flat-square&logo=php)](https://php.net)
 [![MariaDB](https://img.shields.io/badge/MariaDB-10.11%2B-003545?style=flat-square&logo=mariadb)](https://mariadb.org)
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.27.0-brightgreen?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-1.28.0-brightgreen?style=flat-square)](CHANGELOG.md)
 [![CI](https://img.shields.io/github/actions/workflow/status/Die0uwe/bluprint-cms/ci.yml?branch=main&style=flat-square&label=CI)](.github/workflows/ci.yml)
 
 *Geïnspireerd door PHP-Fusion · Down Under Fusion · ImpressCMS*
@@ -90,7 +90,7 @@ themes/               ← Twig dark gaming thema
 | PHP | 8.3+ |
 | MariaDB / MySQL | 10.11+ / 8.0+ |
 | Extensions | PDO, pdo_mysql, GD, cURL, mbstring, openssl, json, zip |
-| Composer | 2.x |
+| Composer | 2.x — **optioneel**, alleen nodig voor de dev-tools (PHPUnit/PHPStan/PHPCS). Niet nodig om te installeren of te draaien, zie hieronder. |
 
 ---
 
@@ -99,16 +99,21 @@ themes/               ← Twig dark gaming thema
 ```bash
 git clone https://github.com/Die0uwe/Bluprint-CMS.git
 cd Bluprint-CMS
-composer install --optimize-autoloader
 cp .env.example .env
 # Navigeer naar http://jouwsite.nl/installer/
 ```
 
-> ⚠️ **Alleen FTP/bestandsbeheer, geen SSH-toegang?** `composer install` kan dan niet op de
-> server zelf draaien. Draai dat commando lokaal op je eigen computer, in dezelfde projectmap,
-> vóór het uploaden — en upload daarna de hele map in één keer, **inclusief** de dan aangemaakte
-> `vendor/`-map. Sla je die map per ongeluk over, dan toont de site sinds v1.26.1 een duidelijke
-> uitlegpagina in plaats van een leeg wit scherm.
+> 📦 **Sinds v1.28.0 staat `vendor/` gewoon in de git-repository.** Er is hier nooit een
+> `composer.lock` geweest (`packagist.org` was in geen enkele sandbox bereikbaar waarin dit
+> project is gebouwd), dus een losse `composer install`-stap kon toch nooit gegarandeerd
+> dezelfde versies opleveren. In plaats daarvan is de productie-`vendor/`-map (alleen de vier
+> echte `require`-packages + hun sub-dependencies, géén dev-tools, géén tests/docs) rechtstreeks
+> meegecommit. Een gewone `git clone` of GitHub-"Download ZIP" is dus **direct compleet** —
+> geen Composer, geen SSH, geen losse vendor-ZIP meer nodig, ook niet op kale FTP/
+> bestandsbeheer-only hosting. `vendor/` zit hoe dan ook al achter de `.htaccess`-blokkade
+> (zelfde regel als `config/`/`storage/`/`.env`), dus dit verandert niets aan de beveiliging.
+> Wil je zelf aan de code werken en de dev-tools gebruiken, dan draai je gewoon alsnog
+> `composer install` — dat overschrijft `vendor/` met een eigen, identieke resolutie.
 
 ---
 
@@ -186,6 +191,7 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 | **HOOG: mislukte stap 5 brak de installer blijvend** | ✅ v1.26.2 | Gebruikersmelding: installer "liep vast bij opslaan" (Discord+Google geselecteerd), site toonde daarna niets meer. Live gereproduceerd: `installer/steps/Step5.php` schreef `config/config.php` vóór de databasepoging i.p.v. erna — faalde die PDO-stap (verkeerd wachtwoord, weggevallen verbinding), dan stond config.php er al en verdween de installer blijvend uit beeld (`isCompleted()` checkt alleen `file_exists`), terwijl er nooit een geldige installatie had plaatsgevonden. Config-schrijfstap verplaatst naar ná een geslaagde DB-poging. Live getest: mislukte stap 5 laat de installer nu herstartbaar; een geslaagde vervolgpoging werkt normaal. Zie CHANGELOG v1.26.2. |
 | **KRITIEK: `getallheaders()` ontbreekt op sommige hosting → elke pagina crashte** | ✅ v1.26.3 | Vervolgmelding van dezelfde gebruiker: nieuwe kale HTTP 500 direct na installatie, zodra de site voor het eerst echt laadt. Live gereproduceerd: `Request::fromGlobals()` riep `getallheaders()` aan zonder fallback — die functie bestaat alleen gegarandeerd onder Apache mod_php/php-fpm, niet onder CLI, de PHP-ingebouwde server (waarmee dit project altijd lokaal is getest, dus de bug bleef tot nu onopgemerkt) of bepaalde CGI/FastCGI-hosting. Een niet-afgevangen `Error`, dus élke request crashte — niet alleen de homepage. Nu een eigen `readHeaders()`-fallback die headers uit `$_SERVER` opbouwt wanneer `getallheaders()` ontbreekt, inclusief een `REDIRECT_HTTP_AUTHORIZATION`-fallback voor CGI-hosting die de Authorization-header normaal wegfiltert. Live getest: volledige installer-flow + homepage + login + admin + marketplace (Discord/Google), allemaal HTTP 200/302 zoals verwacht. Zie CHANGELOG v1.26.3. |
 | **Nieuw: minimaal publiek ledenprofiel** | ✅ v1.27.0 | Gevraagd om een "persoonlijk kaartje à la Facebook" — bewust minimaal gehouden om scope-creep te voorkomen: geen wall, geen volgen/vrienden. Nieuwe `GET /leden/{username}` toont avatar, bio (nieuw `POST /profiel/bio`-formulier), lid-sinds-datum en de laatste 5 forumtopics + 5 reacties; auteursnamen in het forum linken er nu naartoe. Bewust vanaf het begin in **beide** thema's gebouwd (`ThemeManager` heeft geen per-template fallback — zie v1.26.3). Live getest inclusief lege-staat (nieuw lid zonder bio/activiteit), alle drie talen en beide thema's. Zie CHANGELOG v1.27.0. |
+| **`vendor/` gecommit — geen losse Composer-stap meer nodig voor deployment** | ✅ v1.28.0 | Vraag: kan de vendor-map niet gewoon in de repo, i.p.v. een losse ZIP die je er telkens handmatig bij moet mergen? Er was al nooit een `composer.lock` (packagist onbereikbaar in elke sandbox waarin dit gebouwd is), dus een losse `composer install` gaf toch geen garantie op dezelfde versies. De productiematige `vendor/`-map (alleen de vier echte `require`-packages + sub-dependencies) is nu rechtstreeks gecommit, én opgeschoond: onbenutte monorepo-meeslepers (Twig's `extra/`-bridgepakketten, `bin/`) en dev-tool-configbestanden van de sub-packages (`phpunit.xml.dist`, `phpstan.neon.dist`, `vendor-bin/`) verwijderd — 3,5MB/595 bestanden werd 2,6MB/414, zonder functieverlies (autoloader-smoketest + volledige installer-livetest herhaald). Zit al achter dezelfde `.htaccess`-blokkade als `config/`/`storage/`/`.env`. Een gewone `git clone` of GitHub-ZIP-download is nu direct compleet. Zie CHANGELOG v1.28.0. |
 
 ---
 
@@ -205,7 +211,7 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 
 ---
 
-## ⚠️ Bekende beperkingen (stand v1.27.0)
+## ⚠️ Bekende beperkingen (stand v1.28.0)
 
 Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben opgelost — zie
 `docs/wave-0-gap-analysis.md` en `CHANGELOG.md` voor de volledige context per punt.
@@ -561,6 +567,25 @@ Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben o
 > MariaDB: bio opslaan + tonen, forumtopic/reactie op het profiel, auteurslink vanuit het forum,
 > 404 voor een onbekende gebruikersnaam, lege-staat voor een lid zonder bio/activiteit, alle drie
 > talen (nl/en/de) en beide thema's (default/gaming-dark). Zie CHANGELOG v1.27.0.
+>
+> **v1.28.0: `vendor/` gecommit — geen losse Composer-stap meer nodig om te kunnen deployen.**
+> Gevraagd of de vendor-map niet gewoon in de repo kon, i.p.v. de losse ZIP die er tot nu toe
+> steeds handmatig bij gemerged moest worden. Er was hier al nooit een `composer.lock`
+> (`packagist.org` onbereikbaar in elke sandbox waarin dit project gebouwd is — zie v1.12.0),
+> dus een losse `composer install` op een echte server gaf toch al geen garantie dat exact
+> dezelfde pakketversies gekozen zouden worden als hier lokaal getest. Voordat de map gecommit
+> werd, eerst opgeschoond: de sandbox-build had per ongeluk Twig's hele monorepo-`extra/`-map
+> (bridge-packages als `cache-extra`/`html-extra`, nergens door de eigen autoloader
+> gerefereerd) en losse `bin/` meegekopieerd, plus dev-tool-configbestanden
+> (`phpunit.xml.dist`, `phpstan.neon.dist`, `vendor-bin/`) van elk sub-package — 3,5MB/595
+> bestanden werd na opschonen 2,6MB/414, geverifieerd met een autoloader-smoketest
+> (`Twig\Environment`/`Dotenv\Dotenv` blijven gewoon laden). `vendor/` zat al achter dezelfde
+> `.htaccess`-blokkade als `config/`/`storage/`/`.env` (`RewriteRule ^(config|storage|vendor|
+> …)(/|$) - [F,L]`), dus dit verandert niets aan de beveiliging — alleen aan wat een `git clone`
+> of GitHub-ZIP-download meteen bevat. Live herverifieerd met een `git archive` van de exacte
+> commit (dus precies wat een "Download ZIP" zou geven) uitgepakt in een verse map: volledige
+> installer-flow, login, forumtopic + reactie, bio opslaan/tonen op het publieke profiel — alles
+> werkte zonder één handmatige vendor-stap. Zie CHANGELOG v1.28.0.
 
 - ~~`/admin`-routes zijn niet permissie-gated~~ — **opgelost in v1.10.0.** Zie CHANGELOG:
   `PermissionMiddleware` + `admin.access`/`settings.edit`/`blocks.manage`/`marketplace.*`.
@@ -654,11 +679,14 @@ Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben o
   `HookManager`, `CsrfProtection`, `UploadManager`), sinds v1.11.0 ook tegen een echte,
   apt-geïnstalleerde lokale MariaDB-server, en sinds **v1.12.0 ook tegen de échte
   `public/index.php`/`cli/console.php` entry points zelf**, via een eenmalig met de hand
-  samengestelde `vendor/` van ongewijzigde, van GitHub gecloonde broncode (niet gecommit — zie
-  CHANGELOG v1.12.0). Dat vond meteen twee fatale `composer.json`-fouten die zelfs de MariaDB-
-  test niet kon zien. CI draait de echte suite (zie hierboven) zodra de eerste `composer install`
-  het lockfile committed — op een server met normale internettoegang zou dat nu moeten werken,
-  maar dat is in geen enkele sandbox tot nu toe zelf getest kunnen worden.
+  samengestelde `vendor/` van ongewijzigde, van GitHub gecloonde broncode (zie CHANGELOG
+  v1.12.0). Dat vond meteen twee fatale `composer.json`-fouten die zelfs de MariaDB-test niet
+  kon zien. **Sinds v1.28.0 is die `vendor/`-map zelf gecommit** (zie de installatie-sectie
+  hierboven) — dat lost het FTP-only-deploymentprobleem op, maar het onderliggende gat blijft
+  bestaan: er is nog steeds geen bewijs dat een écht `composer install` op een normale server met
+  packagist-toegang exact dezelfde versies zou kiezen. CI draait de echte suite (zie hierboven)
+  met een verse `composer install` op elke push, onafhankelijk van de gecommitte map — dat is de
+  facto de enige plek waar dat ooit geverifieerd wordt.
 - ~~Geen media-galerij — alleen de generieke `UploadManager` en het `/admin/media`-
   huishoudscherm~~ — **opgelost in v1.23.0.** Albums, upload met GD-miniaturen, publieke
   doorbladering + lightbox, sidebar-widget. Zie CHANGELOG v1.23.0.
@@ -710,9 +738,9 @@ GPL-3.0-or-later — © 2026 [DieOuwe](https://www.dieouwe.nl) / [Slayer Allianc
 
 <!--
 ╔══════════════════════════════════════════════════════════════════════╗
-║  File: README.md | Role: Docs | Version: 1.27.0                      ║
-║  Updated: 2026-09-30 — Nieuw: minimaal publiek ledenprofiel op       ║
-║           /leden/{username} (avatar, bio, lid-sinds, forumactiviteit)║
-║           + POST /profiel/bio. Gebouwd in beide thema's.             ║
+║  File: README.md | Role: Docs | Version: 1.28.0                      ║
+║  Updated: 2026-09-30 — vendor/ gecommit (opgeschoond, 2.6MB/414       ║
+║           bestanden) — geen losse Composer-stap meer nodig om deze   ║
+║           repo te deployen. Zie ook: .htaccess blokkeert 'm al.      ║
 ╚══════════════════════════════════════════════════════════════════════╝
 -->

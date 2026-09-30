@@ -1,4 +1,3 @@
-/vendor/
 /.env
 /config/config.php
 /installer/.installed

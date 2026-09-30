@@ -1,0 +1,7 @@
+# vendor/ is sinds v1.28.0 gecommit (zie CHANGELOG) zodat een kale git clone of
+# GitHub-ZIP-download meteen compleet is, ook zonder Composer/SSH. Het is
+# third-party broncode, geen eigen werk — markeer het als zodanig zodat GitHub's
+# taalstatistieken ("Languages"-balk) dit project blijven weergeven als PHP/Twig
+# van DieOuwe, niet als een mix verdund door meegeleverde dependencies.
+/vendor/** linguist-vendored
+/vendor/** linguist-generated
