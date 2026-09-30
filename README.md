@@ -16,7 +16,7 @@ GPL-3.0-or-later
 [![PHP](https://img.shields.io/badge/PHP-8.3%2B-777BB4?style=flat-square&logo=php)](https://php.net)
 [![MariaDB](https://img.shields.io/badge/MariaDB-10.11%2B-003545?style=flat-square&logo=mariadb)](https://mariadb.org)
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.26.3-brightgreen?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-1.27.0-brightgreen?style=flat-square)](CHANGELOG.md)
 [![CI](https://img.shields.io/github/actions/workflow/status/Die0uwe/bluprint-cms/ci.yml?branch=main&style=flat-square&label=CI)](.github/workflows/ci.yml)
 
 *Geïnspireerd door PHP-Fusion · Down Under Fusion · ImpressCMS*
@@ -185,6 +185,7 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 | **HOOG: witte pagina i.p.v. installer** | ✅ v1.26.1 | Gebruikersmelding: na upload naar hosting leek de site "leeg", geen installer bereikbaar. Root cause: `public/index.php` deed een onvoorwaardelijke `require` van `vendor/autoload.php`, vóór de installer-dispatch — ontbrak die map (composer install nooit gedraaid, gangbaar bij een kale ZIP-upload zonder SSH), dan crashte élke request met een volledig leeg wit scherm en geen enkele aanwijzing. Nu een duidelijke Nederlandstalige uitlegpagina met concrete vervolgstappen (SSH of lokaal composer install + upload). Live getest: beide scenario's (ontbrekend/aanwezig) gedragen zich correct. Zie CHANGELOG v1.26.1. |
 | **HOOG: mislukte stap 5 brak de installer blijvend** | ✅ v1.26.2 | Gebruikersmelding: installer "liep vast bij opslaan" (Discord+Google geselecteerd), site toonde daarna niets meer. Live gereproduceerd: `installer/steps/Step5.php` schreef `config/config.php` vóór de databasepoging i.p.v. erna — faalde die PDO-stap (verkeerd wachtwoord, weggevallen verbinding), dan stond config.php er al en verdween de installer blijvend uit beeld (`isCompleted()` checkt alleen `file_exists`), terwijl er nooit een geldige installatie had plaatsgevonden. Config-schrijfstap verplaatst naar ná een geslaagde DB-poging. Live getest: mislukte stap 5 laat de installer nu herstartbaar; een geslaagde vervolgpoging werkt normaal. Zie CHANGELOG v1.26.2. |
 | **KRITIEK: `getallheaders()` ontbreekt op sommige hosting → elke pagina crashte** | ✅ v1.26.3 | Vervolgmelding van dezelfde gebruiker: nieuwe kale HTTP 500 direct na installatie, zodra de site voor het eerst echt laadt. Live gereproduceerd: `Request::fromGlobals()` riep `getallheaders()` aan zonder fallback — die functie bestaat alleen gegarandeerd onder Apache mod_php/php-fpm, niet onder CLI, de PHP-ingebouwde server (waarmee dit project altijd lokaal is getest, dus de bug bleef tot nu onopgemerkt) of bepaalde CGI/FastCGI-hosting. Een niet-afgevangen `Error`, dus élke request crashte — niet alleen de homepage. Nu een eigen `readHeaders()`-fallback die headers uit `$_SERVER` opbouwt wanneer `getallheaders()` ontbreekt, inclusief een `REDIRECT_HTTP_AUTHORIZATION`-fallback voor CGI-hosting die de Authorization-header normaal wegfiltert. Live getest: volledige installer-flow + homepage + login + admin + marketplace (Discord/Google), allemaal HTTP 200/302 zoals verwacht. Zie CHANGELOG v1.26.3. |
+| **Nieuw: minimaal publiek ledenprofiel** | ✅ v1.27.0 | Gevraagd om een "persoonlijk kaartje à la Facebook" — bewust minimaal gehouden om scope-creep te voorkomen: geen wall, geen volgen/vrienden. Nieuwe `GET /leden/{username}` toont avatar, bio (nieuw `POST /profiel/bio`-formulier), lid-sinds-datum en de laatste 5 forumtopics + 5 reacties; auteursnamen in het forum linken er nu naartoe. Bewust vanaf het begin in **beide** thema's gebouwd (`ThemeManager` heeft geen per-template fallback — zie v1.26.3). Live getest inclusief lege-staat (nieuw lid zonder bio/activiteit), alle drie talen en beide thema's. Zie CHANGELOG v1.27.0. |
 
 ---
 
@@ -204,7 +205,7 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 
 ---
 
-## ⚠️ Bekende beperkingen (stand v1.26.3)
+## ⚠️ Bekende beperkingen (stand v1.27.0)
 
 Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben opgelost — zie
 `docs/wave-0-gap-analysis.md` en `CHANGELOG.md` voor de volledige context per punt.
@@ -545,6 +546,21 @@ Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben o
 > stil blijven falen). Live getest: volledige installer-flow + eerste homepage-load + login +
 > admin + marketplace (Discord/Google) — allemaal de verwachte 200/302, geen crash meer. Zie
 > CHANGELOG v1.26.3.
+>
+> **v1.27.0: nieuw — minimaal publiek ledenprofiel.** Gevraagd naar "een persoonlijke pagina/kaart
+> à la Facebook, een klein sociaal pleintje". Bewust op de kleinste bruikbare versie gehouden om
+> geen scope-creep richting een volwaardig sociaal netwerk in de beta te krijgen: geen prikbord/
+> wall waar bezoekers op kunnen reageren, geen vrienden/volgen. Nieuwe `GET /leden/{username}`
+> toont avatar, bio, lid-sinds-datum en de laatste 5 forumtopics + 5 reacties van dat lid — alleen
+> publiek-veilige kolommen, dezelfde `is_active`/`deleted_at`-gate als overal elders. Nieuw
+> `POST /profiel/bio`-formulier op de bestaande privé-instellingenpagina om die bio te zetten
+> (`cf_users.bio` bestond al sinds Sprint 1, maar werd nergens getoond of ingesteld). Auteursnamen
+> in het forum linken er nu naartoe. Bewust vanaf het begin in **beide** thema's gebouwd —
+> `ThemeManager` heeft geen per-template fallback naar `default`, exact de bugklasse die v1.26.3
+> al eens moest fixen, dit keer voorkomen in plaats van gerepareerd. Live getest tegen echte
+> MariaDB: bio opslaan + tonen, forumtopic/reactie op het profiel, auteurslink vanuit het forum,
+> 404 voor een onbekende gebruikersnaam, lege-staat voor een lid zonder bio/activiteit, alle drie
+> talen (nl/en/de) en beide thema's (default/gaming-dark). Zie CHANGELOG v1.27.0.
 
 - ~~`/admin`-routes zijn niet permissie-gated~~ — **opgelost in v1.10.0.** Zie CHANGELOG:
   `PermissionMiddleware` + `admin.access`/`settings.edit`/`blocks.manage`/`marketplace.*`.
@@ -694,9 +710,9 @@ GPL-3.0-or-later — © 2026 [DieOuwe](https://www.dieouwe.nl) / [Slayer Allianc
 
 <!--
 ╔══════════════════════════════════════════════════════════════════════╗
-║  File: README.md | Role: Docs | Version: 1.26.3                      ║
-║  Updated: 2026-09-30 — KRITIEK: getallheaders() bestaat niet op elke ║
-║           SAPI/hosting — Request::fromGlobals() crashte daardoor op  ║
-║           élke pagina-load. Nu een $_SERVER-gebaseerde fallback.     ║
+║  File: README.md | Role: Docs | Version: 1.27.0                      ║
+║  Updated: 2026-09-30 — Nieuw: minimaal publiek ledenprofiel op       ║
+║           /leden/{username} (avatar, bio, lid-sinds, forumactiviteit)║
+║           + POST /profiel/bio. Gebouwd in beide thema's.             ║
 ╚══════════════════════════════════════════════════════════════════════╝
 -->

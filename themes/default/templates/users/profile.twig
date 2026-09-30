@@ -9,6 +9,10 @@
         <div class="cf-alert cf-alert-success">{{ trans('profile.language_updated') }}</div>
       {% endif %}
 
+      {% if bio_status is defined and bio_status == 'updated' %}
+        <div class="cf-alert cf-alert-success">{{ trans('profile.bio_updated') }}</div>
+      {% endif %}
+
       {% for p in oauth_providers %}
         {% if p.status == 'connected' %}
           <div class="cf-alert cf-alert-success">{{ p.label }}-account gekoppeld.</div>
@@ -36,6 +40,18 @@
           <input class="cf-input" type="file" name="avatar" accept="image/jpeg,image/png,image/gif,image/webp" required>
         </div>
         <button type="submit" class="cf-btn">{{ trans('profile.avatar_submit') }}</button>
+      </form>
+
+      <hr style="margin:1rem 0;border-color:var(--border);">
+
+      <form method="POST" action="/profiel/bio">
+        {{ csrf_field()|raw }}
+        <div class="cf-form-group">
+          <label class="cf-label">{{ trans('profile.bio_label') }}</label>
+          <textarea class="cf-input" name="bio" rows="4" maxlength="500">{{ user.bio }}</textarea>
+          <p style="color:var(--muted);font-size:.78rem;margin:.35rem 0 0;">{{ trans('profile.bio_hint') }}</p>
+        </div>
+        <button type="submit" class="cf-btn">{{ trans('profile.bio_submit') }}</button>
       </form>
 
       <hr style="margin:1rem 0;border-color:var(--border);">

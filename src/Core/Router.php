@@ -177,6 +177,10 @@ final class Router
         $this->get('/profiel',          'CommunityFusion\Modules\Users\ProfileController@show',         $auth);
         $this->post('/profiel/avatar',  'CommunityFusion\Modules\Users\ProfileController@updateAvatar',  $auth);
         $this->post('/profiel/taal',    'CommunityFusion\Modules\Users\ProfileController@updateLanguage', $auth);
+        $this->post('/profiel/bio',     'CommunityFusion\Modules\Users\ProfileController@updateBio',      $auth);
+        // v1.27.0 — publiek ledenprofiel, zelfde username-patroon als de bestaande
+        // /blog/{username}-routes hierboven verderop in dit bestand.
+        $this->get('/leden/{username:[a-zA-Z0-9_.-]+}', 'CommunityFusion\Modules\Users\ProfileController@publicShow');
 
         // ── Taalwisselaar (S13 — Multi-language/i18n) — publiek, ook voor gasten ──
         // LET OP: geen `{locale:[a-z]{2}}` — Router::compilePattern()'s eigen

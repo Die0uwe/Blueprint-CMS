@@ -71,6 +71,20 @@ return [
         'language_hint'        => 'Bepaalt in welke taal je de site en het admin-paneel ziet, ongeacht de sitestandaard.',
         'language_submit'      => 'Taal opslaan',
         'language_updated'     => 'Taal bijgewerkt.',
+        'bio_label'            => 'Over mij',
+        'bio_hint'             => 'Korte introductie, zichtbaar op je publieke ledenprofiel. Max. 500 tekens.',
+        'bio_submit'           => 'Bio opslaan',
+        'bio_updated'          => 'Bio bijgewerkt.',
+    ],
+
+    'members' => [
+        'since'         => 'Lid sinds',
+        'recent_topics' => 'Laatste topics',
+        'recent_posts'  => 'Laatste reacties',
+        'no_topics'     => 'Nog geen topics gestart.',
+        'no_posts'      => 'Nog geen reacties geplaatst.',
+        'replies'       => 'reacties',
+        'not_found'     => 'Gebruiker niet gevonden.',
     ],
 
     'admin' => [

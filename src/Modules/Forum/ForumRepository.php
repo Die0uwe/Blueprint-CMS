@@ -262,6 +262,49 @@ final class ForumRepository
         $this->cache->delete('forum.boards');
     }
 
+    /**
+     * Laatste topics gestart door één auteur — voor het publieke ledenprofiel
+     * (/leden/{username}). Topic-slugs zijn alleen uniek per board (zie
+     * `uq_board_slug`), dus `b.slug` wordt meegehaald om er buiten deze
+     * repository ook daadwerkelijk naartoe te kunnen linken
+     * (`/forum/{board.slug}/{topic.slug}`).
+     */
+    public function getTopicsByAuthor(int $authorId, int $limit): array
+    {
+        return $this->db->fetchAll(
+            "SELECT t.id, t.title, t.slug, t.reply_count, t.views, t.created_at,
+                    b.slug AS board_slug, b.name AS board_name
+             FROM cf_forum_topics t
+             JOIN cf_categories b ON b.id = t.board_id
+             WHERE t.author_id = ? AND t.deleted_at IS NULL
+             ORDER BY t.created_at DESC
+             LIMIT ?",
+            [$authorId, $limit]
+        );
+    }
+
+    /**
+     * Laatste reacties van één auteur — zelfde doel als getTopicsByAuthor().
+     * Sluit het eerste bericht van elk topic uit (`is_first_post`): dat
+     * bericht IS het topic zelf en staat al in getTopicsByAuthor(), dus
+     * anders zou elk zelf-gestart topic dubbel op het profiel verschijnen.
+     */
+    public function getPostsByAuthor(int $authorId, int $limit): array
+    {
+        return $this->db->fetchAll(
+            "SELECT p.id, p.content, p.created_at, p.topic_id,
+                    t.title AS topic_title, t.slug AS topic_slug,
+                    b.slug AS board_slug
+             FROM cf_forum_posts p
+             JOIN cf_forum_topics t ON t.id = p.topic_id AND t.deleted_at IS NULL
+             JOIN cf_categories b ON b.id = t.board_id
+             WHERE p.author_id = ? AND p.deleted_at IS NULL AND p.is_first_post = 0
+             ORDER BY p.created_at DESC
+             LIMIT ?",
+            [$authorId, $limit]
+        );
+    }
+
     // ─── POSTS (REACTIES) ───────────────────────────────────────────────────
 
     public function getPosts(int $topicId, int $limit, int $offset): array

@@ -70,6 +70,20 @@ return [
         'language_hint'      => 'Bestimmt, in welcher Sprache du die Seite und das Admin-Panel siehst, unabhängig von der Standardsprache der Seite.',
         'language_submit'    => 'Sprache speichern',
         'language_updated'   => 'Sprache aktualisiert.',
+        'bio_label'          => 'Über mich',
+        'bio_hint'           => 'Kurze Vorstellung, sichtbar auf deinem öffentlichen Mitgliedsprofil. Max. 500 Zeichen.',
+        'bio_submit'         => 'Bio speichern',
+        'bio_updated'        => 'Bio aktualisiert.',
+    ],
+
+    'members' => [
+        'since'         => 'Mitglied seit',
+        'recent_topics' => 'Letzte Themen',
+        'recent_posts'  => 'Letzte Antworten',
+        'no_topics'     => 'Noch keine Themen erstellt.',
+        'no_posts'      => 'Noch keine Antworten geschrieben.',
+        'replies'       => 'Antworten',
+        'not_found'     => 'Benutzer nicht gefunden.',
     ],
 
     'admin' => [

@@ -15,22 +15,31 @@ use CommunityFusion\Core\Template\ThemeManager;
 use CommunityFusion\Core\Security\CsrfProtection;
 use CommunityFusion\Core\Storage\UploadManager;
 use CommunityFusion\Core\Storage\UploadException;
+use CommunityFusion\Modules\Forum\ForumRepository;
 
 /**
- * ProfileController — GET/POST /profiel
+ * ProfileController — GET/POST /profiel (privé instellingen) + GET /leden/{username}
+ * (publiek profiel).
  *
  * Bestond nog niet: elke succesvolle Discord/Twitch OAuth-koppeling
  * redirect al sinds Sprint 4 naar "/profiel?discord=connected", maar zonder
  * route erachter leidde dat tot een 404. Bevat meteen de eerste echte
  * consument van UploadManager voor `cf_users.avatar_url`.
+ *
+ * publicShow()/updateBio() toegevoegd voor het publieke ledenprofiel:
+ * `cf_users.bio` bestond al sinds Sprint 1 in het schema maar werd nergens
+ * getoond of ingesteld — /profiel liet alleen avatar + taal bewerken. Volgt
+ * hetzelfde patroon als BlogController::author()/findUserByUsername()
+ * (is_active=1 AND deleted_at IS NULL, alleen publiek-veilige kolommen).
  */
 final class ProfileController
 {
     public function __construct(
-        private readonly AuthManager   $auth,
-        private readonly Connection    $db,
-        private readonly ThemeManager  $theme,
-        private readonly UploadManager $uploads,
+        private readonly AuthManager     $auth,
+        private readonly Connection      $db,
+        private readonly ThemeManager    $theme,
+        private readonly UploadManager   $uploads,
+        private readonly ForumRepository $forum,
     ) {}
 
     public function show(Request $request): Response
@@ -48,6 +57,7 @@ final class ProfileController
             'page_title'  => 'Mijn profiel',
             'user'        => $this->auth->user(),
             'language'    => $request->query('language'),
+            'bio_status'  => $request->query('bio'),
             'connections' => array_map(
                 fn(array $c) => [
                     'provider' => $c['provider'],
@@ -137,6 +147,71 @@ final class ProfileController
         $_SESSION['locale'] = $locale;
 
         return Response::redirect('/profiel?language=updated');
+    }
+
+    /**
+     * POST /profiel/bio — korte "over mij"-tekst, getoond op het publieke
+     * ledenprofiel (publicShow() hieronder). Begrensd op 500 tekens: dit is
+     * een korte introductie voor op een ledenkaart, geen tweede blogpost —
+     * cf_blog_posts bestaat al voor lange content per gebruiker.
+     */
+    public function updateBio(Request $request): Response
+    {
+        if (!$this->auth->check()) {
+            return Response::redirect('/login?redirect=/profiel');
+        }
+
+        CsrfProtection::validateRequest();
+
+        $bio = trim((string) $request->input('bio', ''));
+        if (mb_strlen($bio) > 500) {
+            $bio = mb_substr($bio, 0, 500);
+        }
+
+        $this->db->execute("UPDATE cf_users SET bio = ? WHERE id = ?", [$bio, $this->auth->id()]);
+
+        return Response::redirect('/profiel?bio=updated');
+    }
+
+    /**
+     * GET /leden/{username} — het publieke ledenprofiel: avatar, weergavenaam,
+     * bio, lid-sinds, en de laatste forumactiviteit (topics + reacties). Doelbewust
+     * minimaal gehouden (v1.27.0 — beta-scope): geen prikbord/wall waar
+     * andere bezoekers op kunnen reageren, geen volgen/vrienden — alleen wat
+     * een bezoeker al ergens anders publiek van deze gebruiker kon zien
+     * (forumbijdragen), nu samengevoegd op één kaart.
+     */
+    public function publicShow(Request $request): Response
+    {
+        $user = $this->findPublicUserByUsername((string) $request->param('username'));
+        if ($user === null) {
+            return Response::html('<h1>404 — Gebruiker niet gevonden</h1>', 404);
+        }
+
+        $html = $this->theme->render('users/public_profile.twig', [
+            'page_title'    => ($user['display_name'] ?: $user['username']) . ' — Profiel',
+            'member'        => $user,
+            'recent_topics' => $this->forum->getTopicsByAuthor((int) $user['id'], 5),
+            'recent_posts'  => $this->forum->getPostsByAuthor((int) $user['id'], 5),
+        ]);
+
+        return Response::html($html);
+    }
+
+    /**
+     * Alleen publiek-veilige kolommen (geen e-mail, geen locale/timezone,
+     * uiteraard geen password_hash) — zelfde is_active/deleted_at-gate als
+     * BlogController::findUserByUsername(), zodat een gebande of
+     * verwijderde gebruiker geen publiek profiel meer heeft.
+     */
+    private function findPublicUserByUsername(string $username): ?array
+    {
+        return $this->db->fetchOne(
+            "SELECT id, username, display_name, avatar_url, bio, created_at
+             FROM cf_users
+             WHERE username = ? AND is_active = 1 AND deleted_at IS NULL",
+            [$username]
+        );
     }
 }
 

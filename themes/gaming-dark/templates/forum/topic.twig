@@ -40,7 +40,7 @@
         {% else %}
           <div style="font-size:2rem;">👤</div>
         {% endif %}
-        <div style="font-size:.8rem;font-weight:700;margin-top:.3rem;">{{ post.display_name|default(post.username) }}</div>
+        <div style="font-size:.8rem;font-weight:700;margin-top:.3rem;"><a href="/leden/{{ post.username }}" style="color:inherit;">{{ post.display_name|default(post.username) }}</a></div>
       </div>
       <div style="flex:1;">
         <div style="color:var(--muted);font-size:.75rem;margin-bottom:.4rem;">

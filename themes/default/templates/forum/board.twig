@@ -24,7 +24,7 @@
           <a href="/forum/{{ board.slug }}/{{ topic.slug }}">{{ topic.title }}</a>
         </h3>
         <div style="color:var(--muted);font-size:.8rem;">
-          door {{ topic.display_name|default(topic.username) }} · {{ topic.created_at|date('d M Y') }}
+          door <a href="/leden/{{ topic.username }}" style="color:inherit;">{{ topic.display_name|default(topic.username) }}</a> · {{ topic.created_at|date('d M Y') }}
         </div>
       </div>
       <div style="text-align:center;min-width:60px;">

@@ -18,6 +18,73 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ---
 
+## [1.27.0] — 2026-09-30 — Nieuw: minimaal publiek ledenprofiel (`/leden/{username}`)
+
+Aanleiding: gevraagd of er al zoiets bestond als "een persoonlijke pagina/kaart à la Facebook, een
+klein sociaal pleintje". Dat bestond nog niet — `cf_users.bio` staat al sinds Sprint 1 in het
+schema maar werd nergens getoond of ingesteld, en `/profiel` is puur de privé-instellingenpagina.
+Om scope-creep richting een volwaardig sociaal netwerk te voorkomen (dat hoort niet in de
+beta-scope) is bewust gekozen voor de kleinste bruikbare versie: een **minimale, publieke,
+alleen-lezen** profielpagina — geen prikbord/wall waar andere bezoekers op kunnen reageren, geen
+vrienden/volgen-systeem.
+
+### ✨ De feature
+
+- **`GET /leden/{username}`** — nieuwe publieke route (zelfde `{username:[a-zA-Z0-9_.-]+}`-patroon
+  als de bestaande `/blog/{username}`-auteurspagina's). Toont avatar, weergavenaam, bio, "lid
+  sinds"-datum en de vijf laatste forumtopics + vijf laatste forumreacties van dat lid. Alleen
+  publiek-veilige kolommen (geen e-mail, geen locale/timezone) en dezelfde
+  `is_active = 1 AND deleted_at IS NULL`-gate als overal elders — een gebande of verwijderde
+  gebruiker heeft dus automatisch ook geen publiek profiel meer. 404 bij een onbekende
+  gebruikersnaam.
+- **`POST /profiel/bio`** — nieuw formulier op de bestaande privé-instellingenpagina om die bio te
+  zetten. Begrensd op 500 tekens (`mb_strlen`/`mb_substr`, UTF-8-veilig) — dit is een korte
+  introductie voor op een ledenkaart, geen tweede blogpost (`cf_blog_posts` bestaat al voor lange
+  content per gebruiker).
+- Auteursnamen in het forum (`forum/board.twig` en `forum/topic.twig`, **beide** thema's) linken nu
+  naar het nieuwe profiel — de enige plek in de beta waar bezoekers al publieke bijdragen van een
+  lid konden zien, nu doorklikbaar.
+- `ForumRepository::getTopicsByAuthor()`/`getPostsByAuthor()` toegevoegd: de reactielijst sluit
+  bewust `is_first_post`-rijen uit (dat bericht IS het topic zelf en staat al in de topic-lijst),
+  anders zou elk zelf-gestart topic dubbel op het profiel verschijnen.
+- Nieuwe vertaalsleutels in alle drie de taalbestanden (`nl`/`en`/`de`): `profile.bio_*` en een
+  nieuwe top-level `members`-sectie.
+
+### ⚠️ Val-in-de-put die dit keer wél op tijd gevonden is
+
+`ThemeManager` heeft **geen** per-template fallback naar het `default`-thema — alleen een fallback
+op thema-niveau als de hele actieve-thema-map ontbreekt. Een nieuwe template die alleen in
+`themes/default/` staat, crasht dus met een Twig "template not found" zodra `gaming-dark` actief
+staat (exact de klasse bug die als v1.26.3 al eens gefixt is, toen voor een andere oorzaak). Daarom
+is `users/public_profile.twig` er in dit werk bewust vanaf het begin in **beide** thema's bij
+gemaakt, en is dat expliciet meegenomen in de livetest hieronder.
+
+### ✅ Live getest
+
+Tegen een echte MariaDB-instantie, volledige installer-flow vanaf een lege database, gevolgd door:
+
+- Ingelogd als de aangemaakte admin, een forumtopic + reactie geplaatst, bio opgeslagen via
+  `/profiel/bio` — 302 naar `/profiel?bio=updated`, succesmelding en vooraf ingevulde textarea
+  beide zichtbaar bij het opnieuw laden.
+- `/leden/DieOuwe`: HTTP 200, avatar-placeholder, bio, "Lid sinds 30 Sep 2026", het topic (met
+  reactieaantal) en de reactie (met uitgeknipte inhoud + anker-link naar `#post-2`) allemaal
+  correct.
+- Auteursnaam op zowel `/forum/algemeen` als de topic-pagina: nu een link naar `/leden/DieOuwe`.
+- `/leden/nietbestaandegebruiker`: HTTP 404 met de verwachte melding.
+- Tweede testgebruiker zonder bio/forumactiviteit: lege-staat-teksten ("Nog geen topics gestart.",
+  "Nog geen reacties geplaatst.") correct getoond, geen kale bio-paragraaf.
+- Bovenstaande twee profielchecks + de bio-instelpagina + de forum-auteurslink **herhaald met
+  `gaming-dark` als actief thema** (via `cf_settings('core','active_theme')`, na het legen van de
+  settings-cache) — geen crash, identieke inhoud.
+- Alle drie de talen (`nl`/`en`/`de`) gecontroleerd op de lege-staat-pagina van de tweede
+  testgebruiker — vertalingen correct.
+- `php -l` op alle gewijzigde PHP-bestanden: geen syntaxfouten. Geen entries in de PHP- of
+  applicatielogs tijdens de volledige testrun.
+
+Testomgeving nadien volledig opgeruimd.
+
+---
+
 ## [1.26.3] — 2026-09-30 — KRITIEK: `getallheaders()` bestaat niet op elke SAPI — élke pagina na installatie crashte met HTTP 500
 
 Aanleiding: dezelfde gebruiker meldde, ná het vervangen van de vendor-map en het opnieuw

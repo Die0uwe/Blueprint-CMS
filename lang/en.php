@@ -71,6 +71,20 @@ return [
         'language_hint'      => "Determines which language you see the site and admin panel in, regardless of the site's default.",
         'language_submit'    => 'Save language',
         'language_updated'   => 'Language updated.',
+        'bio_label'          => 'About me',
+        'bio_hint'           => 'Short introduction, shown on your public member profile. Max. 500 characters.',
+        'bio_submit'         => 'Save bio',
+        'bio_updated'        => 'Bio updated.',
+    ],
+
+    'members' => [
+        'since'         => 'Member since',
+        'recent_topics' => 'Recent topics',
+        'recent_posts'  => 'Recent replies',
+        'no_topics'     => 'No topics started yet.',
+        'no_posts'      => 'No replies posted yet.',
+        'replies'       => 'replies',
+        'not_found'     => 'User not found.',
     ],
 
     'admin' => [
