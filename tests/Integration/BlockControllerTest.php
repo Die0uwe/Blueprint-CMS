@@ -129,12 +129,16 @@ final class BlockControllerTest extends TestCase
         $this->assertSame(422, $res->getStatus());
         $this->assertSame('light', $this->config()['theme']);   // niets overschreven
 
-        $res = $this->ctl->update($this->req(['config' => ['server_id' => '999', 'theme' => 'dark', 'width' => '50000', 'evil' => 'x']]));
+        $res = $this->ctl->update($this->req(['config' => ['server_id' => '123456789012345678', 'theme' => 'dark', 'width' => '50000', 'evil' => 'x']]));
         $this->assertSame(200, $res->getStatus());
         $c = $this->config();
         $this->assertSame(1000, $c['width']);
         $this->assertFalse(array_key_exists('evil', $c));
         $this->assertSame('dark', $c['theme']);
+
+        $res = $this->ctl->update($this->req(['config' => ['server_id' => 'geen-id']]));
+        $this->assertSame(422, $res->getStatus());
+        $this->assertSame('123456789012345678', $this->config()['server_id']);
     }
 
     #[Test]

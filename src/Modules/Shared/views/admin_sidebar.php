@@ -31,7 +31,7 @@ use CommunityFusion\Core\I18n\Trans;
 $navItem = static function (string $key, string $href, string $icon, string $label) use ($activeNav): void {
     $active = $activeNav === $key ? ' active' : '';
     echo '<a href="' . htmlspecialchars($href, ENT_QUOTES) . '" class="admin-nav-link' . $active . '">'
-       . '<span class="nav-icon">' . $icon . '</span> ' . htmlspecialchars($label, ENT_QUOTES)
+       . '<span class="nav-icon">' . htmlspecialchars($icon, ENT_QUOTES) . '</span> ' . htmlspecialchars($label, ENT_QUOTES)
        . '</a>' . "\n";
 };
 ?>

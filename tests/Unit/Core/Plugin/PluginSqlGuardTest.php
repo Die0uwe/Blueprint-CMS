@@ -94,6 +94,35 @@ final class PluginSqlGuardTest extends TestCase
     }
 
     #[Test]
+    public function blocksCommaJoinsCaseTricksAndQualifiedNames(): void
+    {
+        $t = self::T;
+        foreach ([
+            "INSERT INTO $t (v) SELECT password_hash FROM cf_users UNION SELECT 1",
+            "INSERT INTO $t (v) SELECT a FROM $t, CF_USERS",
+            "INSERT INTO $t (v) SELECT a FROM $t, cf_users",
+            "INSERT INTO $t (v) SELECT a FROM $t STRAIGHT_JOIN cf_users",
+            "INSERT INTO $t (v) SELECT a FROM $t x, otherdb.secrets",
+            "INSERT INTO $t (v) SELECT a FROM `mysql`.`user`",
+            "INSERT INTO $t (v) SELECT a FROM otherdb.secrets",
+            "INSERT INTO $t (v) SELECT a FROM $t JOIN `Cf_Users` u ON 1",
+            "INSERT INTO $t (v) SELECT a FROM $t NATURAL JOIN cf_users",
+            "INSERT INTO $t (v) SELECT (SELECT password_hash FROM cf_users LIMIT 1)",
+            "INSERT INTO $t (v) SELECT a FROM (SELECT x FROM secrets) s",
+            "INSERT INTO $t (v) SELECT a FROM $t, secrets",
+            "DELETE FROM $t USING $t, cf_users",
+            "DELETE FROM $t WHERE id IN (SELECT id FROM CF_USERS)",
+            "UPDATE $t SET v = (SELECT password_hash FROM CF_USERS LIMIT 1)",
+        ] as $sql) {
+            $this->blocked($sql);
+        }
+        // Eigen tabellen met alias, komma-join en JOIN blijven toegestaan
+        $this->assertCount(1, $this->ok("INSERT INTO $t (v) SELECT a.v FROM $t a, cf_plg_mijn_plugin_other AS b WHERE a.id = b.id"));
+        $this->assertCount(1, $this->ok("INSERT INTO $t (v) SELECT a.v FROM $t a JOIN cf_plg_mijn_plugin_other b ON a.id = b.id"));
+        $this->assertCount(1, $this->ok("INSERT INTO $t (v) SELECT a.v FROM $t a JOIN cf_plg_mijn_plugin_other b USING (id) WHERE a.v > 1"));
+    }
+
+    #[Test]
     public function blocksBlockCommentsHiddenCommentsAndUnterminatedStrings(): void
     {
         $this->blocked('/*!50000 DROP TABLE cf_users */', 'executable comment');

@@ -23,9 +23,9 @@ final class ColumnMigrator
      * Definities zijn vaste, door ons geschreven SQL-fragmenten (nooit gebruikersinvoer).
      */
     public const COLUMNS = [
-        'cf_pages'      => ['content_markup' => 'TEXT NULL'],
-        'cf_news'       => ['content_markup' => 'TEXT NULL'],
-        'cf_blog_posts' => ['content_markup' => 'TEXT NULL'],
+        'cf_pages'      => ['content_markup' => 'MEDIUMTEXT NULL'],
+        'cf_news'       => ['content_markup' => 'MEDIUMTEXT NULL'],
+        'cf_blog_posts' => ['content_markup' => 'MEDIUMTEXT NULL'],
     ];
 
     /**
@@ -59,6 +59,12 @@ final class ColumnMigrator
             throw new \InvalidArgumentException('Ongeldige kolomdefinitie.');
         }
         if (self::columnExists($pdo, $table, $column)) {
+            // Bestaande TEXT-kolom (64 KB) verruimen als MEDIUMTEXT/LONGTEXT is bedoeld: anders faalt opslaan van grote pagina's
+            if (preg_match('/^(MEDIUMTEXT|LONGTEXT)\b/i', $definition, $dm)
+                && strtolower(self::columnType($pdo, $table, $column)) === 'text') {
+                $pdo->exec("ALTER TABLE `{$table}` MODIFY COLUMN `{$column}` {$definition}");
+                return true;
+            }
             return false;
         }
         $pdo->exec("ALTER TABLE `{$table}` ADD COLUMN `{$column}` {$definition}");
@@ -73,6 +79,15 @@ final class ColumnMigrator
         );
         $st->execute([$table]);
         return (int)$st->fetchColumn() > 0;
+    }
+
+    public static function columnType(\PDO $pdo, string $table, string $column): string
+    {
+        $st = $pdo->prepare(
+            'SELECT data_type FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?'
+        );
+        $st->execute([$table, $column]);
+        return (string)$st->fetchColumn();
     }
 
     public static function columnExists(\PDO $pdo, string $table, string $column): bool

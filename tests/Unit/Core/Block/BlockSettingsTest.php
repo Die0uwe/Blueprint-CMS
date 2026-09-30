@@ -79,4 +79,16 @@ final class BlockSettingsTest extends TestCase
         $this->assertSame('Alfa', $d[0]['options'][0]['label']);
         $this->assertSame('x', $d[1]['options'][0]['value']);
     }
+
+    #[Test]
+    public function stringPatternIsEnforcedAndValueTrimmed(): void
+    {
+        $schema = ['sid' => ['type' => 'string', 'pattern' => '/^\\d{15,25}$/', 'pattern_msg' => 'nope']];
+        $r = BlockSettings::normalize($schema, ['sid' => ' 123456789012345678 ']);
+        $this->assertSame('123456789012345678', $r['config']['sid']);
+        $r = BlockSettings::normalize($schema, ['sid' => 'abc']);
+        $this->assertSame(['sid' => 'nope'], $r['errors']);
+        $r = BlockSettings::normalize($schema, ['sid' => '']);
+        $this->assertSame([], $r['errors']);
+    }
 }

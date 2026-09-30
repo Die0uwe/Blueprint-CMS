@@ -244,6 +244,7 @@ use CommunityFusion\Core\Security\CsrfProtection;
             'twitch-live'   => '📺',
           ];
           foreach ($allTypes as $slug => $type):
+            if ($slug === 'markup' && empty($canMarkupPalette)) { continue; }   // zonder recht geen Markup-blok in het palet
             $icon = $typeIcons[$slug] ?? '📦';
           ?>
           <div class="palette-item"

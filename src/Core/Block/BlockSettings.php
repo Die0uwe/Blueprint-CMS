@@ -107,7 +107,11 @@ final class BlockSettings
                         $errors[$key] = "Te lang (max {$max} tekens).";
                         break;
                     }
-                    $config[$key] = $raw;
+                    if ($type === 'string' && isset($field['pattern']) && trim($raw) !== '' && @preg_match((string)$field['pattern'], trim($raw)) !== 1) {
+                        $errors[$key] = (string)($field['pattern_msg'] ?? 'Ongeldige waarde.');
+                        break;
+                    }
+                    $config[$key] = $type === 'string' && isset($field['pattern']) ? trim($raw) : $raw;
             }
         }
         return ['config' => $config, 'errors' => $errors];

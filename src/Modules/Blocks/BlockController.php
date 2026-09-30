@@ -48,6 +48,7 @@ final class BlockController
         $zones    = self::ZONES;
         $allTypes = $this->registry->all();
         $placed   = $this->getPlacedByZone();
+        $canMarkupPalette = $this->canMarkup();
         ob_start();
         include __DIR__ . '/views/index.php';
         return Response::html(ob_get_clean());

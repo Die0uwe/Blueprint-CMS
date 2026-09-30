@@ -23,8 +23,8 @@ final class DiscordWidgetBlock extends AbstractBlock
     public function getConfigSchema(): array
     {
         return [
-            'server_id' => ['type' => 'string',  'label' => 'Server ID (leeg = Guild ID uit de Discord-moduleinstellingen)', 'required' => false,
-                            'help' => 'Zet in Discord: Serverinstellingen → Widget → "Server-widget inschakelen" aan én kies een uitnodigingskanaal.'],
+            'server_id' => ['type' => 'string',  'label' => 'Server ID (leeg = Guild ID uit de Discord-moduleinstellingen)', 'required' => false, 'pattern' => '/^\\d{15,25}$/', 'pattern_msg' => 'Een Discord Server ID bestaat uit 15–25 cijfers.',
+                            'help' => 'De server-widget moet in Discord aan staan met een uitnodigingskanaal. Controleer en activeer dat via Beheer → Discord → Status.'],
             'theme'     => ['type' => 'select',  'label' => 'Thema', 'options' => ['dark', 'light'], 'default' => 'dark'],
             'width'     => ['type' => 'integer', 'label' => 'Breedte (px)', 'default' => 350, 'min' => 200, 'max' => 1000],
             'height'    => ['type' => 'integer', 'label' => 'Hoogte (px)',  'default' => 500, 'min' => 200, 'max' => 1000],

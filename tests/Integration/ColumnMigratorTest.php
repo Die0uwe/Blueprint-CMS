@@ -46,6 +46,16 @@ final class ColumnMigratorTest extends TestCase
     }
 
     #[Test]
+    public function widensAnExistingTextColumnToMediumtext(): void
+    {
+        $this->pdo->exec('ALTER TABLE `cf_zz_migrator_test` ADD COLUMN `body` TEXT NULL');
+        $this->assertSame('text', ColumnMigrator::columnType($this->pdo, 'cf_zz_migrator_test', 'body'));
+        $this->assertTrue(ColumnMigrator::ensureColumn($this->pdo, 'cf_zz_migrator_test', 'body', 'MEDIUMTEXT NULL'));
+        $this->assertSame('mediumtext', ColumnMigrator::columnType($this->pdo, 'cf_zz_migrator_test', 'body'));
+        $this->assertFalse(ColumnMigrator::ensureColumn($this->pdo, 'cf_zz_migrator_test', 'body', 'MEDIUMTEXT NULL'));
+    }
+
+    #[Test]
     public function runSkipsTablesThatDoNotExistAndReportsWhatItAdded(): void
     {
         $cols = ['cf_zz_migrator_test' => ['a' => 'INT NULL', 'b' => 'TEXT NULL'], 'cf_zz_does_not_exist' => ['x' => 'INT NULL']];

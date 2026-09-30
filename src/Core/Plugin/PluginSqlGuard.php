@@ -132,10 +132,10 @@ final class PluginSqlGuard
             throw new PackageException('Migratie bevat een niet-toegestaan SQL-onderdeel.');
         }
 
-        // Elke cf_-tabel: eigen prefix, of uitsluitend als FOREIGN KEY-doel (REFERENCES)
-        if (preg_match_all('/`?\bcf_[A-Za-z0-9_]*`?/', $bare, $m, PREG_OFFSET_CAPTURE)) {
+        // Elke cf_-tabel (hoofdletterongevoelig, ook tussen backticks): eigen prefix, of uitsluitend als FOREIGN KEY-doel
+        if (preg_match_all('/`?\bcf_[A-Za-z0-9_]*`?/i', $bare, $m, PREG_OFFSET_CAPTURE)) {
             foreach ($m[0] as [$token, $offset]) {
-                $name = trim($token, '`');
+                $name = strtolower(trim($token, '`'));
                 if (str_starts_with($name, $prefix)) {
                     continue;
                 }
@@ -145,17 +145,66 @@ final class PluginSqlGuard
                 }
             }
         }
-        // Elke tabel na FROM/JOIN moet eigen tabel zijn (INSERT ... SELECT)
-        if (preg_match_all('/\b(?:FROM|JOIN)\s+`?([A-Za-z0-9_.]+)`?/i', $bare, $fm)) {
-            foreach ($fm[1] as $name) {
-                if (!str_starts_with($name, $prefix) || str_contains($name, '.')) {
-                    throw new PackageException("Migratie leest uit een tabel buiten de eigen prefix: {$name}");
-                }
-            }
-        }
+        // Tabellijsten na FROM / JOIN / STRAIGHT_JOIN / USING: elk item moet een eigen tabel zijn
+        // (geen komma-joins naar vreemde tabellen, geen db.tabel, geen backtick-trucs).
+        $this->checkTableLists($bare, $prefix);
         // Geen database-kwalificatie (db.tabel) op het doel
         if (preg_match('/`?[A-Za-z0-9_]+`?\s*\.\s*`?' . preg_quote($prefix, '/') . '/', $bare)) {
             throw new PackageException('Database-kwalificatie (db.tabel) is niet toegestaan.');
+        }
+    }
+
+    /**
+     * Haal na elk FROM/JOIN/USING de tabellijst (gescheiden door komma's op haakjesniveau 0) op
+     * en eis dat elk item een eigen tabel is, optioneel met alias. Subqueries (haakje open)
+     * worden door de globale scan op hun eigen FROM gecontroleerd.
+     */
+    private function checkTableLists(string $bare, string $prefix): void
+    {
+        $item = '/^`?' . preg_quote($prefix, '/') . '[a-z0-9_]{1,40}`?(?:\s+(?:AS\s+)?`?[A-Za-z_][A-Za-z0-9_]*`?)?$/i';
+        $stop = '/^(?:WHERE|GROUP|ORDER|LIMIT|HAVING|UNION|ON|USING|SET|SELECT|WINDOW|FOR|LOCK|INTO|PARTITION|NATURAL|LEFT|RIGHT|INNER|CROSS|OUTER|JOIN|STRAIGHT_JOIN|VALUES|ON\s+DUPLICATE)\b/i';
+        if (!preg_match_all('/(?<![A-Za-z0-9_])(?:FROM|STRAIGHT_JOIN|JOIN|USING)(?![A-Za-z0-9_])/i', $bare, $m, PREG_OFFSET_CAPTURE)) {
+            return;
+        }
+        foreach ($m[0] as [$kw, $off]) {
+            $rest = ltrim(substr($bare, (int)$off + strlen($kw)));
+            if ($rest === '' || $rest[0] === '(') {
+                continue;   // JOIN ... USING (kolommen) of subquery
+            }
+            // Lijst tot aan het eerste stopwoord of haakje-sluiten op niveau 0
+            $depth = 0;
+            $buf = '';
+            $items = [];
+            $len = strlen($rest);
+            for ($i = 0; $i < $len; $i++) {
+                $c = $rest[$i];
+                if ($c === '(') {
+                    $depth++;
+                } elseif ($c === ')') {
+                    if ($depth === 0) {
+                        break;
+                    }
+                    $depth--;
+                }
+                if ($depth === 0 && $c === ',') {
+                    $items[] = trim($buf);
+                    $buf = '';
+                    continue;
+                }
+                if ($depth === 0 && ctype_space($c) && preg_match($stop, ltrim(substr($rest, $i)))) {
+                    break;
+                }
+                $buf .= $c;
+            }
+            $items[] = trim($buf);
+            foreach ($items as $it) {
+                if ($it === '' || $it[0] === '(') {
+                    continue;
+                }
+                if (!preg_match($item, $it)) {
+                    throw new PackageException('Migratie leest uit een tabel buiten de eigen prefix: ' . mb_substr($it, 0, 40));
+                }
+            }
         }
     }
 }
