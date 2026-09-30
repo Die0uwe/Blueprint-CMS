@@ -27,6 +27,7 @@ $action    = $isEdit ? '/admin/pages/' . (int) $item['id'] . '/bewerk' : '/admin
   <div class="admin-main">
     <header class="admin-topbar">
       <h1><?= $isEdit ? '✏️ Pagina bewerken' : '📄 Nieuwe pagina' ?></h1>
+      <?php if ($isEdit): ?><a href="/admin/editor/page/<?= (int) $item['id'] ?>" class="cf-btn-sm">✍️ Open in editor</a><?php endif; ?>
       <a href="/admin/pages" class="cf-btn-sm">← Terug naar overzicht</a>
     </header>
 

@@ -1,0 +1,41 @@
+/* Bericht-editor (Editor A). Gebruikt de tokens uit blueprint.css (--bg, --surface, --border, --accent, ...). */
+.ed-content { max-width:none; }
+.ed-toolbar { display:flex; flex-wrap:wrap; gap:8px 12px; align-items:center; margin-bottom:10px; }
+.ed-group { display:inline-flex; flex-wrap:wrap; gap:4px; }
+.ed-spacer { flex:1; }
+.ed-btn { font:inherit; font-size:.8rem; background:var(--surface2,#1a2035); color:var(--text,#e8eaf6); border:1px solid var(--border,#1e2940); border-radius:6px; padding:4px 9px; cursor:pointer; }
+.ed-btn:hover { border-color:var(--accent,#6c3df4); }
+.ed-btn.is-active { background:var(--accent,#6c3df4); border-color:var(--accent,#6c3df4); color:#fff; }
+.ed-btn:focus-visible,.ed-text:focus-visible { outline:2px solid var(--accent2,#a855f7); outline-offset:1px; }
+.ed-check { font-size:.85rem; color:var(--text-dim,#9aa3c7); display:inline-flex; gap:5px; align-items:center; }
+.ed-status { font-size:.8rem; color:var(--text-dim,#9aa3c7); min-width:9em; text-align:right; }
+.ed-status.is-error { color:var(--error,#ef4444); }
+.ed-hint,.ed-note { font-size:.8rem; color:var(--text-dim,#9aa3c7); }
+.ed-note { margin-top:10px; }
+.ed-panes { display:grid; grid-template-columns:1fr 1fr; gap:12px; height:calc(100vh - 230px); min-height:420px; }
+.ed-panes.no-preview,.ed-panes.preview-off { grid-template-columns:1fr; }
+@media (max-width:900px) { .ed-panes { grid-template-columns:1fr; height:auto; } .ed-editor { height:60vh; } .ed-preview { height:50vh; } }
+
+/* Editor: textarea (transparante tekst) ligt over de gekleurde overlay; beide delen exact dezelfde metrics. */
+.ed-editor { position:relative; min-height:0; background:var(--bg2,#0d1120); border:1px solid var(--border,#1e2940); border-radius:10px; overflow:hidden; }
+.ed-overlay,.ed-text { position:absolute; inset:0; margin:0; border:0; box-sizing:border-box; padding:12px 12px 12px calc(12px + 3.6em);
+  font:13px/1.55 var(--font-mono,Consolas,'Courier New',monospace); letter-spacing:0; tab-size:2; white-space:pre; word-wrap:normal; }
+.ed-overlay { overflow:hidden; pointer-events:none; color:var(--text,#e8eaf6); counter-reset:ln; padding-left:12px; }
+.ed-overlay .ln { display:block; counter-increment:ln; }
+.ed-overlay .ln::before { content:counter(ln); display:inline-block; width:3em; margin-right:.6em; text-align:right; color:var(--muted,#5b6488); user-select:none; }
+.ed-text { width:100%; height:100%; resize:none; overflow:auto; background:transparent; color:transparent; caret-color:var(--text,#e8eaf6); outline:none; }
+.ed-text::selection { background:rgba(108,61,244,.45); color:transparent; }
+.ed-editor.is-source .ed-text { color:var(--text,#e8eaf6); }
+.ed-editor.is-source .ed-overlay { display:none; }
+
+/* Token-kleuren */
+.tok-tag { color:#7dd3fc; } .tok-attr { color:#c4b5fd; } .tok-string { color:#86efac; } .tok-comment { color:#6b7399; font-style:italic; }
+.tok-doctype { color:#94a3b8; } .tok-number { color:#fbbf24; } .tok-keyword { color:#f472b6; } .tok-function { color:#fcd34d; }
+.tok-php-delim { color:#f97316; font-weight:600; } .tok-php-var { color:#fdba74; }
+.tok-twig-delim { color:#34d399; font-weight:600; } .tok-twig-tag { color:#2dd4bf; } .tok-twig-filter { color:#a3e635; }
+.tok-twig-var { color:#e8eaf6; } .tok-twig-comment { color:#6b7399; font-style:italic; }
+
+.ed-preview { position:relative; min-height:0; border:1px solid var(--border,#1e2940); border-radius:10px; overflow:hidden; background:#0a0c14; }
+.ed-preview iframe { width:100%; height:100%; border:0; display:block; background:#0a0c14; }
+.ed-preview .cf-alert { position:absolute; left:8px; right:8px; bottom:8px; margin:0; }
+.ed-preview.preview-off { display:none; }

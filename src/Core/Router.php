@@ -233,6 +233,13 @@ final class Router
         $this->post('/admin/pages/{id:[0-9]+}/bewerk',    'CommunityFusion\Modules\Pages\PageController@update',     $perm('pages.manage'));
         $this->post('/admin/pages/{id:[0-9]+}/verwijder', 'CommunityFusion\Modules\Pages\PageController@delete',     $perm('pages.manage'));
 
+        // ── Bericht-editor (v1.29.0): ingebouwde editor voor Pagina's, Nieuws en Blog. De letterlijke
+        //    /preview- en /draft-routes staan vóór de generieke {type}/{id}-routes. ──
+        $this->get('/admin/editor/{type:[a-z]+}/{id:[0-9]+}',       'CommunityFusion\Modules\Editor\EditorController@edit',    $perm('editor.use'));
+        $this->post('/admin/editor/preview',                         'CommunityFusion\Modules\Editor\EditorController@preview', $perm('editor.use'));
+        $this->post('/admin/editor/draft',                           'CommunityFusion\Modules\Editor\EditorController@draft',   $perm('editor.use'));
+        $this->post('/admin/editor/{type:[a-z]+}/{id:[0-9]+}/save', 'CommunityFusion\Modules\Editor\EditorController@save',    $perm('editor.use'));
+
         // ── Gebruikersbeheer admin (Wave 3 — verving de "nog niet gebouwd"-
         //    placeholder uit Wave 2; zie Settings/views/_placeholder.php-patroon,
         //    dat bestand hier vervangen is door een echt scherm). ────────────

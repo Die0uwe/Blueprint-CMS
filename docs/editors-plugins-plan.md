@@ -89,4 +89,5 @@ Gerangschikt op waarde/inspanning; de eerste vijf passen direct bij dit plan.
 - [x] Stap 0 — security-fundering (v1.28.1): ManifestValidator, ZipInspector, SafeFs, SsrfGuard/SafeDownloader, atomisch deployen met rollback, CSRF-fix. 69 unit-tests groen (mini-runner; PHPUnit niet installeerbaar in sandbox)
 - [x] Stap a — migraties (cf_plugins, cf_plugin_migrations, cf_block_content, cf_editor_drafts), `ColumnMigrator` voor `content_markup`, 4 editor/plugin-permissies. Getest op upgrade vanaf v1.28.0-schema en 2× achter elkaar
 - [x] Stap b — PluginManager (discover/activate/deactivate/uninstall/migrate/loadActive/settings/upload), PluginManifest, PluginSqlGuard (alleen `cf_plg_{slug}_*`), PluginAutoloader, `Application::loadPlugins()` na `loadModules()`. 17 unit- + 12 integratietests
-- [ ] Stap c … g
+- [x] Stap c — Bericht-editor: eigen tokenizer (HTML/PHP/Twig, 9 node-tests incl. fuzz), overlay + regelnummers, toolbar, preview (`<iframe sandbox="">`), autosave 30 s, `MarkupRenderer` (Twig-sandbox, PHP nooit uitgevoerd), ratelimit, links vanuit Pagina's/Nieuws. 103 PHP-tests + 9 JS-tests groen. **Open:** EditorController-integratietest (CSRF/permissie/save) nog te schrijven; oude formulier wist `content_markup` niet bij opslaan (dan toont de editor oude bron)
+- [ ] Stap d … g

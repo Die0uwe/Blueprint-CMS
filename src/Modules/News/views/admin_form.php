@@ -27,6 +27,7 @@ $action    = $isEdit ? '/admin/news/' . (int) $article['id'] . '/bewerk' : '/adm
   <div class="admin-main">
     <header class="admin-topbar">
       <h1><?= $isEdit ? '✏️ Artikel bewerken' : '✍️ Nieuw artikel' ?></h1>
+      <?php if ($isEdit): ?><a href="/admin/editor/news/<?= (int) $article['id'] ?>" class="cf-btn-sm">✍️ Open in editor</a><?php endif; ?>
       <a href="/admin/news" class="cf-btn-sm">← Terug naar overzicht</a>
     </header>
 

@@ -1,0 +1,17 @@
+/* cf-prose — basisopmaak voor gerenderde inhoud (preview in de editor, en te gebruiken in thema's). */
+:root { --p-bg:#0a0c14; --p-text:#e8eaf6; --p-dim:#9aa3c7; --p-border:#1e2940; --p-surface:#111827; --p-accent:#8b5cf6; --p-mono:Consolas,'Courier New',monospace; }
+.cf-prose { font:16px/1.65 system-ui,-apple-system,'Segoe UI',sans-serif; color:var(--p-text); background:var(--p-bg); margin:0; padding:20px; overflow-wrap:anywhere; }
+.cf-prose > :first-child { margin-top:0; }
+.cf-prose h1,.cf-prose h2,.cf-prose h3,.cf-prose h4 { line-height:1.25; margin:1.4em 0 .5em; }
+.cf-prose h1 { font-size:1.9em; } .cf-prose h2 { font-size:1.5em; } .cf-prose h3 { font-size:1.25em; }
+.cf-prose p,.cf-prose ul,.cf-prose ol,.cf-prose blockquote,.cf-prose pre,.cf-prose table { margin:0 0 1em; }
+.cf-prose ul,.cf-prose ol { padding-left:1.6em; }
+.cf-prose a { color:var(--p-accent); }
+.cf-prose img,.cf-prose video { max-width:100%; height:auto; border-radius:8px; }
+.cf-prose blockquote { border-left:3px solid var(--p-accent); padding:.2em 1em; color:var(--p-dim); background:var(--p-surface); border-radius:0 8px 8px 0; }
+.cf-prose code { font-family:var(--p-mono); font-size:.9em; background:var(--p-surface); padding:.1em .35em; border-radius:4px; }
+.cf-prose pre { background:var(--p-surface); border:1px solid var(--p-border); border-radius:8px; padding:12px 14px; overflow:auto; }
+.cf-prose pre code { background:none; padding:0; }
+.cf-prose table { border-collapse:collapse; width:100%; }
+.cf-prose th,.cf-prose td { border:1px solid var(--p-border); padding:6px 10px; text-align:left; }
+.cf-prose hr { border:0; border-top:1px solid var(--p-border); margin:1.5em 0; }

@@ -131,6 +131,13 @@ final class BlogRepository
         $this->cache->clear();
     }
 
+    /** Alleen de inhoud bijwerken (bericht-editor). Titel, samenvatting en status blijven ongemoeid. */
+    public function updateContent(int $id, string $content): void
+    {
+        $this->db->update('blog_posts', ['content' => $content], 'id = ?', [$id]);
+        $this->cache->clear();
+    }
+
     public function incrementViews(int $id): void
     {
         $this->db->execute("UPDATE cf_blog_posts SET views = views + 1 WHERE id = ?", [$id]);
