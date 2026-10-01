@@ -37,6 +37,7 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 * `auth.providers`-filter: alleen lokale paden en hex-kleuren; ingebouwde providers niet te overschrijven.
 
 ### 🐛 Fixes
+* CSRF op de ontkoppel-routes van Google/Twitch/Battle.net; `?redirect=` na inloggen alleen lokale paden.
 * Discord-blokken cachen fouten 30–45 s (geen Discord-call per paginaweergave); meerdere Discord-rollen naar dezelfde CMS-rol vechten niet meer; `server_id` wordt bij opslaan gevalideerd; Markup-blok verborgen in het palet zonder recht; sidebar-icoon geëscaped.
 
 ---

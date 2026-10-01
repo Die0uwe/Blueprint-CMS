@@ -138,6 +138,8 @@ final class GoogleOAuthController
             return Response::json(['error' => 'Niet ingelogd.'], 401);
         }
 
+        \CommunityFusion\Core\Security\CsrfProtection::validateRequest();
+
         // Nooit ontkoppelen als dit de enige manier is om in te loggen.
         if (!\CommunityFusion\Core\Auth\OAuth\AccountLinkPolicy::canDisconnect($this->db, (int) $this->auth->id(), 'google')) {
             if ($request->isJson() || $request->isAjax()) {

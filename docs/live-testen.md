@@ -32,4 +32,4 @@ Wat in de sandbox niet kon (geen echte Discord/GitHub-verbinding, geen echte PHP
 ## Bekende vervolgpunten
 - Nieuwsmelding gaat synchroon (max. 5 s bij een Discord-storing); queue is een vervolgstap.
 - Rate limiting achter een proxy: `X-Forwarded-For` nog niet meegenomen.
-- Legacy-routes `/auth/{google,twitch,battlenet}/disconnect` hebben nog geen CSRF-check (profiel gebruikt ze niet meer).
+- (opgelost) Legacy-disconnect-routes hebben nu een CSRF-check; loginredirect accepteert alleen lokale paden.

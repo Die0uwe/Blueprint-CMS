@@ -43,7 +43,11 @@ final class AuthController
         $password   = $request->input('password', '');
 
         if ($this->auth->attempt($identifier, $password)) {
-            $redirect = $request->query('redirect', '/');
+            $redirect = (string) $request->query('redirect', '/');
+            // Alleen lokale paden (geen open redirect naar //evil.com of https://…)
+            if (preg_match('#^/(?![/\\\\])[^\r\n]*$#D', $redirect) !== 1) {
+                $redirect = '/';
+            }
             return Response::redirect($redirect);
         }
 
