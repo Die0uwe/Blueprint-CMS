@@ -29,7 +29,10 @@ final class CsrfProtection
     }
     public static function verify(string $token): bool
     {
-        return hash_equals($_SESSION['_csrf_token'] ?? '', $token);
+        $expected = (string) ($_SESSION['_csrf_token'] ?? '');
+        // hash_equals('', '') is true: zonder sessietoken (nog nooit een formulier
+        // gezien) zou een leeg token anders als geldig doorgaan.
+        return $expected !== '' && $token !== '' && hash_equals($expected, $token);
     }
     public static function field(): string
     {
