@@ -129,6 +129,7 @@ cp .env.example .env
 | Minecraft | 1 | Server status via mcsrvstat.us |
 | FiveM | 1 | Server status via FXServer endpoint |
 | Ollama AI | 2 | Chat widget, assistent, guild analyse, nieuws samenvatting |
+| GitHub | 0 | OAuth-login/registratie (bevestigd primair e-mailadres), koppelen aan bestaand account |
 | Google | 0 | OAuth-login/registratie (OpenID Connect), koppelen aan bestaand account |
 | Battle.net | 0 | OAuth-login/registratie (regio-gated: eu/us/kr/tw), BattleTag als weergavenaam |
 | YouTube | 4 | Kanaalinfo, laatste video's (quota-efficiënt via uploads-playlist), live-status, playlist-embed — API-sleutel, geen OAuth |
@@ -145,7 +146,7 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 
 | Module | Sinds | Highlights |
 |---|---|---|
-| Users | v1.0.0 | Login/registratie, profiel + avatar-upload, Discord/Twitch OAuth (ook voor nieuwe bezoekers) |
+| Users | v1.0.0 | Login/registratie, profiel + avatar-upload, Inloggen met GitHub, Google, Discord, Twitch en Battle.net (zie [docs/oauth-login.md](docs/oauth-login.md)), wachtwoord vergeten |
 | News | v1.10.0 | Artikelen, categorieën, volledige admin-CRUD (`/admin/news`) |
 | Pages | v1.10.0 | Statische CMS-pagina's + menu, volledige admin-CRUD (`/admin/pages`) |
 | Forum | v1.9.0 | Borden (gedeelde `cf_categories`), topics, reacties, pin/lock/verwijderen, `forum.post`/`forum.moderate` RBAC — **live end-to-end geverifieerd in v1.14.0**, `/admin/forum/boards` voor bordbeheer toegevoegd |

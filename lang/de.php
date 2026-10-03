@@ -43,9 +43,23 @@ return [
             'with_twitch'      => 'Mit Twitch anmelden',
             'with_google'      => 'Mit Google anmelden',
             'with_battlenet'   => 'Mit Battle.net anmelden',
+            'with_provider'    => 'Mit :provider anmelden',
             'no_account'       => 'Noch kein Konto?',
             'register_link'    => 'Registrieren',
             'register_hint'    => '— oder nutze einen der Buttons oben, dann wird automatisch eins erstellt.',
+        ],
+        'oauth' => [
+            'error' => [
+                'cancelled' => 'Die Anmeldung mit :provider wurde abgebrochen oder ist fehlgeschlagen. Bitte erneut versuchen.',
+                'state' => 'Der Anmeldeversuch ist abgelaufen oder ungültig. Bitte erneut versuchen.',
+                'failed' => 'Die Anmeldung mit :provider hat nicht funktioniert. Bitte später erneut versuchen.',
+                'disabled' => 'Dieses Konto wurde deaktiviert und kann sich nicht anmelden.',
+                'not_configured' => 'Die Anmeldung mit :provider wurde vom Administrator noch nicht eingerichtet.',
+                'not_enabled' => 'Die Anmeldung mit :provider ist nicht aktiviert.',
+                'already_linked' => 'Dieses :provider-Konto ist bereits mit einem anderen Konto verknüpft.',
+                'other_linked' => 'Du hast bereits ein :provider-Konto verknüpft. Trenne es zuerst.',
+                'last_method' => 'Dies ist deine einzige Anmeldemethode. Lege zuerst ein Passwort fest oder verknüpfe ein anderes Konto.',
+            ],
         ],
         'forgot' => [
             'title' => 'Passwort vergessen',

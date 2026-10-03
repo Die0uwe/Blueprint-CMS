@@ -10,6 +10,8 @@ namespace CommunityFusion\Modules\Marketplace;
 use CommunityFusion\Core\Request;
 use CommunityFusion\Core\Response;
 use CommunityFusion\Core\Auth\AuthManager;
+use CommunityFusion\Core\Auth\OAuth\OAuthProviders;
+use CommunityFusion\Core\Database\Connection;
 use CommunityFusion\Core\Security\CsrfProtection;
 use CommunityFusion\Modules\Settings\SettingsRepository;
 
@@ -35,6 +37,7 @@ final class ModuleSettingsController
     public function __construct(
         private readonly AuthManager        $auth,
         private readonly SettingsRepository $settings,
+        private readonly Connection         $db,
     ) {}
 
     public function edit(Request $request): Response
@@ -49,6 +52,7 @@ final class ModuleSettingsController
         }
 
         $flash  = $request->query('saved', '') === '1';
+        $justEnabled = $request->query('enabled', '') === '1';
         $values = $this->settings->getGroup($slug);
 
         ob_start();
@@ -88,7 +92,48 @@ final class ModuleSettingsController
             }
         }
 
-        return Response::redirect("/admin/marketplace/package/{$slug}/instellingen?saved=1");
+        // Een login-provider (GitHub/Google/Discord/Twitch/Battle.net) staat pas aan als zijn
+        // module is ingeschakeld. Zodra Client ID én Secret zijn ingevuld, doen we dat hier
+        // meteen: anders slaat een beheerder de sleutels op en blijft de knop onzichtbaar.
+        $enabled = $this->enableProviderIfConfigured($slug);
+
+        return Response::redirect("/admin/marketplace/package/{$slug}/instellingen?saved=1" . ($enabled ? '&enabled=1' : ''));
+    }
+
+    /**
+     * Schakel de module van een login-provider in als er sleutels zijn ingevuld.
+     * Geeft true terug als de module hierdoor net is ingeschakeld.
+     */
+    private function enableProviderIfConfigured(string $slug): bool
+    {
+        if (!in_array($slug, OAuthProviders::slugs(), true)) {
+            return false;
+        }
+        if (OAuthProviders::setting($this->db, $slug, 'client_id') === ''
+            || OAuthProviders::setting($this->db, $slug, 'client_secret') === '') {
+            return false;
+        }
+
+        $already = $this->db->fetchOne("SELECT is_enabled FROM cf_modules WHERE slug = ?", [$slug]);
+        if ($already !== null && (int) $already['is_enabled'] === 1) {
+            return false;
+        }
+
+        $manifest = json_decode((string) file_get_contents(CF_ROOT . "/modules/{$slug}/module.json"), true) ?: [];
+        $this->db->execute(
+            "INSERT INTO cf_modules (slug, name, version, author, description, is_core, is_enabled)
+             VALUES (?, ?, ?, ?, ?, 0, 1)
+             ON DUPLICATE KEY UPDATE is_enabled = 1, version = VALUES(version)",
+            [
+                $slug,
+                (string) ($manifest['name'] ?? $slug),
+                (string) ($manifest['version'] ?? '1.0.0'),
+                (string) ($manifest['author'] ?? ''),
+                (string) ($manifest['description'] ?? ''),
+            ]
+        );
+
+        return true;
     }
 
     /**

@@ -205,6 +205,9 @@ $typeColors = ['module' => '#6c3df4', 'theme' => '#f59e0b', 'block' => '#1D9E75'
           <?php foreach ($configurableModules as $cm): ?>
             <a class="btn-sm" href="/admin/marketplace/package/<?= htmlspecialchars($cm['slug'], ENT_QUOTES) ?>/instellingen">
               ⚙️ <?= htmlspecialchars($cm['name']) ?>
+              <?php if (in_array($cm['slug'], \CommunityFusion\Core\Auth\OAuth\OAuthProviders::slugs(), true)): ?>
+                <small style="opacity:.75;"><?= !empty($cm['enabled']) ? '· aan' : '· uit' ?></small>
+              <?php endif; ?>
             </a>
           <?php endforeach; ?>
         </div>

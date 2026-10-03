@@ -383,6 +383,7 @@ final class Router
         $this->get('/auth/twitch/callback',    'CommunityFusion\Modules\Users\OAuthController@twitchCallback');
         $this->get('/auth/google/callback',    'CommunityFusion\Modules\Users\OAuthController@googleCallback');
         $this->get('/auth/battlenet/callback', 'CommunityFusion\Modules\Users\OAuthController@battlenetCallback');
+        $this->get('/auth/github/callback',    'CommunityFusion\Modules\Users\OAuthController@githubCallback');
     }
 }
 

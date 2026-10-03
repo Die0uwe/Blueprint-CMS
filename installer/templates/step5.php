@@ -49,6 +49,7 @@
     // die niet overeenkwam met de echte map guild-management/, en een
     // 'youtube'-entry die helemaal niet bestond).
     $icons = [
+        'github'           => '🐙',
         'discord'          => '🎮',
         'twitch'           => '📺',
         'google'           => '🔑',

@@ -1,0 +1,14 @@
+{# Knoppen "Inloggen met …": alleen providers die aanstaan en ingesteld zijn
+   (Core\Auth\OAuth\OAuthProviders::usable()). Niets tonen als er geen zijn. #}
+{% if oauth_providers is defined and oauth_providers|length > 0 %}
+  <div style="text-align:center;margin:1rem 0;color:var(--muted);font-size:.8rem;">{{ trans('auth.login.or') }}</div>
+  <div style="display:flex;flex-direction:column;gap:.5rem;">
+    {% for p in oauth_providers %}
+      <a href="{{ p.login_url }}{% if oauth_redirect is defined and oauth_redirect %}?redirect={{ oauth_redirect|url_encode }}{% endif %}"
+         class="cf-btn" data-provider="{{ p.slug }}"
+         style="width:100%;justify-content:center;background:{{ p.color }};color:{{ p.text }};{% if p.slug == 'google' %}border:1px solid var(--border);{% endif %}">
+        {{ trans('auth.login.with_provider', {provider: p.label}) }}
+      </a>
+    {% endfor %}
+  </div>
+{% endif %}

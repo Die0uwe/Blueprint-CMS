@@ -13,6 +13,8 @@ use CommunityFusion\Core\Auth\AuthManager;
 use CommunityFusion\Core\Database\Connection;
 use CommunityFusion\Core\Template\ThemeManager;
 use CommunityFusion\Core\Security\CsrfProtection;
+use CommunityFusion\Core\Auth\OAuth\OAuthLoginFlow;
+use CommunityFusion\Core\Auth\OAuth\OAuthProviders;
 use CommunityFusion\Core\Storage\UploadManager;
 use CommunityFusion\Core\Storage\UploadException;
 use CommunityFusion\Modules\Forum\ForumRepository;
@@ -40,6 +42,7 @@ final class ProfileController
         private readonly ThemeManager    $theme,
         private readonly UploadManager   $uploads,
         private readonly ForumRepository $forum,
+        private readonly OAuthProviders  $oauth,
     ) {}
 
     public function show(Request $request): Response
@@ -66,15 +69,12 @@ final class ProfileController
                 ],
                 $connections
             ),
-            // Golf 10: generiek gemaakt voor alle vier OAuth-providers i.p.v.
-            // hardcoded discord_status/twitch_status — profile.twig loopt nu
-            // over 'oauth_providers' i.p.v. losse if-blokken per provider.
-            'oauth_providers' => [
-                ['slug' => 'discord',   'label' => 'Discord',    'color' => '#5865F2', 'status' => $request->query('discord')],
-                ['slug' => 'twitch',    'label' => 'Twitch',     'color' => '#9146FF', 'status' => $request->query('twitch')],
-                ['slug' => 'google',    'label' => 'Google',     'color' => '#4285F4', 'status' => $request->query('google')],
-                ['slug' => 'battlenet', 'label' => 'Battle.net', 'color' => '#148eff', 'status' => $request->query('battlenet')],
-            ],
+            // Eén knop per provider die aanstaat en ingesteld is, plus providers die
+            // al gekoppeld zijn (zodat ontkoppelen ook kan als de module later uitgaat).
+            'oauth_providers' => $this->profileProviders($connections, $request),
+            'oauth_error'     => in_array((string) $request->query('oauth_error', ''), OAuthLoginFlow::ERRORS, true)
+                ? (string) $request->query('oauth_error') : null,
+            'oauth_error_provider' => OAuthProviders::CATALOG[(string) $request->query('provider', '')]['label'] ?? '',
         ]);
 
         return Response::html($html);
@@ -212,6 +212,31 @@ final class ProfileController
              WHERE username = ? AND is_active = 1 AND deleted_at IS NULL",
             [$username]
         );
+    }
+
+    /**
+     * @param array<int,array<string,mixed>> $connections rijen uit cf_user_oauth
+     * @return list<array{slug:string,label:string,color:string,text:string,status:mixed}>
+     */
+    private function profileProviders(array $connections, Request $request): array
+    {
+        $usable    = $this->oauth->usable();
+        $connected = array_column($connections, 'provider');
+        $list      = [];
+        foreach (OAuthProviders::CATALOG as $slug => $meta) {
+            if (isset($usable[$slug]) || in_array($slug, $connected, true)) {
+                $list[] = [
+                    'slug'   => $slug,
+                    'label'  => $meta['label'],
+                    'color'  => $meta['color'],
+                    'text'   => $meta['text'],
+                    'status' => $request->query($slug),
+                    // Alleen koppelen als de provider echt bruikbaar is.
+                    'usable' => isset($usable[$slug]),
+                ];
+            }
+        }
+        return $list;
     }
 }
 

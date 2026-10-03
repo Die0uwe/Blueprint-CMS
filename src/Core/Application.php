@@ -445,7 +445,14 @@ final class Application
         $manifest = json_decode(file_get_contents($manifestPath), true);
         $class    = $manifest['class'] ?? null;
 
-        if ($class === null || !class_exists($class)) return;
+        if ($class === null) return;
+
+        // Registreer de autoloader van de module zelf (module.json: "autoload": "src/"),
+        // zodat een nieuwe module direct werkt ook als `composer dump-autoload` niet is
+        // gedraaid — gebruikelijk bij een FTP-upload met een oude vendor/-map.
+        $this->registerModuleAutoload($slug, (string) $class, (string) ($manifest['autoload'] ?? 'src/'));
+
+        if (!class_exists($class)) return;
 
         /** @var \CommunityFusion\Core\Module\ModuleInterface $module */
         $module = new $class($this);
@@ -461,6 +468,33 @@ final class Application
             $this->container->make(\CommunityFusion\Core\Block\BlockRegistry::class)
                 ->syncTypesToDatabase($moduleId);
         } catch (\Throwable) {}
+    }
+
+    /**
+     * PSR-4 voor één module: namespace van de module-klasse => modules/{slug}/{autoload}.
+     */
+    private function registerModuleAutoload(string $slug, string $class, string $autoloadDir): void
+    {
+        $pos = strrpos($class, '\\');
+        if ($pos === false || preg_match('/^[a-z0-9-]+$/', $slug) !== 1) {
+            return;
+        }
+        $prefix = substr($class, 0, $pos + 1);
+        $dir    = CF_ROOT . "/modules/{$slug}/" . trim($autoloadDir, '/') . '/';
+        if (!is_dir($dir)) {
+            return;
+        }
+
+        spl_autoload_register(static function (string $name) use ($prefix, $dir): void {
+            if (!str_starts_with($name, $prefix)) {
+                return;
+            }
+            $relative = substr($name, strlen($prefix));
+            $file     = $dir . str_replace('\\', '/', $relative) . '.php';
+            if (is_file($file)) {
+                require_once $file;
+            }
+        });
     }
 
     private function configureRuntime(array $config): void

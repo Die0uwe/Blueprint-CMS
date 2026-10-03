@@ -27,6 +27,8 @@
         </div>
         <button type="submit" class="cf-btn" style="width:100%;justify-content:center;">{{ trans('auth.register.submit') }}</button>
       </form>
+      {% include 'auth/_oauth_buttons.twig' %}
+
       <p style="text-align:center;margin-top:1rem;font-size:.85rem;color:var(--muted);">
         {{ trans('auth.register.have_account') }} <a href="/login">{{ trans('auth.register.login_link') }}</a>
       </p>

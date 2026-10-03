@@ -62,14 +62,19 @@ abstract class OAuthClient
     public function handleCallback(string $code, string $state): array
     {
         // CSRF validatie
-        $expectedState = $_SESSION['oauth_state_' . $this->getProviderSlug()] ?? '';
-        if (!hash_equals($expectedState, $state)) {
+        // Een lege verwachte state (sessie kwijt/verlopen) mag NOOIT matchen: hash_equals('', '')
+        // is true, dus een callback zonder state-parameter kwam er voorheen doorheen.
+        $expectedState = (string) ($_SESSION['oauth_state_' . $this->getProviderSlug()] ?? '');
+        unset($_SESSION['oauth_state_' . $this->getProviderSlug()]);
+        if ($expectedState === '' || $state === '' || !hash_equals($expectedState, $state)) {
             throw new \RuntimeException('OAuth state mismatch — mogelijke CSRF aanval.');
         }
-        unset($_SESSION['oauth_state_' . $this->getProviderSlug()]);
 
         // Token ophalen
         $tokens = $this->exchangeCode($code);
+        if (empty($tokens['access_token']) || !is_string($tokens['access_token'])) {
+            throw new \RuntimeException('OAuth: de provider gaf geen access_token terug.');
+        }
 
         // User ophalen
         $user = $this->fetchUser($tokens['access_token']);
@@ -199,48 +204,94 @@ abstract class OAuthClient
 
     protected function post(string $url, array $data, array $headers = []): array
     {
-        $ch = curl_init($url);
-        curl_setopt_array($ch, [
-            CURLOPT_POST           => true,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT        => 10,
-            CURLOPT_POSTFIELDS     => http_build_query($data),
-            CURLOPT_HTTPHEADER     => $headers,
-        ]);
-
-        $body   = curl_exec($ch);
-        $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-
-        if ($status !== 200) {
-            throw new \RuntimeException(
-                "OAuth POST naar {$url} mislukt: HTTP {$status} — " . substr($body, 0, 200)
-            );
-        }
-
-        return json_decode($body, true, flags: JSON_THROW_ON_ERROR);
+        return $this->request($url, $headers, $data);
     }
 
     protected function get(string $url, array $headers = []): array
     {
-        $ch = curl_init($url);
-        curl_setopt_array($ch, [
+        return $this->request($url, $headers, null);
+    }
+
+    /**
+     * Eén HTTP-aanroep naar de provider. Gooit ALTIJD een \RuntimeException bij
+     * een netwerkfout, een niet-200 antwoord of onleesbare JSON (zodat de
+     * aanroeper één type fout hoeft af te vangen en de bezoeker nooit een 500 ziet).
+     */
+    private function request(string $url, array $headers, ?array $post): array
+    {
+        $original = $url;
+        $url      = self::rewriteForTests($url);
+        $mock     = $url !== $original;
+        $ch       = curl_init($url);
+        if ($ch === false) {
+            throw new \RuntimeException('OAuth: cURL kon niet worden gestart.');
+        }
+        $opts = [
             CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CONNECTTIMEOUT => 5,
             CURLOPT_TIMEOUT        => 10,
-            CURLOPT_HTTPHEADER     => $headers,
-        ]);
+            CURLOPT_FOLLOWLOCATION => false,
+            // Alleen https naar echte providers; http alleen naar de lokale testserver.
+            CURLOPT_PROTOCOLS      => $mock ? (CURLPROTO_HTTP | CURLPROTO_HTTPS) : CURLPROTO_HTTPS,
+            // GitHub eist een User-Agent en geeft zonder Accept: application/json
+            // het token-antwoord als formulier-tekst terug.
+            CURLOPT_HTTPHEADER     => array_merge(
+                ['Accept: application/json', 'User-Agent: BlueprintCMS'],
+                $headers
+            ),
+        ];
+        if ($post !== null) {
+            $opts[CURLOPT_POST]       = true;
+            $opts[CURLOPT_POSTFIELDS] = http_build_query($post);
+        }
+        curl_setopt_array($ch, $opts);
 
         $body   = curl_exec($ch);
-        $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error  = curl_error($ch);
         curl_close($ch);
 
+        $label = $post !== null ? 'POST' : 'GET';
+        if ($body === false) {
+            throw new \RuntimeException("OAuth {$label} naar {$url} mislukt: {$error}");
+        }
         if ($status !== 200) {
             throw new \RuntimeException(
-                "OAuth GET naar {$url} mislukt: HTTP {$status} — " . substr($body, 0, 200)
+                "OAuth {$label} naar {$url} mislukt: HTTP {$status} — " . substr((string) $body, 0, 200)
             );
         }
 
-        return json_decode($body, true, flags: JSON_THROW_ON_ERROR);
+        try {
+            $json = json_decode((string) $body, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException $e) {
+            throw new \RuntimeException("OAuth {$label} naar {$url}: ongeldig JSON-antwoord.", 0, $e);
+        }
+        if (!is_array($json)) {
+            throw new \RuntimeException("OAuth {$label} naar {$url}: onverwacht antwoord.");
+        }
+
+        return $json;
+    }
+
+    /**
+     * Testnaad: met APP_ENV=testing en OAUTH_MOCK_BASE gezet gaan de server-naar-server
+     * aanroepen naar een lokale nep-provider ("https://host/pad" wordt
+     * "{BASE}/host/pad"). Op productie (APP_ENV=production) heeft dit nooit effect.
+     */
+    public static function rewriteForTests(string $url): string
+    {
+        $base = (string) ($_ENV['OAUTH_MOCK_BASE'] ?? getenv('OAUTH_MOCK_BASE') ?: '');
+        $env  = (string) ($_ENV['APP_ENV'] ?? getenv('APP_ENV') ?: '');
+        if ($base === '' || $env !== 'testing' || !str_starts_with($url, 'https://')) {
+            return $url;
+        }
+        return rtrim($base, '/') . '/' . substr($url, strlen('https://'));
+    }
+
+    /** Zijn client-ID en -secret ingevuld? */
+    public function isConfigured(): bool
+    {
+        return $this->clientId !== '' && $this->clientSecret !== '';
     }
 
     // ─── ABSTRACT HELPER ─────────────────────────────────────────────────

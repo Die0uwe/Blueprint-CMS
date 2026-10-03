@@ -7,6 +7,7 @@ namespace CommunityFusion\Modules\Marketplace;
 
 use CommunityFusion\Core\Request;
 use CommunityFusion\Core\Response;
+use CommunityFusion\Core\Auth\OAuth\OAuthProviders;
 use CommunityFusion\Core\Marketplace\PackageManager;
 use CommunityFusion\Core\Marketplace\PackageException;
 use CommunityFusion\Core\Security\CsrfProtection;
@@ -64,25 +65,36 @@ final class MarketplaceController
      * ook echt gebruikt om te bepalen wat er draait) en filtert op modules
      * die een 'settings'-schema declareren — ongeacht hoe ze zijn ingeschakeld.
      *
-     * @return array<int,array{slug:string,name:string}>
+     * @return array<int,array{slug:string,name:string,enabled:bool}>
      */
     private function getConfigurableModules(): array
     {
-        $rows = $this->db->fetchAll(
-            "SELECT slug, name FROM cf_modules WHERE is_enabled = 1 ORDER BY name"
+        $enabled = array_column(
+            $this->db->fetchAll("SELECT slug, name FROM cf_modules WHERE is_enabled = 1 ORDER BY name"),
+            'name',
+            'slug'
         );
 
+        // Ingeschakelde modules mét een settings-schema, plus ALTIJD de login-providers —
+        // ook uitgeschakeld, anders is er nergens een knop om ze voor het eerst in te stellen.
+        $slugs = array_unique([...array_keys($enabled), ...OAuthProviders::slugs()]);
+
         $result = [];
-        foreach ($rows as $row) {
-            $manifestPath = CF_ROOT . "/modules/{$row['slug']}/module.json";
+        foreach ($slugs as $slug) {
+            $manifestPath = CF_ROOT . "/modules/{$slug}/module.json";
             if (!is_file($manifestPath)) continue;
 
             $manifest = json_decode((string) file_get_contents($manifestPath), true);
             if (!empty($manifest['settings'])) {
-                $result[] = ['slug' => $row['slug'], 'name' => $row['name'] ?: $row['slug']];
+                $result[] = [
+                    'slug'    => $slug,
+                    'name'    => ($enabled[$slug] ?? '') ?: ($manifest['name'] ?? $slug),
+                    'enabled' => isset($enabled[$slug]),
+                ];
             }
         }
 
+        usort($result, fn($a, $b) => strcasecmp($a['name'], $b['name']));
         return $result;
     }
 

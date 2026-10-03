@@ -44,9 +44,23 @@ return [
             'with_twitch'      => 'Inloggen met Twitch',
             'with_google'      => 'Inloggen met Google',
             'with_battlenet'   => 'Inloggen met Battle.net',
+            'with_provider'    => 'Inloggen met :provider',
             'no_account'       => 'Nog geen account?',
             'register_link'    => 'Registreren',
             'register_hint'    => '— of gebruik een van de knoppen hierboven, dan wordt er automatisch één aangemaakt.',
+        ],
+        'oauth' => [
+            'error' => [
+                'cancelled' => 'Inloggen met :provider is geannuleerd of mislukt. Probeer het opnieuw.',
+                'state' => 'De inlogpoging is verlopen of ongeldig. Probeer het opnieuw.',
+                'failed' => 'Inloggen met :provider is niet gelukt. Probeer het later opnieuw.',
+                'disabled' => 'Dit account is gedeactiveerd en kan niet inloggen.',
+                'not_configured' => 'Inloggen met :provider is nog niet ingesteld door de beheerder.',
+                'not_enabled' => 'Inloggen met :provider is niet ingeschakeld.',
+                'already_linked' => 'Dit :provider-account is al gekoppeld aan een ander account.',
+                'other_linked' => 'Je hebt al een :provider-account gekoppeld. Ontkoppel dat eerst.',
+                'last_method' => 'Dit is je enige inlogmethode. Stel eerst een wachtwoord in of koppel een ander account.',
+            ],
         ],
         'forgot' => [
             'title' => 'Wachtwoord vergeten',

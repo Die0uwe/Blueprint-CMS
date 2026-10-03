@@ -13,6 +13,7 @@
         <div class="cf-alert cf-alert-success">{{ trans('profile.bio_updated') }}</div>
       {% endif %}
 
+      {% if oauth_error is defined and oauth_error %}<div class="cf-alert cf-alert-error">{{ trans('auth.oauth.error.' ~ oauth_error, {provider: oauth_error_provider}) }}</div>{% endif %}
       {% for p in oauth_providers %}
         {% if p.status == 'connected' %}
           <div class="cf-alert cf-alert-success">{{ p.label }}-account gekoppeld.</div>
@@ -90,8 +91,8 @@
          die nog niet gekoppeld is, voor alle vier ondersteunde providers. #}
       <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-top:1rem;">
         {% for p in oauth_providers %}
-          {% if connections|filter(c => c.provider == p.slug)|length == 0 %}
-            <a href="/auth/{{ p.slug }}" class="cf-btn" style="background:{{ p.color }};color:#fff;">{{ p.label }} {{ trans('profile.connect_suffix') }}</a>
+          {% if p.usable and connections|filter(c => c.provider == p.slug)|length == 0 %}
+            <a href="/auth/{{ p.slug }}" class="cf-btn" style="background:{{ p.color }};color:{{ p.text }};{% if p.slug == 'google' %}border:1px solid var(--border);{% endif %}">{{ p.label }} {{ trans('profile.connect_suffix') }}</a>
           {% endif %}
         {% endfor %}
       </div>

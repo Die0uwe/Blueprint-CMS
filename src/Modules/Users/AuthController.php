@@ -12,13 +12,39 @@ use CommunityFusion\Core\Response;
 use CommunityFusion\Core\Auth\AuthManager;
 use CommunityFusion\Core\Template\ThemeManager;
 use CommunityFusion\Core\Security\CsrfProtection;
+use CommunityFusion\Core\Security\SafeRedirect;
+use CommunityFusion\Core\Auth\OAuth\OAuthLoginFlow;
+use CommunityFusion\Core\Auth\OAuth\OAuthProviders;
 
 final class AuthController
 {
     public function __construct(
         private readonly AuthManager  $auth,
         private readonly ThemeManager $theme,
+        private readonly OAuthProviders $oauth,
     ) {}
+
+    /**
+     * Variabelen voor de "Inloggen met …"-knoppen en een eventuele OAuth-foutmelding.
+     * De foutcode komt uit de URL en wordt tegen een vaste lijst gecontroleerd; vrije
+     * tekst uit de URL komt nooit in de pagina.
+     *
+     * @return array<string,mixed>
+     */
+    private function oauthVars(Request $request): array
+    {
+        $code = (string) $request->query('oauth_error', '');
+        $slug = (string) $request->query('provider', '');
+        $vars = [
+            'oauth_providers' => array_values($this->oauth->usable()),
+            'oauth_redirect'  => ($r = SafeRedirect::target($request->query('redirect', ''), '')) !== '' ? $r : null,
+        ];
+        if (in_array($code, OAuthLoginFlow::ERRORS, true)) {
+            $vars['oauth_error']          = $code;
+            $vars['oauth_provider_label'] = OAuthProviders::CATALOG[$slug]['label'] ?? '';
+        }
+        return $vars;
+    }
 
     public function loginForm(Request $request): Response
     {
@@ -29,7 +55,7 @@ final class AuthController
             'page_title' => 'Inloggen',
             // ?reset=1 komt van PasswordResetController na een geslaagde reset.
             'password_reset_done' => $request->query('reset') === '1',
-        ]);
+        ] + $this->oauthVars($request));
         return Response::html($html);
     }
 
@@ -41,14 +67,14 @@ final class AuthController
         $password   = $request->input('password', '');
 
         if ($this->auth->attempt($identifier, $password)) {
-            $redirect = $request->query('redirect', '/');
-            return Response::redirect($redirect);
+            // Alleen een pad op deze site: een ?redirect=https://… is anders een open redirect.
+            return Response::redirect(SafeRedirect::target($request->query('redirect', '/')));
         }
 
         $html = $this->theme->render('auth/login.twig', [
             'page_title' => 'Inloggen',
             'error'      => 'Ongeldige inloggegevens.',
-        ]);
+        ] + $this->oauthVars($request));
         return Response::html($html, 401);
     }
 
@@ -60,7 +86,7 @@ final class AuthController
 
     public function registerForm(Request $request): Response
     {
-        $html = $this->theme->render('auth/register.twig', ['page_title' => 'Registreren']);
+        $html = $this->theme->render('auth/register.twig', ['page_title' => 'Registreren'] + $this->oauthVars($request));
         return Response::html($html);
     }
 
@@ -81,7 +107,7 @@ final class AuthController
                 'page_title' => 'Registreren',
                 'errors'     => $errors,
                 'old'        => $data,
-            ]);
+            ] + $this->oauthVars($request));
             return Response::html($html, 422);
         }
 
