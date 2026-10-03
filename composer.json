@@ -40,7 +40,8 @@
             "CommunityFusion\\Modules\\Google\\": "modules/google/src/",
             "CommunityFusion\\Modules\\BattleNet\\": "modules/battlenet/src/",
             "CommunityFusion\\Modules\\YouTube\\": "modules/youtube/src/",
-            "CommunityFusion\\Modules\\Kick\\": "modules/kick/src/"
+            "CommunityFusion\\Modules\\Kick\\": "modules/kick/src/",
+            "CommunityFusion\\Modules\\AiStudio\\": "modules/ai-studio/src/"
         }
     },
     "autoload-dev": {
@@ -51,7 +52,9 @@
     "scripts": {
         "test": "phpunit --testdox",
         "stan": "phpstan analyse src --level=8",
-        "cs": "phpcs --standard=PSR12 src/"
+        "stan:ai-studio": "phpstan analyse -c phpstan.neon",
+        "cs": "phpcs --standard=PSR12 src/",
+        "cs:ai-studio": "phpcs --standard=PSR12 modules/ai-studio/src modules/ai-studio/tests src/Core/Security/ContentSanitizer.php"
     },
     "config": {
         "sort-packages": true,

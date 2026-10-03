@@ -27,4 +27,5 @@ return array(
     "CommunityFusion\\Modules\\BattleNet\\" => array($baseDir . '/modules/battlenet/src'),
     "CommunityFusion\\Modules\\YouTube\\" => array($baseDir . '/modules/youtube/src'),
     "CommunityFusion\\Modules\\Kick\\" => array($baseDir . '/modules/kick/src'),
+    "CommunityFusion\\Modules\\AiStudio\\" => array($baseDir . '/modules/ai-studio/src'),
 );
