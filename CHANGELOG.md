@@ -18,6 +18,15 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ---
 
+## [Unreleased] — Blueprint AI Studio (`modules/ai-studio`)
+
+- Nieuwe module: chat met zes AI-providers naast een eigen editor met diff-voorstellen.
+- Nieuw: `Core\Security\ContentSanitizer` (escape/text/whitelist-HTML op DOMDocument) met tests.
+- Nieuw: `php cli/console.php ai-studio:migrate`, `phpstan.neon` en een `AiStudio`-testsuite.
+- Beveiligingskeuzes en afwijkingen: `docs/security-notes.md`.
+
+---
+
 ## [1.28.0] — 2026-09-30 — `vendor/` gecommit: geen losse Composer-stap meer nodig om te deployen
 
 Aanleiding: gevraagd of de vendor-map niet gewoon in de repository kon, i.p.v. de losse
