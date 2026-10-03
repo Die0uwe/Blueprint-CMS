@@ -5,6 +5,7 @@
     <div class="cf-card-header">🔐 {{ trans('auth.login.title') }}</div>
     <div class="cf-card-body">
       {% if error is defined %}<div class="cf-alert cf-alert-error">{{ error }}</div>{% endif %}
+      {% if password_reset_done is defined and password_reset_done %}<div class="cf-alert cf-alert-success">{{ trans('auth.reset.done') }}</div>{% endif %}
       <form method="POST" action="/login">
         {{ csrf_field()|raw }}
         <div class="cf-form-group">
@@ -17,6 +18,7 @@
         </div>
         <button type="submit" class="cf-btn" style="width:100%;justify-content:center;">{{ trans('auth.login.submit') }}</button>
       </form>
+      <p style="text-align:center;margin:.75rem 0 0;font-size:.85rem;"><a href="/wachtwoord-vergeten">{{ trans('auth.login.forgot_link') }}</a></p>
 
       {# Golf 10 — OAuth-providers: elke knop hieronder gaat naar de
          .../login route (niet .../ — die is voor koppelen aan een al

@@ -15,6 +15,21 @@ jobs:
       matrix:
         php: ['8.3', '8.4']
 
+    # Echte database voor tests/Integration (wachtwoordherstel e.d.).
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: bluprint_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -38,8 +53,16 @@ jobs:
           find src modules installer cli tests -name '*.php' -print0 \
             | xargs -0 -n1 -P4 php -l
 
+      - name: Import schema for integration tests
+        run: mysql -h127.0.0.1 -uroot -proot bluprint_test < src/Core/Database/schema.sql
+
       - name: PHPUnit
         run: composer test
+        env:
+          CF_TEST_DB_HOST: 127.0.0.1
+          CF_TEST_DB_NAME: bluprint_test
+          CF_TEST_DB_USER: root
+          CF_TEST_DB_PASS: root
 
       - name: PHPStan (level 8, src only)
         run: composer stan

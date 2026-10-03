@@ -25,7 +25,11 @@ final class AuthController
         if ($this->auth->check()) {
             return Response::redirect('/');
         }
-        $html = $this->theme->render('auth/login.twig', ['page_title' => 'Inloggen']);
+        $html = $this->theme->render('auth/login.twig', [
+            'page_title' => 'Inloggen',
+            // ?reset=1 komt van PasswordResetController na een geslaagde reset.
+            'password_reset_done' => $request->query('reset') === '1',
+        ]);
         return Response::html($html);
     }
 

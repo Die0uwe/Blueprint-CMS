@@ -43,6 +43,18 @@ final class AuthManager
         if (isset($_SESSION['user_id'])) {
             $this->currentUser = $this->findUserById((int) $_SESSION['user_id']);
         }
+
+        // Na een voltooide wachtwoordreset zijn alle sessies van die gebruiker
+        // die ouder zijn dan de reset ongeldig (PasswordResetService::sessionRevoked()).
+        $revoked = $this->currentUser !== null && PasswordResetService::sessionRevoked(
+            $this->db,
+            (int) $this->currentUser['id'],
+            (int) ($_SESSION['login_time'] ?? 0)
+        );
+        if ($revoked) {
+            $this->currentUser = null;
+            unset($_SESSION['user_id'], $_SESSION['login_time']);
+        }
     }
 
     /**

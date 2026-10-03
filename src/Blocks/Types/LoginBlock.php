@@ -53,6 +53,7 @@ final class LoginBlock extends AbstractBlock
             <a href="/auth/google/login"    title="Inloggen met Google"    style="background:#fff;color:#1f1f1f;border:1px solid var(--border);width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;text-decoration:none;">🔑</a>
             <a href="/auth/battlenet/login" title="Inloggen met Battle.net" style="background:#148eff;color:#fff;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;text-decoration:none;">🌀</a>
         </div>
+        <a href="/wachtwoord-vergeten" class="cf-block-login-register" style="display:block;margin-top:.4rem;">Wachtwoord vergeten?</a>
         <a href="/register" class="cf-block-login-register">Nog geen account? Registreer hier</a>
         HTML;
     }

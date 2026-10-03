@@ -18,6 +18,18 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ---
 
+## [Unreleased] — Wachtwoord vergeten en herstellen
+
+- Nieuw: **Wachtwoord vergeten?** op `/login` en in het login-blok. `/wachtwoord-vergeten` mailt een herstellink (60 minuten geldig, eenmalig) naar `/wachtwoord-herstellen/{token}`, waar de gebruiker een nieuw wachtwoord kiest.
+- Nieuw: tabel `cf_password_resets` (alleen de SHA-256-hash van het token). Bestaande installaties: `php cli/console.php migrate`.
+- Beveiliging: dezelfde melding voor bekende en onbekende accounts, mail pas na het antwoord, limieten (3 per account en 5 per IP per uur), link uit `app.url` (niet uit de Host-header), `Referrer-Policy: no-referrer` en `no-store` op de herstelpagina, CSRF, argon2id, en na een reset verliezen alle oudere sessies van die gebruiker hun geldigheid.
+- Nieuw: teksten in NL, EN en DE; sjablonen voor de thema's `default` en `gaming-dark`.
+- Tests: `tests/Unit/Core/Auth/PasswordResetRulesTest.php` en `tests/Integration/PasswordResetServiceTest.php` (echte MariaDB); de CI-job `test` start daarvoor een MariaDB-service.
+- Documentatie: `docs/password-reset.md`.
+- Fix (beveiliging): `CsrfProtection::verify()` keurde een leeg token goed zolang de sessie nog geen token had (`hash_equals('', '')` is waar), waardoor een POST zonder token door de CSRF-controle kon. Een leeg verwacht of ontvangen token wordt nu altijd geweigerd. De bestaande test `verifyRejectsAnEmptyTokenWhenNoneIsSet` faalde hierop.
+
+---
+
 ## [Unreleased] — Blueprint AI Studio (`modules/ai-studio`)
 
 - Nieuwe module: chat met zes AI-providers naast een eigen editor met diff-voorstellen.
