@@ -174,6 +174,12 @@ final class Router
         $this->get('/logout',    'CommunityFusion\Modules\Users\AuthController@logout');
         $this->get('/register',  'CommunityFusion\Modules\Users\AuthController@registerForm');
         $this->post('/register', 'CommunityFusion\Modules\Users\AuthController@register');
+        // Wachtwoord vergeten / herstellen (v1.29.0). Token-constraint zonder
+        // {n}-quantifier: zie de LET OP bij /taal/{locale} hieronder.
+        $this->get('/wachtwoord-vergeten',  'CommunityFusion\Modules\Users\PasswordResetController@forgotForm');
+        $this->post('/wachtwoord-vergeten', 'CommunityFusion\Modules\Users\PasswordResetController@forgot');
+        $this->get('/wachtwoord-herstellen/{token:[a-zA-Z0-9]+}',  'CommunityFusion\Modules\Users\PasswordResetController@resetForm');
+        $this->post('/wachtwoord-herstellen/{token:[a-zA-Z0-9]+}', 'CommunityFusion\Modules\Users\PasswordResetController@reset');
         $this->get('/profiel',          'CommunityFusion\Modules\Users\ProfileController@show',         $auth);
         $this->post('/profiel/avatar',  'CommunityFusion\Modules\Users\ProfileController@updateAvatar',  $auth);
         $this->post('/profiel/taal',    'CommunityFusion\Modules\Users\ProfileController@updateLanguage', $auth);

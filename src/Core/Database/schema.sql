@@ -603,3 +603,25 @@ INSERT IGNORE INTO `cf_permissions` (`name`, `group`, `description`) VALUES
 INSERT IGNORE INTO `cf_role_permissions` (`role_id`, `permission_id`)
 SELECT r.id, p.id FROM `cf_roles` r, `cf_permissions` p
 WHERE r.name = 'admin' AND p.name IN ('guild.manage', 'ollama.admin');
+
+-- ============================================================
+-- Wachtwoord vergeten / herstellen (v1.29.0)
+-- Alleen de SHA-256-hash van het token staat in de database (nooit het token
+-- zelf), het token is eenmalig (used_at) en verloopt na 60 minuten. Een
+-- verbruikt token heeft een tweede functie: elke sessie van die gebruiker die
+-- ouder is dan used_at wordt ongeldig (zie AuthManager / PasswordResetService).
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `cf_password_resets` (
+    `id`           INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `user_id`      INT UNSIGNED NOT NULL,
+    `token_hash`   CHAR(64) NOT NULL COMMENT 'sha256 van het token uit de e-mail',
+    `expires_at`   DATETIME NOT NULL,
+    `used_at`      DATETIME NULL COMMENT 'NULL = nog niet gebruikt',
+    `requested_ip` VARCHAR(45) NULL,
+    `created_at`   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uq_token_hash` (`token_hash`),
+    KEY `idx_user_created` (`user_id`, `created_at`),
+    KEY `idx_user_used` (`user_id`, `used_at`),
+    CONSTRAINT `fk_pr_user` FOREIGN KEY (`user_id`) REFERENCES `cf_users`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

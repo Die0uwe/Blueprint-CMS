@@ -79,6 +79,7 @@ themes/               ← Twig dark gaming thema
 | **AI-first** | Ollama AI chat + Open WebUI + guild analyse + nieuws samenvatting |
 | **API-first** | REST API v1 met OAuth2 + JWT + CORS + rate limiting |
 | **Secure by default** | RBAC, CSRF, prepared statements, argon2id, AES-256-GCM |
+| **Wachtwoordherstel** | Wachtwoord vergeten via e-maillink (eenmalig, 60 min, gehasht opgeslagen), zie [docs/password-reset.md](docs/password-reset.md) |
 | **PSR-compliant** | PSR-4, PSR-7, PSR-11, PSR-14, PSR-16 |
 
 ---
