@@ -11,6 +11,7 @@ declare(strict_types=1);
  *   cache:clear         Verwijder alle cache
  *   migrate             Voer database migraties uit
  *   module:install      Installeer een module
+ *   ai-studio:migrate   Migreer en activeer de AI Studio-module (bestaande installaties)
  */
 
 define('CF_ROOT',   dirname(__DIR__));
@@ -40,6 +41,7 @@ match (true) {
     $command === 'cache:clear'     => (new CommunityFusion\Cli\Commands\CacheClearCommand())->handle($argv),
     $command === 'migrate'         => (new CommunityFusion\Cli\Commands\MigrateCommand())->handle($argv),
     $command === 'module:install'  => (new CommunityFusion\Cli\Commands\ModuleInstallCommand())->handle($argv),
+    $command === 'ai-studio:migrate' => (new CommunityFusion\Cli\Commands\AiStudioMigrateCommand())->handle($argv),
     default => printHelp(),
 };
 
@@ -55,6 +57,7 @@ Commando's:
   cache:clear                                  Verwijder alle cache
   migrate                                      Voer DB migraties uit
   module:install <slug>                        Installeer een module
+  ai-studio:migrate                            Migreer + activeer Blueprint AI Studio
 
 HELP;
 }

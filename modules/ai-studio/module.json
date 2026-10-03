@@ -1,0 +1,32 @@
+{
+    "slug":        "ai-studio",
+    "name":        "Blueprint AI Studio",
+    "version":     "1.0.0",
+    "description": "Chat met meerdere AI-providers (OpenAI, Anthropic, Google, DeepSeek, Mistral, Ollama) naast een eigen code-editor. De AI leest de editorinhoud mee en doet wijzigingsvoorstellen die je als diff accepteert of weigert.",
+    "author":      "DieOuwe",
+    "author_url":  "https://www.slayeralliance.com",
+    "min_cms":     "1.28.0",
+    "class":       "CommunityFusion\\Modules\\AiStudio\\AiStudioModule",
+    "is_core":     false,
+    "blocks":      [],
+    "permissions": ["aistudio.use", "aistudio.admin"],
+    "hooks":       ["router.routes"],
+    "routes":      "routes.php",
+    "migrations":  ["migrations/001_create_tables.sql"],
+    "settings_group": "aistudio",
+    "settings_schema": [
+        {"key": "provider.openai.api_key",    "label": "OpenAI API key",     "type": "encrypted", "provider": "openai"},
+        {"key": "provider.openai.model",      "label": "OpenAI model",       "type": "string",    "default": "gpt-4o-mini"},
+        {"key": "provider.anthropic.api_key", "label": "Anthropic API key",  "type": "encrypted", "provider": "anthropic"},
+        {"key": "provider.anthropic.model",   "label": "Anthropic model",    "type": "string",    "default": "claude-sonnet-4-5"},
+        {"key": "provider.google.api_key",    "label": "Google API key",     "type": "encrypted", "provider": "google"},
+        {"key": "provider.google.model",      "label": "Google model",       "type": "string",    "default": "gemini-2.0-flash"},
+        {"key": "provider.deepseek.api_key",  "label": "DeepSeek API key",   "type": "encrypted", "provider": "deepseek"},
+        {"key": "provider.deepseek.model",    "label": "DeepSeek model",     "type": "string",    "default": "deepseek-chat"},
+        {"key": "provider.mistral.api_key",   "label": "Mistral API key",    "type": "encrypted", "provider": "mistral"},
+        {"key": "provider.mistral.model",     "label": "Mistral model",      "type": "string",    "default": "mistral-small-latest"},
+        {"key": "provider.ollama.api_key",    "label": "Open WebUI API key (optioneel, alleen bij een Open WebUI-URL in de Ollama-module)", "type": "encrypted", "provider": "ollama"},
+        {"key": "default_provider",           "label": "Standaard provider", "type": "string",    "default": "ollama"},
+        {"key": "extra_prompt",               "label": "Extra systeem-instructie (optioneel, max. 1000 tekens)", "type": "string", "default": ""}
+    ]
+}

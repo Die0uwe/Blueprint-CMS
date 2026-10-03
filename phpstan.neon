@@ -1,0 +1,11 @@
+# PHPStan voor de AI Studio-module (level 8). De rest van de codebase staat hier
+# bewust niet in: dat is een aparte opschoonslag. Draaien:
+#   vendor/bin/phpstan analyse -c phpstan.neon     (of: composer stan:ai-studio)
+parameters:
+    level: 8
+    paths:
+        - modules/ai-studio/src
+        - src/Core/Security/ContentSanitizer.php
+    bootstrapFiles:
+        - vendor/autoload.php
+    treatPhpDocTypesAsCertain: false

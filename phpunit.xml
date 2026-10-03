@@ -13,11 +13,15 @@
         <testsuite name="Integration">
             <directory>tests/Integration</directory>
         </testsuite>
+        <testsuite name="AiStudio">
+            <directory>modules/ai-studio/tests</directory>
+        </testsuite>
     </testsuites>
 
     <source>
         <include>
             <directory suffix=".php">src</directory>
+            <directory suffix=".php">modules/ai-studio/src</directory>
         </include>
         <exclude>
             <directory>src/Core/Template</directory>
