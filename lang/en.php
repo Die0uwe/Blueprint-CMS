@@ -44,9 +44,23 @@ return [
             'with_twitch'      => 'Log in with Twitch',
             'with_google'      => 'Log in with Google',
             'with_battlenet'   => 'Log in with Battle.net',
+            'with_provider'    => 'Sign in with :provider',
             'no_account'       => "Don't have an account yet?",
             'register_link'    => 'Register',
             'register_hint'    => '— or use one of the buttons above, which creates one automatically.',
+        ],
+        'oauth' => [
+            'error' => [
+                'cancelled' => 'Signing in with :provider was cancelled or failed. Please try again.',
+                'state' => 'The sign-in attempt expired or is invalid. Please try again.',
+                'failed' => 'Signing in with :provider did not work. Please try again later.',
+                'disabled' => 'This account has been deactivated and cannot sign in.',
+                'not_configured' => 'Signing in with :provider has not been set up by the administrator yet.',
+                'not_enabled' => 'Signing in with :provider is not enabled.',
+                'already_linked' => 'This :provider account is already linked to another account.',
+                'other_linked' => 'You already linked a :provider account. Unlink it first.',
+                'last_method' => 'This is your only way to sign in. Set a password or link another account first.',
+            ],
         ],
         'forgot' => [
             'title' => 'Forgot password',

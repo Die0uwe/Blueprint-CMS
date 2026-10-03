@@ -175,6 +175,7 @@ return [
     // ModuleSettingsController). Dit blok blijft staan als document van welke
     // providers ondersteund worden, niet als functionele configuratie.
     'oauth' => [
+        'github'    => ['client_id' => '', 'client_secret' => '', 'redirect_uri' => ''],
         'discord'   => ['client_id' => '', 'client_secret' => '', 'redirect_uri' => ''],
         'twitch'    => ['client_id' => '', 'client_secret' => '', 'redirect_uri' => ''],
         'google'    => ['client_id' => '', 'client_secret' => '', 'redirect_uri' => ''],

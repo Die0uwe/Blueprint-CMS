@@ -20,6 +20,7 @@ namespace CommunityFusion\Core\Auth;
 use CommunityFusion\Core\Database\Connection;
 use CommunityFusion\Core\Auth\RBAC\RBACManager;
 use CommunityFusion\Core\Audit\AuditLogger;
+use CommunityFusion\Core\Auth\OAuth\OAuthAccountDisabledException;
 
 /**
  * Authenticatie Manager
@@ -217,15 +218,20 @@ final class AuthManager
      */
     public function findOrCreateFromOAuth(string $provider, string $providerUserId, array $profile): array
     {
+        // Zoek de koppeling ZONDER op is_active te filteren: een gedeactiveerd
+        // (geblokkeerd) account mag niet inloggen, maar mag zeker ook geen
+        // nieuw account kunnen aanmaken met dezelfde provider-identiteit.
         $linked = $this->db->fetchOne(
             "SELECT u.* FROM cf_user_oauth o
              JOIN cf_users u ON u.id = o.user_id
-             WHERE o.provider = ? AND o.provider_user_id = ?
-             AND u.is_active = 1 AND u.deleted_at IS NULL",
+             WHERE o.provider = ? AND o.provider_user_id = ?",
             [$provider, $providerUserId]
         );
 
         if ($linked !== null) {
+            if ((int) $linked['is_active'] !== 1 || $linked['deleted_at'] !== null) {
+                throw new OAuthAccountDisabledException('Dit account is gedeactiveerd.');
+            }
             return $linked;
         }
 
@@ -336,7 +342,15 @@ final class AuthManager
         ini_set('session.cookie_httponly', '1');
         ini_set('session.cookie_secure', isset($_SERVER['HTTPS']) ? '1' : '0');
         ini_set('session.use_strict_mode', '1');
-        ini_set('session.cookie_samesite', 'Strict');
+        // Lax, niet Strict: bij "inloggen met Google/Discord/GitHub" komt de
+        // browser via een redirect van de provider terug op /auth/{provider}/callback.
+        // Dat is een cross-site navigatie, en bij SameSite=Strict wordt het
+        // sessiecookie dan NIET meegestuurd — de opgeslagen OAuth-state is dan
+        // weg en elke OAuth-login faalt op "state mismatch". Lax stuurt het
+        // cookie wel mee bij zo'n top-level GET-navigatie (en nooit bij
+        // cross-site POST's of subrequests); POST-formulieren blijven beveiligd
+        // door het CSRF-token.
+        ini_set('session.cookie_samesite', 'Lax');
         session_start();
     }
 }

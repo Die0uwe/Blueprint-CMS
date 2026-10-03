@@ -18,6 +18,26 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ---
 
+## [Unreleased] — Inloggen met GitHub, Google en Discord werkt echt
+
+De knoppen "Inloggen met …" stonden er al, maar geen enkele OAuth-login kon slagen. Gevonden en opgelost:
+
+- **Fix (blokkerend): sessiecookie `SameSite=Strict`.** De browser stuurt dat cookie niet mee als de provider (Google/Discord/GitHub) je terugstuurt naar `/auth/{provider}/callback`. De opgeslagen state was dan weg en elke login eindigde in "state mismatch". Nu `SameSite=Lax` (cookie wel mee bij zo'n GET-navigatie, nooit bij cross-site POST's; formulieren blijven door het CSRF-token beveiligd).
+- **Nieuw: GitHub-module** (`modules/github`, OAuth App). Het e-mailadres komt uitsluitend uit `/user/emails`: alleen het primaire, door GitHub bevestigde adres telt; het publieke profieladres wordt nooit vertrouwd.
+- **Nieuw: gedeelde flow** `Core\Auth\OAuth\OAuthLoginFlow`; Google, Discord, Twitch, Battle.net en GitHub zijn nu dunne controllers eromheen. Eén plek voor intentie (inloggen/koppelen), state, geblokkeerde accounts, dubbele koppelingen, foutafhandeling en redirect.
+- **Nieuw: knoppen alleen voor bruikbare providers** (`Core\Auth\OAuth\OAuthProviders`): module aan én Client ID + Secret ingesteld. Op `/login`, `/register`, in het login-blok en op het profiel. Vroeger vier vaste knoppen, ook zonder sleutels (dode link of 404).
+- **Nieuw: inschakelen in de admin.** Marketplace, "Providers & API-instellingen" toont alle vijf providers (aan/uit). Opslaan met Client ID + Secret schakelt de module meteen in; daarvoor was alleen SQL of de installer mogelijk.
+- **Nieuw: duidelijke foutmeldingen** (NL/EN/DE) op de login- en profielpagina in plaats van een stille `/?error=…` die nergens getoond werd. De foutcode komt uit een vaste lijst; tekst uit de URL wordt nooit weergegeven.
+- **Fix (beveiliging): geblokkeerde gebruikers.** Een gedeactiveerd account dat via OAuth inlogde, werd niet herkend en kreeg stilletjes een nieuw account. Nu wordt de login geweigerd.
+- **Fix (beveiliging): lege state.** `hash_equals('', '')` is waar: een callback zonder state-parameter en zonder opgeslagen state kwam door de controle. Een lege state wordt nu altijd geweigerd; de state is eenmalig.
+- **Fix (beveiliging): open redirect** in `POST /login?redirect=…` (en het nieuwe OAuth-pad). Alleen eigen paden zijn toegestaan (`Core\Security\SafeRedirect`).
+- **Fix:** een provider-account dat al aan een ander lid hangt, werd bij "koppelen" stil niet overgenomen maar wel als gelukt gemeld; nu `already_linked`. Een tweede account van dezelfde provider op één lid: `other_linked`. Ontkoppelen van de enige inlogmethode van een account zonder echt e-mailadres wordt geweigerd. `POST /auth/{provider}/disconnect` controleert nu het CSRF-token.
+- **Fix:** netwerkfouten, een provider die 500 geeft of ongeldige JSON geeft een nette melding in plaats van een 500-pagina (een `JsonException` werd niet afgevangen). GitHub geeft token-fouten als HTTP 200; ook die worden herkend.
+- **Nieuw:** `module.json` met `"autoload": "src/"` registreert zijn eigen PSR-4 autoloader bij het laden, zodat een nieuwe module direct werkt zonder `composer dump-autoload` (FTP-uploads met een oude `vendor/`).
+- Bewust **niet** gedaan: automatisch koppelen aan een bestaand account op e-mailadres. Registratie controleert e-mailadressen niet, dus iemand kan het adres van een ander met een eigen wachtwoord hebben aangemaakt. Is het adres al in gebruik, dan krijgt de OAuth-gebruiker een eigen account; bestaande leden koppelen een provider via hun profiel.
+- Tests: `SafeRedirectTest`, `OAuthClientTest`, `OAuthAccountTest` (echte MariaDB) en een end-to-end-run tegen een nep-provider.
+- Documentatie: `docs/oauth-login.md`.
+
 ## [Unreleased] — Wachtwoord vergeten en herstellen
 
 - Nieuw: **Wachtwoord vergeten?** op `/login` en in het login-blok. `/wachtwoord-vergeten` mailt een herstellink (60 minuten geldig, eenmalig) naar `/wachtwoord-herstellen/{token}`, waar de gebruiker een nieuw wachtwoord kiest.

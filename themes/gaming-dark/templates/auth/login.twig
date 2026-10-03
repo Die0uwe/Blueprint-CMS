@@ -5,6 +5,7 @@
     <div class="cf-card-header">🔐 {{ trans('auth.login.title') }}</div>
     <div class="cf-card-body">
       {% if error is defined %}<div class="cf-alert cf-alert-error">{{ error }}</div>{% endif %}
+      {% if oauth_error is defined and oauth_error %}<div class="cf-alert cf-alert-error">{{ trans('auth.oauth.error.' ~ oauth_error, {provider: oauth_provider_label|default('')}) }}</div>{% endif %}
       {% if password_reset_done is defined and password_reset_done %}<div class="cf-alert cf-alert-success">{{ trans('auth.reset.done') }}</div>{% endif %}
       <form method="POST" action="/login">
         {{ csrf_field()|raw }}
@@ -20,27 +21,7 @@
       </form>
       <p style="text-align:center;margin:.75rem 0 0;font-size:.85rem;"><a href="/wachtwoord-vergeten">{{ trans('auth.login.forgot_link') }}</a></p>
 
-      {# Golf 10 — OAuth-providers: elke knop hieronder gaat naar de
-         .../login route (niet .../ — die is voor koppelen aan een al
-         ingelogd account, zie *OAuthController@loginRedirect). Een
-         provider die niet als module actief is, geeft via de centrale
-         Users\OAuthController nette redirect met ?error=..._module_not_installed
-         i.p.v. een kale 404 — de knoppen mogen dus altijd getoond worden. #}
-      <div style="text-align:center;margin:1rem 0;color:var(--muted);font-size:.8rem;">{{ trans('auth.login.or') }}</div>
-      <div style="display:flex;flex-direction:column;gap:.5rem;">
-        <a href="/auth/discord/login" class="cf-btn" style="width:100%;justify-content:center;background:#5865F2;color:#fff;">
-          🎮 {{ trans('auth.login.with_discord') }}
-        </a>
-        <a href="/auth/twitch/login" class="cf-btn" style="width:100%;justify-content:center;background:#9146FF;color:#fff;">
-          📺 {{ trans('auth.login.with_twitch') }}
-        </a>
-        <a href="/auth/google/login" class="cf-btn" style="width:100%;justify-content:center;background:#fff;color:#1f1f1f;border:1px solid var(--border);">
-          🔑 {{ trans('auth.login.with_google') }}
-        </a>
-        <a href="/auth/battlenet/login" class="cf-btn" style="width:100%;justify-content:center;background:#148eff;color:#fff;">
-          🌀 {{ trans('auth.login.with_battlenet') }}
-        </a>
-      </div>
+      {% include 'auth/_oauth_buttons.twig' %}
 
       <p style="text-align:center;margin-top:1rem;font-size:.85rem;color:var(--muted);">
         {{ trans('auth.login.no_account') }} <a href="/register">{{ trans('auth.login.register_link') }}</a> {{ trans('auth.login.register_hint') }}

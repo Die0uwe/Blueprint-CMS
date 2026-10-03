@@ -43,7 +43,7 @@ $name      = $manifest['name'] ?? ucfirst($slug);
     <div class="admin-content">
       <div class="form-wrap">
         <?php if ($flash): ?>
-          <div class="cf-alert cf-alert-success">Instellingen opgeslagen.</div>
+          <div class="cf-alert cf-alert-success">Instellingen opgeslagen.<?= !empty($justEnabled) ? ' De login-knop staat nu aan op de inlogpagina.' : '' ?></div>
         <?php endif; ?>
 
         <?php $hint = oauth_provider_hint($slug); if ($hint !== null): ?>
@@ -124,6 +124,13 @@ function oauth_provider_hint(string $slug): ?string
             in Discord-instellingen → Geavanceerd) → \"Server-ID kopiëren\".<br>
             <strong>Bot Token</strong> (optioneel, voor betrouwbaardere rol-sync): zelfde applicatie →
             tab <em>Bot</em> → \"Reset Token\".",
+        'github' => "
+            <strong>GitHub</strong> — maak een <em>OAuth App</em> aan op
+            <a href=\"https://github.com/settings/developers\" target=\"_blank\" rel=\"noopener\">github.com/settings/developers</a>
+            (OAuth Apps → New OAuth App). Vul bij <em>Authorization callback URL</em> exact in: " . $cb('github') . "<br>
+            Kopieer daarna het <em>Client ID</em> en klik <em>Generate a new client secret</em> voor het Client Secret.
+            Let op: een GitHub-gebruiker met een privé e-mailadres wordt toch bevestigd herkend, zolang het primaire
+            adres bij GitHub als <em>verified</em> staat.",
         'twitch' => "
             <strong>Twitch</strong> — registreer een app op de
             <a href=\"https://dev.twitch.tv/console/apps\" target=\"_blank\" rel=\"noopener\">Twitch Developer Console</a>.
