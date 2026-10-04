@@ -20,6 +20,10 @@ return [
     ],
 
     'nav' => [
+        'menu'      => 'Menü',
+        'theme'     => 'Design',
+        'light'     => 'Hell',
+        'dark'      => 'Dunkel',
         'news'      => 'Neuigkeiten',
         'blog'      => 'Blog',
         'forum'     => 'Forum',

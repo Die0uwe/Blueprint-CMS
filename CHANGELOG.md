@@ -18,6 +18,33 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ---
 
+## [Unreleased] — Thema's, mobiel, editor, blok-instellingen en API-overzicht
+
+### Thema's en mobiel (Golf 4)
+
+- **Nieuw: 8 thema's**, elk met een lichte én donkere variant: Blueprint Dark, Clean Light, Gaming Dark, Regenboog, Kids, Tech, Nature en Universe. Contrast van tekst, links en knoppen is getest op WCAG AA (ook als unit-test).
+- **Nieuw: bezoekers kiezen zelf** thema en licht/donker via een 🎨-knop in de header (onthouden in de browser, zonder flits bij laden). De beheerder kan dat uitzetten op `/admin/themes` en kiest het standaardthema.
+- **Fix (blokkerend op mobiel): hamburgermenu.** Onder 768px stond het hoofdmenu op `display:none` zonder knop, waardoor een telefoongebruiker niet kon navigeren. Nu een uitklapmenu met tikvlakken van minimaal 44px; de thema-kiezer staat daar inline.
+- **Fix: sidebar-blokken op mobiel** verdwenen onder 1024px volledig; ze komen nu onder de inhoud. Verder: geen horizontaal scrollen op 360px, invoervelden van 16px (geen zoom op iOS), brede tabellen scrollen binnen hun kader.
+- **Nieuw: kleurtokens.** Alle vaste kleuren in `blueprint.css` zijn variabelen (o.a. `--fg-rgb`, `--accent-rgb`, `--on-accent`, `--link`, `--font-heading`, `--body-image`). Een thema is nu alleen een `theme.json` (`colors`, `colors_alt`, `style`).
+- **Nieuw: `Core\Template\ThemeCatalog`** leest alle thema's en valideert elke waarde strikt (alleen hex-kleuren, lengtes, lettertypes en gradients; geen `url()`, `@import` of tags), omdat een thema uit een ZIP komt.
+- **Gewijzigd: gedeelde templates.** Een thema levert alleen de templates die het wil overschrijven; de rest komt uit `themes/default`. De identieke kopie in `themes/gaming-dark/templates` is verwijderd.
+- **Gewijzigd:** `/admin/themes` toont beide kleurvarianten per thema. Selectievakjes in de (donkere) admin zijn nu donker (`color-scheme`).
+
+### API-overzicht (Golf 3)
+
+- **Nieuw: `/admin/api-status`.** Kaart per koppeling (Discord, Twitch, YouTube, Kick, Blizzard, Battle.net, GitHub, Google, Ollama, Minecraft, FiveM) met status uit/niet ingesteld/ingesteld/werkt/fout, live-test en aan/uit-schakelaar.
+
+### Editor (Golf 2)
+
+- **Nieuw: TinyMCE 7 (self-hosted, GPL)** op nieuws, pagina's, tekstblok, blog, downloads en forum. Inhoud wordt bij opslaan gesaneerd (geen `iframe`, `style`, `class`); embeds horen in het HTML-blok. Ledencontent wordt met `|rich` getoond.
+
+### Blokken (Golf 1)
+
+- **Fix: blokken bewerkbaar.** Elk blok heeft een bewerkpagina op basis van zijn schema, en opslaan wist de config niet meer.
+
+---
+
 ## [Unreleased] — Inloggen met GitHub, Google en Discord werkt echt
 
 De knoppen "Inloggen met …" stonden er al, maar geen enkele OAuth-login kon slagen. Gevonden en opgelost:

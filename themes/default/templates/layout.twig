@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ locale|default('nl') }}">
+<html lang="{{ locale|default('nl') }}" data-theme="{{ theme_slug }}" data-default-theme="{{ theme_slug }}" data-choice="{{ (settings.visitor_theme_choice|default('1')) == '0' ? '0' : '1' }}">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,35 +9,17 @@
 <link rel="icon" href="{{ settings.site_icon }}">
 {% endif %}
 <link rel="stylesheet" href="{{ asset('css/blueprint.css') }}">
-{# Thema-kleuren (v1.19.0) — tot nu toe deed thema-wissel LETTERLIJK NIETS
-   zichtbaars: layout.twig was al identiek tussen default/gaming-dark (zelfde
-   templates), blueprint.css bevat maar één, hardcoded kleurenpalet, en de
-   `asset()`-Twig-functie verwijst altijd naar het gedeelde /assets/, nooit
-   naar een thema-eigen /themes/<slug>/assets/-map. `theme.json`'s `colors`-
-   blok werd wél al als Twig-global ingelezen (zie ThemeManager::boot()) maar
-   nergens gebruikt. blueprint.css is al volledig op CSS custom properties
-   gebouwd (--bg/--surface/--accent/enz.), dus i.p.v. een aparte stylesheet
-   per thema volstaat het overschrijven van diezelfde variabelen hier — het
-   actieve thema's eigen theme.json bepaalt de waarden, zonder dat
-   blueprint.css zelf iets hoeft te weten van welk thema actief is. #}
-{% if theme.colors is defined and theme.colors %}
-<style>
-:root {
-  {% if theme.colors.bg      is defined %}--bg: {{ theme.colors.bg }};{% endif %}
-  {% if theme.colors.surface is defined %}--surface: {{ theme.colors.surface }};{% endif %}
-  {% if theme.colors.accent  is defined %}--accent: {{ theme.colors.accent }};{% endif %}
-  {% if theme.colors.accent2 is defined %}--accent2: {{ theme.colors.accent2 }};{% endif %}
-  {% if theme.colors.gold    is defined %}--gold: {{ theme.colors.gold }};{% endif %}
-  {% if theme.colors.text    is defined %}--text: {{ theme.colors.text }};{% endif %}
-  {% if theme.colors.muted   is defined %}--muted: {{ theme.colors.muted }};{% endif %}
-  {% if theme.colors.success is defined %}--success: {{ theme.colors.success }};{% endif %}
-  {% if theme.colors.error   is defined %}--error: {{ theme.colors.error }};{% endif %}
-}
-</style>
-{% endif %}
+{# Thema's (Golf 4): ALLE thema's staan als html[data-theme="slug"]-regels in één
+   <style>; wisselen van thema of licht/donker is puur client-side (data-attributen
+   op <html>). cf-theme-init.js staat bewust blokkerend in <head> zodat de keuze van
+   de bezoeker vóór de eerste verf wordt toegepast (geen flits). Validatie van
+   theme.json-waarden: Core\Template\ThemeCatalog. #}
+<style id="cf-theme-css">{{ theme_css|raw }}</style>
+<script type="application/json" id="cf-themes">{{ theme_picker|json_encode|raw }}</script>
+<script src="{{ asset('js/cf-theme-init.js') }}"></script>
 {% block head %}{% endblock %}
 </head>
-<body class="cf-theme-dark" data-theme-slug="{{ theme.slug|default('') }}" data-theme-name="{{ theme.name|default('') }}">
+<body class="cf-theme" data-theme-slug="{{ theme.slug|default('') }}" data-theme-name="{{ theme.name|default('') }}">
 
 {# HEADER ZONE #}
 <header id="cf-header">
@@ -51,6 +33,10 @@
         <span class="cf-motd">{{ settings.site_motd }}</span>
       {% endif %}
     </a>
+    <button type="button" class="cf-menu-toggle" id="cf-menu-toggle" aria-label="{{ trans('nav.menu') }}" aria-expanded="false" aria-controls="cf-header-panel">
+      <span class="cf-menu-bars" aria-hidden="true"></span>
+    </button>
+    <div class="cf-header-panel" id="cf-header-panel">
     <nav class="cf-nav">
       <a href="/news" class="cf-nav-link">{{ trans('nav.news') }}</a>
       <a href="/blog" class="cf-nav-link">{{ trans('nav.blog') }}</a>
@@ -67,6 +53,18 @@
       <a href="/contact" class="cf-nav-link">{{ trans('nav.contact') }}</a>
     </nav>
     <div class="cf-header-actions">
+      {% if theme_picker|length > 1 %}
+      <div class="cf-theme-switch" id="cf-theme-switch" hidden>
+        <button type="button" class="cf-theme-btn" id="cf-theme-btn" aria-haspopup="true" aria-expanded="false" aria-label="{{ trans('nav.theme') }}">🎨</button>
+        <div class="cf-theme-menu" id="cf-theme-menu" role="menu" hidden>
+          <div class="cf-theme-modes" role="group">
+            <button type="button" data-mode-pref="light">☀️ {{ trans('nav.light') }}</button>
+            <button type="button" data-mode-pref="dark">🌙 {{ trans('nav.dark') }}</button>
+          </div>
+          <div class="cf-theme-list" id="cf-theme-list"></div>
+        </div>
+      </div>
+      {% endif %}
       {# S13 (Multi-language/i18n) — publieke taalwisselaar, werkt ook voor
          gasten (sessie-override, zie LanguageController::switch()). #}
       <div class="cf-lang-switch">
@@ -81,6 +79,7 @@
         <a href="/login" class="cf-btn-sm">{{ trans('nav.login') }}</a>
       {% endif %}
     </div>
+    </div>{# /cf-header-panel #}
   </div>
 </header>
 
@@ -153,6 +152,7 @@
 </footer>
 
 <script src="{{ asset('js/blueprint.js') }}"></script>
+<script src="{{ asset('js/cf-theme.js') }}"></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

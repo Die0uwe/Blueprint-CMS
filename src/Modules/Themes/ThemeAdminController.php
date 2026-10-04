@@ -45,6 +45,7 @@ final class ThemeAdminController
         $activeTheme  = $this->settings->get('core', 'active_theme') ?: (require CF_ROOT . '/config/config.php')['app']['theme'] ?? 'default';
         $error        = $request->query('error');
         $flash        = $request->query('ok');
+        $visitorChoice = (string) $this->settings->get('core', 'visitor_theme_choice', '1') !== '0';
 
         ob_start();
         include __DIR__ . '/views/admin_index.php';
@@ -72,23 +73,17 @@ final class ThemeAdminController
      */
     private function scanThemes(): array
     {
-        $themesPath = CF_ROOT . '/themes';
-        $result     = [];
+        return \CommunityFusion\Core\Template\ThemeCatalog::scan(CF_ROOT . '/themes');
+    }
 
-        foreach (glob($themesPath . '/*', GLOB_ONLYDIR) ?: [] as $dir) {
-            $slug     = basename($dir);
-            $jsonPath = $dir . '/theme.json';
-            if (!is_file($jsonPath)) continue;
-
-            $data = json_decode((string) file_get_contents($jsonPath), true);
-            if (!is_array($data)) continue;
-
-            $data['slug'] ??= $slug;
-            $result[$slug] = $data;
-        }
-
-        ksort($result);
-        return $result;
+    /** POST /admin/themes/bezoekerskeuze — mogen bezoekers zelf thema/licht-donker kiezen? */
+    public function visitorChoice(Request $request): Response
+    {
+        CsrfProtection::validateRequest();
+        $on = (string) $request->input('visitor_theme_choice', '0') === '1';
+        $this->settings->set('core', 'visitor_theme_choice', $on ? '1' : '0');
+        $this->audit->log('themes.visitor_choice', $this->auth->id(), $this->auth->user()['username'] ?? null, ['enabled' => $on]);
+        return Response::redirect('/admin/themes?ok=' . ($on ? 'keuze_aan' : 'keuze_uit'));
     }
 }
 

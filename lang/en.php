@@ -21,6 +21,10 @@ return [
     ],
 
     'nav' => [
+        'menu'      => 'Menu',
+        'theme'     => 'Theme',
+        'light'     => 'Light',
+        'dark'      => 'Dark',
         'news'      => 'News',
         'blog'      => 'Blog',
         'forum'     => 'Forum',

@@ -1,0 +1,55 @@
+{
+    "slug": "clean-light",
+    "name": "Clean Light",
+    "version": "2.0.0",
+    "author": "DieOuwe",
+    "description": "Strak wit met blauwe accenten — rustig en algemeen bruikbaar.",
+    "mode": "light",
+    "colors": {
+        "bg": "#f8fafc",
+        "bg2": "#f1f5f9",
+        "surface": "#ffffff",
+        "surface2": "#f1f5f9",
+        "border": "#e2e8f0",
+        "accent": "#2563eb",
+        "accent2": "#1d4ed8",
+        "gold": "#b45309",
+        "text": "#0f172a",
+        "text_dim": "#475569",
+        "muted": "#64748b",
+        "success": "#15803d",
+        "warning": "#92400e",
+        "error": "#dc2626",
+        "on_accent": "#ffffff",
+        "link": "#1d4ed8"
+    },
+    "colors_alt": {
+        "bg": "#0b1220",
+        "bg2": "#0f172a",
+        "surface": "#131c2e",
+        "surface2": "#1b2740",
+        "border": "#26334d",
+        "accent": "#2563eb",
+        "accent2": "#1d4ed8",
+        "gold": "#fbbf24",
+        "text": "#e5edf9",
+        "text_dim": "#a3b2c8",
+        "muted": "#8394ad",
+        "success": "#34d399",
+        "warning": "#fbbf24",
+        "error": "#f87171",
+        "on_accent": "#ffffff",
+        "link": "#7db1fb"
+    },
+    "style": {
+        "radius": "8px",
+        "radius_lg": "12px",
+        "body_image": "none"
+    },
+    "supports": [
+        "dark_mode",
+        "light_mode",
+        "responsive",
+        "mobile_first"
+    ]
+}

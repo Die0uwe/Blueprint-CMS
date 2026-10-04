@@ -1,0 +1,61 @@
+{
+    "slug": "kids",
+    "name": "Kids",
+    "version": "2.0.0",
+    "author": "DieOuwe",
+    "description": "Groot, rond en speels — fel en vriendelijk voor kinderen.",
+    "mode": "light",
+    "colors": {
+        "bg": "#fff9e8",
+        "bg2": "#fff1c9",
+        "surface": "#ffffff",
+        "surface2": "#fff0c2",
+        "border": "#ffd166",
+        "accent": "#ff6b6b",
+        "accent2": "#4d96ff",
+        "gold": "#f59e0b",
+        "text": "#1b1b3a",
+        "text_dim": "#44446a",
+        "muted": "#62628a",
+        "success": "#15803d",
+        "warning": "#92400e",
+        "error": "#dc2626",
+        "on_accent": "#1b1b3a",
+        "link": "#1d4ed8",
+        "logo": "#1d4ed8"
+    },
+    "colors_alt": {
+        "bg": "#1d1b4b",
+        "bg2": "#26235e",
+        "surface": "#2e2b6e",
+        "surface2": "#38358a",
+        "border": "#4a46a0",
+        "accent": "#ff6b6b",
+        "accent2": "#4d96ff",
+        "gold": "#ffd166",
+        "text": "#fff7e0",
+        "text_dim": "#d6d2f5",
+        "muted": "#aaa6dc",
+        "success": "#6ee7a0",
+        "warning": "#ffd166",
+        "error": "#ff8a8a",
+        "on_accent": "#1b1b3a",
+        "link": "#ffd166",
+        "logo": "#ffd166"
+    },
+    "style": {
+        "radius": "22px",
+        "radius_lg": "32px",
+        "font": "Trebuchet MS, Verdana, Segoe UI, sans-serif",
+        "font_heading": "Comic Sans MS, Chalkboard SE, Trebuchet MS, sans-serif",
+        "body_image": "radial-gradient(circle, rgba(255,107,107,.11) 2px, transparent 3px), radial-gradient(circle, rgba(77,150,255,.10) 2px, transparent 3px)",
+        "body_size": "34px 34px, 34px 34px",
+        "body_repeat": "repeat, repeat"
+    },
+    "supports": [
+        "dark_mode",
+        "light_mode",
+        "responsive",
+        "mobile_first"
+    ]
+}

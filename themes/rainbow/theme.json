@@ -1,0 +1,57 @@
+{
+    "slug": "rainbow",
+    "name": "Regenboog",
+    "version": "2.0.0",
+    "author": "DieOuwe",
+    "description": "Vrolijk en kleurrijk met een regenboogband bovenaan.",
+    "mode": "light",
+    "colors": {
+        "bg": "#fffdf8",
+        "bg2": "#fff7e6",
+        "surface": "#ffffff",
+        "surface2": "#fff4dd",
+        "border": "#f0dfc0",
+        "accent": "#e11d48",
+        "accent2": "#7c3aed",
+        "gold": "#d97706",
+        "text": "#1f2340",
+        "text_dim": "#4a4f78",
+        "muted": "#6b6f94",
+        "success": "#15803d",
+        "warning": "#92400e",
+        "error": "#dc2626",
+        "on_accent": "#ffffff",
+        "link": "#7c3aed"
+    },
+    "colors_alt": {
+        "bg": "#14102a",
+        "bg2": "#1b1538",
+        "surface": "#211a45",
+        "surface2": "#2a2158",
+        "border": "#3a3070",
+        "accent": "#db2777",
+        "accent2": "#7c3aed",
+        "gold": "#fbbf24",
+        "text": "#f5f3ff",
+        "text_dim": "#c4bde6",
+        "muted": "#a39bd0",
+        "success": "#4ade80",
+        "warning": "#fbbf24",
+        "error": "#f87171",
+        "on_accent": "#ffffff",
+        "link": "#c4b5fd"
+    },
+    "style": {
+        "radius": "14px",
+        "radius_lg": "22px",
+        "body_image": "linear-gradient(90deg, #ef4444, #f59e0b, #facc15, #22c55e, #3b82f6, #8b5cf6), radial-gradient(ellipse at 15% 0%, rgba(124,58,237,.10) 0%, transparent 50%)",
+        "body_size": "100% 6px, auto",
+        "body_repeat": "no-repeat, no-repeat"
+    },
+    "supports": [
+        "dark_mode",
+        "light_mode",
+        "responsive",
+        "mobile_first"
+    ]
+}

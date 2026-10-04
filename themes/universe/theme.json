@@ -1,0 +1,55 @@
+{
+    "slug": "universe",
+    "name": "Universe",
+    "version": "2.0.0",
+    "author": "DieOuwe",
+    "description": "Diepe ruimte met sterren en nevels.",
+    "mode": "dark",
+    "colors": {
+        "bg": "#05030f",
+        "bg2": "#0a0620",
+        "surface": "#110b2e",
+        "surface2": "#1a1242",
+        "border": "#2a1f66",
+        "accent": "#7c3aed",
+        "accent2": "#db2777",
+        "gold": "#fbbf24",
+        "text": "#ece8ff",
+        "text_dim": "#b5acec",
+        "muted": "#8f86cc",
+        "success": "#34d399",
+        "warning": "#fbbf24",
+        "error": "#fb7185",
+        "on_accent": "#ffffff",
+        "link": "#c4b5fd"
+    },
+    "colors_alt": {
+        "bg": "#f6f4ff",
+        "bg2": "#ece8ff",
+        "surface": "#ffffff",
+        "surface2": "#f1eeff",
+        "border": "#d9d2f7",
+        "accent": "#6d28d9",
+        "accent2": "#be185d",
+        "gold": "#b45309",
+        "text": "#1d1640",
+        "text_dim": "#4c4478",
+        "muted": "#655d91",
+        "success": "#047857",
+        "warning": "#92400e",
+        "error": "#be123c",
+        "on_accent": "#ffffff",
+        "link": "#6d28d9"
+    },
+    "style": {
+        "body_image": "radial-gradient(1px 1px at 20% 30%, #fff, transparent), radial-gradient(1.5px 1.5px at 70% 20%, #fff, transparent), radial-gradient(1px 1px at 40% 70%, rgba(255,255,255,.8), transparent), radial-gradient(1.5px 1.5px at 85% 60%, #c4b5fd, transparent), radial-gradient(ellipse at 20% 0%, rgba(124,58,237,.35), transparent 55%), radial-gradient(ellipse at 90% 100%, rgba(219,39,119,.22), transparent 55%)",
+        "body_size": "250px 250px, 300px 300px, 200px 200px, 350px 350px, auto, auto",
+        "body_repeat": "repeat, repeat, repeat, repeat, no-repeat, no-repeat"
+    },
+    "supports": [
+        "dark_mode",
+        "light_mode",
+        "responsive",
+        "mobile_first"
+    ]
+}

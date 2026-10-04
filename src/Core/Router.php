@@ -292,6 +292,7 @@ final class Router
 
         // ── Thema's (Wave 5 — actief thema wisselen zonder installer) ───
         $this->get('/admin/themes',                        'CommunityFusion\Modules\Themes\ThemeAdminController@index',    $perm('themes.manage'));
+        $this->post('/admin/themes/bezoekerskeuze',        'CommunityFusion\Modules\Themes\ThemeAdminController@visitorChoice', $perm('themes.manage'));
         $this->post('/admin/themes/{slug:[a-z0-9-]+}/activeren', 'CommunityFusion\Modules\Themes\ThemeAdminController@activate', $perm('themes.manage'));
 
         // ── Media (Wave 5 — scant storage/uploads/ + storage/downloads/) ─

@@ -7,7 +7,7 @@
       {% if member.avatar_url %}
         <img src="{{ member.avatar_url }}" alt="" style="width:88px;height:88px;border-radius:50%;object-fit:cover;">
       {% else %}
-        <div style="width:88px;height:88px;border-radius:50%;background:var(--cf-accent,#a11692);"></div>
+        <div style="width:88px;height:88px;border-radius:50%;background:var(--accent);"></div>
       {% endif %}
       <div style="flex:1;min-width:200px;">
         <h1 style="margin:0 0 .2rem;font-size:1.4rem;">{{ member.display_name|default(member.username) }}</h1>

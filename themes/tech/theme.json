@@ -1,0 +1,58 @@
+{
+    "slug": "tech",
+    "name": "Tech",
+    "version": "2.0.0",
+    "author": "DieOuwe",
+    "description": "Donker met cyaan, rasterlijnen en monospace-koppen.",
+    "mode": "dark",
+    "colors": {
+        "bg": "#070b10",
+        "bg2": "#0b1118",
+        "surface": "#0e1620",
+        "surface2": "#142030",
+        "border": "#1d3347",
+        "accent": "#06b6d4",
+        "accent2": "#22d3ee",
+        "gold": "#fbbf24",
+        "text": "#d7e7f2",
+        "text_dim": "#8fb0c4",
+        "muted": "#6f8d9f",
+        "success": "#34d399",
+        "warning": "#fbbf24",
+        "error": "#f87171",
+        "on_accent": "#031318",
+        "link": "#22d3ee"
+    },
+    "colors_alt": {
+        "bg": "#f1f6f9",
+        "bg2": "#e6eef3",
+        "surface": "#ffffff",
+        "surface2": "#eaf2f6",
+        "border": "#cfdde6",
+        "accent": "#0e7490",
+        "accent2": "#0369a1",
+        "gold": "#b45309",
+        "text": "#0b1c26",
+        "text_dim": "#3f5c6d",
+        "muted": "#527080",
+        "success": "#047857",
+        "warning": "#92400e",
+        "error": "#dc2626",
+        "on_accent": "#ffffff",
+        "link": "#0e7490"
+    },
+    "style": {
+        "radius": "4px",
+        "radius_lg": "8px",
+        "font_heading": "Consolas, Menlo, Monaco, Courier New, monospace",
+        "body_image": "linear-gradient(rgba(34,211,238,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(34,211,238,.05) 1px, transparent 1px)",
+        "body_size": "32px 32px, 32px 32px",
+        "body_repeat": "repeat, repeat"
+    },
+    "supports": [
+        "dark_mode",
+        "light_mode",
+        "responsive",
+        "mobile_first"
+    ]
+}

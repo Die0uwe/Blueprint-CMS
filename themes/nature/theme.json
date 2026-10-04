@@ -1,0 +1,56 @@
+{
+    "slug": "nature",
+    "name": "Nature",
+    "version": "2.0.0",
+    "author": "DieOuwe",
+    "description": "Aardse groentinten en rustige letters met schreef.",
+    "mode": "light",
+    "colors": {
+        "bg": "#f3f6ec",
+        "bg2": "#e8eedc",
+        "surface": "#fbfdf7",
+        "surface2": "#eef3e2",
+        "border": "#d3dcc0",
+        "accent": "#2f7d32",
+        "accent2": "#4d7c0f",
+        "gold": "#a16207",
+        "text": "#1f2d1a",
+        "text_dim": "#46583d",
+        "muted": "#61745a",
+        "success": "#15803d",
+        "warning": "#92400e",
+        "error": "#b91c1c",
+        "on_accent": "#ffffff",
+        "link": "#1f6b2c"
+    },
+    "colors_alt": {
+        "bg": "#0d1a12",
+        "bg2": "#12231a",
+        "surface": "#162b20",
+        "surface2": "#1d3628",
+        "border": "#2a4a37",
+        "accent": "#4ade80",
+        "accent2": "#a3e635",
+        "gold": "#facc15",
+        "text": "#e6f2e4",
+        "text_dim": "#a9c4ad",
+        "muted": "#86a68d",
+        "success": "#4ade80",
+        "warning": "#facc15",
+        "error": "#f87171",
+        "on_accent": "#07150c",
+        "link": "#86efac"
+    },
+    "style": {
+        "radius": "12px",
+        "radius_lg": "20px",
+        "font_heading": "Georgia, Times New Roman, serif",
+        "body_image": "radial-gradient(ellipse at 10% 0%, rgba(77,124,15,.12) 0%, transparent 50%), radial-gradient(ellipse at 90% 100%, rgba(47,125,50,.10) 0%, transparent 50%)"
+    },
+    "supports": [
+        "dark_mode",
+        "light_mode",
+        "responsive",
+        "mobile_first"
+    ]
+}

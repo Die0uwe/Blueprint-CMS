@@ -41,7 +41,13 @@ final class ThemeManager
         }
 
         // Twig setup
-        $loader     = new \Twig\Loader\FilesystemLoader($themePath . '/templates');
+        // Gedeelde templates: een thema hoeft alleen templates te leveren die het
+        // wil OVERSCHRIJVEN; de rest komt uit themes/default/templates.
+        $paths = array_values(array_unique(array_filter([
+            $themePath . '/templates',
+            $this->themesPath . '/default/templates',
+        ], 'is_dir')));
+        $loader     = new \Twig\Loader\FilesystemLoader($paths);
         $this->twig = new \Twig\Environment($loader, [
             'cache'       => CF_ROOT . '/storage/cache/twig',
             'auto_reload' => true,
@@ -50,6 +56,10 @@ final class ThemeManager
 
         // Globale variabelen beschikbaar in alle templates
         $this->twig->addGlobal('theme', $this->themeConfig);
+        $this->twig->addGlobal('theme_slug', (string) ($this->themeConfig['slug'] ?? $this->activeTheme));
+        $catalog = ThemeCatalog::scan($this->themesPath);
+        $this->twig->addGlobal('theme_picker', ThemeCatalog::picker($catalog));
+        $this->twig->addGlobal('theme_css', ThemeCatalog::css($catalog));
         $this->twig->addGlobal('cms_version', CF_VERSION ?? '1.0.0');
 
         // Custom Twig functies
