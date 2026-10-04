@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace CommunityFusion\Modules\News;
 
+use CommunityFusion\Core\Security\ContentSanitizer;
 use CommunityFusion\Core\Request;
 use CommunityFusion\Core\Response;
 use CommunityFusion\Core\Template\ThemeManager;
@@ -166,7 +167,7 @@ final class NewsController
     {
         $title    = trim((string) $request->input('title', ''));
         $summary  = trim((string) $request->input('summary', ''));
-        $content  = trim((string) $request->input('content', ''));
+        $content  = ContentSanitizer::cleanForStorage((string) $request->input('content', ''));
         $image    = trim((string) $request->input('featured_image', ''));
         $status   = (string) $request->input('status', 'draft');
         $isSticky = $request->input('is_sticky') !== null ? 1 : 0;

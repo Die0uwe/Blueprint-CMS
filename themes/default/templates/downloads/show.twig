@@ -13,7 +13,7 @@
 </div>
 
 {% if download.description %}
-<div class="cf-article-content" style="white-space:pre-wrap;">{{ download.description }}</div>
+<div class="cf-article-content">{{ download.description|rich }}</div>
 {% endif %}
 
 <div style="margin:1.5rem 0;display:flex;gap:.5rem;flex-wrap:wrap;">

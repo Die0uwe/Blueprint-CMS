@@ -158,6 +158,20 @@ final class ThemeManager
             return \CommunityFusion\Core\Security\CsrfProtection::field();
         }));
 
+        // {{ editor_assets()|raw }} — laadt de gedeelde editor (TinyMCE + cf-editor.js)
+        // op pagina's met een textarea[data-editor].
+        $this->twig->addFunction(new \Twig\TwigFunction('editor_assets', function(): string {
+            return \CommunityFusion\Core\Template\EditorAssets::tags();
+        }, ['is_safe' => ['html']]));
+
+        // {{ post.content|rich }} — veilige weergave van ledencontent uit de editor:
+        // HTML gaat door de whitelist-sanitizer, oude platte tekst wordt geëscaped
+        // (regeleinden blijven). Vervangt |nl2br / white-space:pre-wrap bij
+        // blog, forum en downloads.
+        $this->twig->addFilter(new \Twig\TwigFilter('rich', function (?string $value): string {
+            return \CommunityFusion\Core\Security\ContentSanitizer::renderRich($value);
+        }, ['is_safe' => ['html']]));
+
         // {{ post.content|nl2br }} — HOOG-bevinding uit de totale-codebase-
         // audit (v1.25.5+): blog.show.twig gebruikte |raw op ledencontent
         // (elk lid mag een blog-post maken, alleen $auth-middleware, geen

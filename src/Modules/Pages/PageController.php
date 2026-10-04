@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace CommunityFusion\Modules\Pages;
 
+use CommunityFusion\Core\Security\ContentSanitizer;
 use CommunityFusion\Core\Request;
 use CommunityFusion\Core\Response;
 use CommunityFusion\Core\Template\ThemeManager;
@@ -164,7 +165,7 @@ final class PageController
     private function fromRequest(Request $request): array
     {
         $title    = trim((string) $request->input('title', ''));
-        $content  = trim((string) $request->input('content', ''));
+        $content  = ContentSanitizer::cleanForStorage((string) $request->input('content', ''));
         $metaTitle = trim((string) $request->input('meta_title', ''));
         $metaDesc  = trim((string) $request->input('meta_desc', ''));
         $status    = (string) $request->input('status', 'draft');

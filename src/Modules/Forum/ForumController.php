@@ -17,6 +17,7 @@ declare(strict_types=1);
 
 namespace CommunityFusion\Modules\Forum;
 
+use CommunityFusion\Core\Security\ContentSanitizer;
 use CommunityFusion\Core\Request;
 use CommunityFusion\Core\Response;
 use CommunityFusion\Core\Auth\AuthManager;
@@ -118,7 +119,7 @@ final class ForumController
         }
 
         $title   = trim((string) $request->input('title', ''));
-        $content = trim((string) $request->input('content', ''));
+        $content = ContentSanitizer::cleanForStorage((string) $request->input('content', ''));
 
         if ($title === '' || $content === '') {
             return Response::redirect("/forum/{$board['slug']}/nieuw?error=leeg");
@@ -187,7 +188,7 @@ final class ForumController
             return Response::html('<h1>403 — Dit topic is gesloten</h1>', 403);
         }
 
-        $content = trim((string) $request->input('content', ''));
+        $content = ContentSanitizer::cleanForStorage((string) $request->input('content', ''));
         if ($content === '') {
             return Response::redirect("/forum/{$board['slug']}/{$topic['slug']}?error=leeg");
         }

@@ -16,7 +16,7 @@
       </div>
       <div class="cf-form-group">
         <label class="cf-label" for="description">Omschrijving</label>
-        <textarea id="description" name="description" class="cf-textarea">{{ download.description|default('') }}</textarea>
+        <textarea id="description" name="description" class="cf-textarea" data-editor="richtext-lite">{{ download.description|default('') }}</textarea>
       </div>
       {% if download %}
         <div class="cf-form-group">
@@ -38,3 +38,5 @@
   </div>
 </div>
 {% endblock %}
+
+{% block scripts %}{{ editor_assets() }}{% endblock %}

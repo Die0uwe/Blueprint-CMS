@@ -17,7 +17,7 @@
       </div>
       <div class="cf-form-group">
         <label class="cf-label" for="content">Bericht</label>
-        <textarea id="content" name="content" class="cf-textarea" required></textarea>
+        <textarea id="content" name="content" class="cf-textarea" data-editor="richtext-lite" required></textarea>
       </div>
       <button type="submit" class="cf-btn">Topic plaatsen</button>
       <a href="/forum/{{ board.slug }}" class="cf-btn cf-btn-ghost">Annuleren</a>
@@ -25,3 +25,5 @@
   </div>
 </div>
 {% endblock %}
+
+{% block scripts %}{{ editor_assets() }}{% endblock %}

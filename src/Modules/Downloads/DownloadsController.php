@@ -17,6 +17,7 @@ declare(strict_types=1);
 
 namespace CommunityFusion\Modules\Downloads;
 
+use CommunityFusion\Core\Security\ContentSanitizer;
 use CommunityFusion\Core\Request;
 use CommunityFusion\Core\Response;
 use CommunityFusion\Core\Auth\AuthManager;
@@ -91,7 +92,7 @@ final class DownloadsController
         if ($guard !== null) return $guard;
 
         $title       = trim((string) $request->input('title', ''));
-        $description = trim((string) $request->input('description', ''));
+        $description = ContentSanitizer::cleanForStorage((string) $request->input('description', ''));
         $file        = $request->files()['file'] ?? null;
 
         if ($title === '' || $file === null) {
@@ -194,7 +195,7 @@ final class DownloadsController
         }
 
         $title       = trim((string) $request->input('title', ''));
-        $description = trim((string) $request->input('description', ''));
+        $description = ContentSanitizer::cleanForStorage((string) $request->input('description', ''));
         $isPublished = $request->input('is_published') !== null;
 
         if ($title === '') {

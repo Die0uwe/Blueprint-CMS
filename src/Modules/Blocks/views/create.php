@@ -75,6 +75,7 @@ $zones = [
     </div>
   </div>
 </div>
+<?= \CommunityFusion\Core\Template\EditorAssets::tags() ?>
 </body>
 </html>
 <?php

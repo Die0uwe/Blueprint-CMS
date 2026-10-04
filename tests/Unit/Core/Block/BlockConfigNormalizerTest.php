@@ -20,6 +20,7 @@ final class BlockConfigNormalizerTest extends TestCase
         'motd'    => ['type' => 'boolean', 'label' => 'MOTD',  'default' => true],
         'theme'   => ['type' => 'select',  'label' => 'Thema', 'options' => ['dark', 'light'], 'default' => 'dark'],
         'content' => ['type' => 'code',    'label' => 'HTML'],
+        'body'    => ['type' => 'richtext', 'label' => 'Tekst'],
     ];
 
     #[Test]
@@ -60,6 +61,13 @@ final class BlockConfigNormalizerTest extends TestCase
     {
         $html = "  <p>hi</p>\n";
         self::assertSame($html, BlockConfigNormalizer::normalize(self::SCHEMA, ['content' => $html])['content']);
+    }
+
+    #[Test]
+    public function testRichtextIsSanitizedOnNormalize(): void
+    {
+        $out = BlockConfigNormalizer::normalize(self::SCHEMA, ['body' => '<p>ok</p><script>alert(1)</script>']);
+        self::assertSame('<p>ok</p>', $out['body']);
     }
 
     #[Test]

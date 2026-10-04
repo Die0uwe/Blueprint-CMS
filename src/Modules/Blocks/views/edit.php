@@ -91,5 +91,6 @@ $h = static fn(mixed $v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'U
     </div>
   </div>
 </div>
+<?= \CommunityFusion\Core\Template\EditorAssets::tags() ?>
 </body>
 </html>

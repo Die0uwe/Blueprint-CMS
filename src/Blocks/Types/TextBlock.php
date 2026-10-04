@@ -14,13 +14,14 @@ final class TextBlock extends AbstractBlock
     public function getConfigSchema(): array
     {
         return [
-            'content' => ['type' => 'textarea', 'label' => 'Inhoud', 'required' => true],
+            'content' => ['type' => 'richtext', 'label' => 'Inhoud', 'required' => true],
         ];
     }
 
     public function render(array $config, array $context = []): string
     {
-        $content = nl2br(htmlspecialchars($config['content'] ?? '', ENT_QUOTES));
+        // Editor-HTML wordt gesanitized; oude platte tekst wordt geëscaped (regeleinden blijven).
+        $content = \CommunityFusion\Core\Security\ContentSanitizer::renderRich((string) ($config['content'] ?? ''));
         return "<div class=\"cf-block-text\">{$content}</div>";
     }
 

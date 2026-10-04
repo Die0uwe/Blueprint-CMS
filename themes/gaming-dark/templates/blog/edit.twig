@@ -19,7 +19,7 @@
       </div>
       <div class="cf-form-group">
         <label class="cf-label" for="content">Inhoud</label>
-        <textarea id="content" name="content" class="cf-textarea" style="min-height:280px;" required>{{ post.content|default('') }}</textarea>
+        <textarea id="content" name="content" class="cf-textarea" data-editor="richtext" style="min-height:280px;" required>{{ post.content|default('') }}</textarea>
       </div>
       <div class="cf-form-group">
         <label class="cf-label">
@@ -35,3 +35,5 @@
   </div>
 </div>
 {% endblock %}
+
+{% block scripts %}{{ editor_assets() }}{% endblock %}

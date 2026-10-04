@@ -52,7 +52,7 @@ $action    = $isEdit ? '/admin/pages/' . (int) $item['id'] . '/bewerk' : '/admin
 
           <div class="cf-form-group">
             <label class="cf-label" for="content">Inhoud (HTML toegestaan)</label>
-            <textarea id="content" name="content" class="cf-textarea" required style="min-height:280px;"><?= htmlspecialchars((string) ($item['content'] ?? '')) ?></textarea>
+            <textarea id="content" name="content" class="cf-textarea" data-editor="richtext" required style="min-height:280px;"><?= htmlspecialchars((string) ($item['content'] ?? '')) ?></textarea>
           </div>
 
           <div class="cf-form-group">
@@ -97,5 +97,6 @@ $action    = $isEdit ? '/admin/pages/' . (int) $item['id'] . '/bewerk' : '/admin
     </div>
   </div>
 </div>
+<?= \CommunityFusion\Core\Template\EditorAssets::tags() ?>
 </body>
 </html>

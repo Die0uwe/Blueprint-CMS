@@ -94,9 +94,12 @@ final class BlockConfigNormalizer
                     }
                     $value = (string) $raw;
                     // Platte velden: trimmen. Tekst-/code-velden: ongemoeid laten.
-                    $out[$key] = in_array($type, ['textarea', 'code', 'richtext'], true)
-                        ? $value
-                        : trim($value);
+                    if ($type === 'richtext') {
+                        // Editor-HTML: bij opslaan door de whitelist-sanitizer.
+                        $out[$key] = \CommunityFusion\Core\Security\ContentSanitizer::cleanForStorage($value);
+                    } else {
+                        $out[$key] = in_array($type, ['textarea', 'code'], true) ? $value : trim($value);
+                    }
             }
         }
         return $out;

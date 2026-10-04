@@ -47,7 +47,7 @@
           {{ post.created_at|date('d M Y H:i') }}
           {% if post.is_first_post %}<span class="cf-badge cf-badge-purple">Start</span>{% endif %}
         </div>
-        <div class="cf-article-content" style="white-space:pre-wrap;">{{ post.content }}</div>
+        <div class="cf-article-content">{{ post.content|rich }}</div>
       </div>
     </div>
   </div>
@@ -70,7 +70,7 @@
     <form method="post" action="/forum/{{ board.slug }}/{{ topic.slug }}/reageer">
       {{ csrf_field()|raw }}
       <div class="cf-form-group">
-        <textarea name="content" class="cf-textarea" placeholder="Schrijf je reactie…" required></textarea>
+        <textarea id="reply-content" name="content" class="cf-textarea" data-editor="richtext-lite" placeholder="Schrijf je reactie…" required></textarea>
       </div>
       <button type="submit" class="cf-btn">Plaatsen</button>
     </form>
@@ -84,3 +84,5 @@
   <p style="color:var(--muted);"><a href="/login?redirect=/forum/{{ board.slug }}/{{ topic.slug }}">Log in</a> om te reageren.</p>
 {% endif %}
 {% endblock %}
+
+{% block scripts %}{{ editor_assets() }}{% endblock %}

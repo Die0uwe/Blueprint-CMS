@@ -69,6 +69,50 @@ final class ContentSanitizer
     }
 
     /**
+     * Bevat de invoer HTML-opmaak (blok-/inline-tags), of is het platte tekst?
+     * Oudere berichten (vóór de rich-text-editor) zijn platte tekst met
+     * regeleinden; nieuwe zijn HTML uit de editor.
+     */
+    public static function looksLikeHtml(string $value): bool
+    {
+        return preg_match('/<\s*\/?\s*(p|br|div|ul|ol|li|h[1-6]|strong|b|em|i|u|s|a|img|table|blockquote|pre|code|hr|span)\b[^>]*>/i', $value) === 1;
+    }
+
+    /**
+     * Veilige HTML voor weergave van gebruikersinhoud. HTML wordt door de
+     * whitelist-sanitizer gehaald; platte tekst (legacy) wordt geëscaped met
+     * regeleinden behouden.
+     */
+    public static function renderRich(?string $value): string
+    {
+        $value = (string) $value;
+        if (trim($value) === '') {
+            return '';
+        }
+        return self::looksLikeHtml($value)
+            ? self::sanitizeHtml($value)
+            : nl2br(self::escape($value));
+    }
+
+    /**
+     * Voor OPSLAAN van editor-invoer: HTML wordt gesanitized; platte tekst blijft
+     * ongewijzigd (zonder editor ingevoerd). Lege editor-uitvoer ("<p></p>",
+     * "<p><br></p>") wordt een lege string zodat required-checks kloppen.
+     */
+    public static function cleanForStorage(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '' || !self::looksLikeHtml($value)) {
+            return $value;
+        }
+        $clean = trim(self::sanitizeHtml($value));
+        $hasMedia = preg_match('/<(img|hr|table)\b/i', $clean) === 1;
+        $textOnly = trim(html_entity_decode(strip_tags($clean), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+        $textOnly = str_replace("\u{00A0}", '', $textOnly);
+        return ($textOnly === '' && !$hasMedia) ? '' : $clean;
+    }
+
+    /**
      * Whitelist-sanitizer voor HTML-fragmenten.
      */
     public static function sanitizeHtml(string $html): string

@@ -17,6 +17,7 @@ declare(strict_types=1);
 
 namespace CommunityFusion\Modules\Blog;
 
+use CommunityFusion\Core\Security\ContentSanitizer;
 use CommunityFusion\Core\Request;
 use CommunityFusion\Core\Response;
 use CommunityFusion\Core\Auth\AuthManager;
@@ -234,7 +235,7 @@ final class BlogController
         return [
             trim((string) $request->input('title', '')),
             trim((string) $request->input('summary', '')),
-            trim((string) $request->input('content', '')),
+            ContentSanitizer::cleanForStorage((string) $request->input('content', '')),
             $status,
         ];
     }
