@@ -72,6 +72,8 @@ final class ForumController
             'pagination' => ['current' => $page, 'total' => (int) ceil($total / $perPage)],
             'can_post'      => $this->auth->can('forum.post'),
             'can_moderate'  => $this->auth->can('forum.moderate'),
+            'boards'        => $this->auth->can('forum.moderate') ? $this->repo->getAllBoardsForAdmin() : [],
+            'me_id'         => $this->auth->id(),
             'csrf'          => CsrfProtection::getToken(),
         ]);
 
@@ -234,6 +236,59 @@ final class ForumController
         $this->logModAction('forum.topic.delete', $topic);
 
         return Response::redirect("/forum/{$request->param('board')}");
+    }
+
+    /**
+     * POST /forum/{board}/{topic}/post/{id}/verwijder — één reactie verwijderen.
+     * Mag door een moderator, of door de auteur van de reactie zelf. Het
+     * openingsbericht is het topic zelf en kan hier niet verwijderd worden.
+     */
+    public function deletePost(Request $request): Response
+    {
+        if (!$this->auth->check()) {
+            return Response::redirect('/login?redirect=' . urlencode($request->getPath()));
+        }
+        CsrfProtection::validateRequest();
+
+        $board = $this->repo->findBoardBySlug((string) $request->param('board'));
+        $topic = $board !== null ? $this->repo->findTopicBySlug((int) $board['id'], (string) $request->param('topic')) : null;
+        $post  = $this->repo->findPostById((int) $request->param('id'));
+
+        if ($board === null || $topic === null || $post === null || (int) $post['topic_id'] !== (int) $topic['id']) {
+            return Response::html('<h1>404 — Reactie niet gevonden</h1>', 404);
+        }
+
+        $isOwner = (int) $post['author_id'] === $this->auth->id();
+        if (!$isOwner && !$this->auth->can('forum.moderate')) {
+            return Response::html('<h1>403 — Geen toegang tot deze reactie</h1>', 403);
+        }
+
+        if ($this->repo->deletePost((int) $post['id'])) {
+            $this->audit->log('forum.post.delete', $this->auth->id(), $this->auth->user()['username'] ?? null, [
+                'post_id'  => (int) $post['id'],
+                'topic_id' => (int) $topic['id'],
+                'title'    => $topic['title'],
+                'by_owner' => $isOwner,
+            ]);
+        }
+
+        return Response::redirect("/forum/{$board['slug']}/{$topic['slug']}#reacties");
+    }
+
+    /** POST /forum/{board}/{topic}/verplaats — topic naar een ander bord (moderatie) */
+    public function moveTopic(Request $request): Response
+    {
+        $topic = $this->requireModeratableTopic($request);
+        if ($topic instanceof Response) return $topic;
+
+        $target = $this->repo->findBoardById((int) $request->input('board_id', 0));
+        if ($target === null || !$this->repo->moveTopic((int) $topic['id'], (int) $target['id'])) {
+            return Response::redirect("/forum/{$request->param('board')}/{$topic['slug']}");
+        }
+        $moved = $this->repo->findTopicById((int) $topic['id']);
+        $this->logModAction('forum.topic.move', $topic);
+
+        return Response::redirect("/forum/{$target['slug']}/{$moved['slug']}");
     }
 
     private function logModAction(string $action, array $topic): void

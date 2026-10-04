@@ -23,7 +23,10 @@ $flashLabels = ['aangemaakt' => 'aangemaakt', 'bijgewerkt' => 'bijgewerkt', 'ver
   <div class="admin-main">
     <header class="admin-topbar">
       <h1>💬 Forumborden Beheer</h1>
-      <a href="/admin/forum/boards/nieuw" class="cf-btn-sm">+ Nieuw bord</a>
+      <div style="display:flex;gap:.5rem;">
+        <a href="/admin/forum/moderatie" class="cf-btn-ghost">🛡️ Moderatie</a>
+        <a href="/admin/forum/boards/nieuw" class="cf-btn-sm">+ Nieuw bord</a>
+      </div>
     </header>
 
     <div class="admin-content">

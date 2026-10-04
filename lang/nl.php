@@ -136,6 +136,7 @@ return [
             'users'              => 'Gebruikers',
             'roles'              => 'Rollen',
             'forum'              => 'Forumborden',
+            'forum_moderation'    => 'Forum-moderatie',
             'contact'            => 'Contact',
             'section_appearance' => 'Uiterlijk',
             'blocks'             => 'Blokken',

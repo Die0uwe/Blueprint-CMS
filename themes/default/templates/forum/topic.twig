@@ -27,6 +27,15 @@
     {{ csrf_field()|raw }}
     <button type="submit" class="cf-btn-sm cf-btn-ghost">🗑️ Verwijderen</button>
   </form>
+  {% if boards|length > 1 %}
+  <form method="post" action="/forum/{{ board.slug }}/{{ topic.slug }}/verplaats" style="display:flex;gap:.4rem;align-items:center;">
+    {{ csrf_field()|raw }}
+    <select name="board_id" aria-label="Verplaats naar bord">
+      {% for b in boards %}<option value="{{ b.id }}"{{ b.id == board.id ? ' selected' : '' }}>{{ b.name }}</option>{% endfor %}
+    </select>
+    <button type="submit" class="cf-btn-sm cf-btn-ghost">↪ Verplaatsen</button>
+  </form>
+  {% endif %}
 </div>
 {% endif %}
 
@@ -48,6 +57,13 @@
           {% if post.is_first_post %}<span class="cf-badge cf-badge-purple">Start</span>{% endif %}
         </div>
         <div class="cf-article-content">{{ post.content|rich }}</div>
+        {% if not post.is_first_post and (can_moderate or post.author_id == me_id) %}
+        <form method="post" action="/forum/{{ board.slug }}/{{ topic.slug }}/post/{{ post.id }}/verwijder"
+              onsubmit="return confirm('Deze reactie verwijderen?');" style="margin-top:.5rem;">
+          {{ csrf_field()|raw }}
+          <button type="submit" class="cf-btn-sm cf-btn-ghost">🗑️ Reactie verwijderen</button>
+        </form>
+        {% endif %}
       </div>
     </div>
   </div>

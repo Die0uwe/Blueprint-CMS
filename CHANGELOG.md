@@ -20,6 +20,13 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ## [Unreleased]
 
+### Golf 5d — Forum-moderatie
+- Losse reactie verwijderen: moderator (`forum.moderate`) of de auteur zelf; topic-tellers (`reply_count`, laatste bericht) worden herberekend. Het openingsbericht is het topic zelf en kan niet los weg. (Eerder had `deletePost()` geen route en liet de tellers kloppen noch bijwerken.)
+- Topic verplaatsen naar een ander bord (alleen echte forumborden; slug-botsing in het doelbord wordt opgelost).
+- Nieuw admin-scherm `/admin/forum/moderatie`: alle topics (pinnen, sluiten, verplaatsen, verwijderen) en de laatste reacties (verwijderen); sidebar-link + vertalingen.
+- Alle acties in de auditlog (`forum.post.delete`, `forum.topic.move`, …); CSRF overal.
+- Tests: tests/Unit/Modules/ForumModerationTest.php (5) + controller-scenario (21 controles).
+
 ### Golf 5c — Achter Cloudflare / https
 - Nieuw `TrustedProxy` (src/Core/Http): herstelt echte bezoekers-IP (`CF-Connecting-IP`/`X-Forwarded-For`) en https-schema (`CF-Visitor`/`X-Forwarded-Proto`), alléén als de verbinding van Cloudflare, loopback of `TRUSTED_PROXIES` komt. Headers van anderen worden genegeerd.
 - Fix: de inlog-rem, rate-limit en auditlog zagen achter Cloudflare één gedeeld IP.

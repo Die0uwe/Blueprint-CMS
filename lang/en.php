@@ -136,6 +136,7 @@ return [
             'users'              => 'Users',
             'roles'              => 'Roles',
             'forum'              => 'Forum boards',
+            'forum_moderation'    => 'Forum moderation',
             'contact'            => 'Contact',
             'section_appearance' => 'Appearance',
             'blocks'             => 'Blocks',

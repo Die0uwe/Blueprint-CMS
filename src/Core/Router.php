@@ -133,6 +133,8 @@ final class Router
         $this->post('/forum/{board:[a-z0-9-]+}/{topic:[a-z0-9-]+}/pin',         'CommunityFusion\Modules\Forum\ForumController@togglePin',  $auth);
         $this->post('/forum/{board:[a-z0-9-]+}/{topic:[a-z0-9-]+}/lock',        'CommunityFusion\Modules\Forum\ForumController@toggleLock', $auth);
         $this->post('/forum/{board:[a-z0-9-]+}/{topic:[a-z0-9-]+}/verwijder',   'CommunityFusion\Modules\Forum\ForumController@deleteTopic', $auth);
+        $this->post('/forum/{board:[a-z0-9-]+}/{topic:[a-z0-9-]+}/verplaats',   'CommunityFusion\Modules\Forum\ForumController@moveTopic',   $auth);
+        $this->post('/forum/{board:[a-z0-9-]+}/{topic:[a-z0-9-]+}/post/{id:[0-9]+}/verwijder', 'CommunityFusion\Modules\Forum\ForumController@deletePost', $auth);
 
         // ── Blog ────────────────────────────────────────────────────────
         // Elk lid heeft z'n eigen blog: /blog/{username}/{slug}. Letterlijke
@@ -262,6 +264,12 @@ final class Router
         $this->get('/admin/forum/boards/{id:[0-9]+}/bewerk',   'CommunityFusion\Modules\Forum\BoardAdminController@editForm',   $perm('forum.moderate'));
         $this->post('/admin/forum/boards/{id:[0-9]+}/bewerk',  'CommunityFusion\Modules\Forum\BoardAdminController@update',     $perm('forum.moderate'));
         $this->post('/admin/forum/boards/{id:[0-9]+}/verwijder', 'CommunityFusion\Modules\Forum\BoardAdminController@delete',   $perm('forum.moderate'));
+        $this->get('/admin/forum/moderatie',                         'CommunityFusion\Modules\Forum\ForumModerationController@index',  $perm('forum.moderate'));
+        $this->post('/admin/forum/topics/{id:[0-9]+}/pin',            'CommunityFusion\Modules\Forum\ForumModerationController@pin',    $perm('forum.moderate'));
+        $this->post('/admin/forum/topics/{id:[0-9]+}/lock',           'CommunityFusion\Modules\Forum\ForumModerationController@lock',   $perm('forum.moderate'));
+        $this->post('/admin/forum/topics/{id:[0-9]+}/verplaats',      'CommunityFusion\Modules\Forum\ForumModerationController@move',   $perm('forum.moderate'));
+        $this->post('/admin/forum/topics/{id:[0-9]+}/verwijder',      'CommunityFusion\Modules\Forum\ForumModerationController@deleteTopic', $perm('forum.moderate'));
+        $this->post('/admin/forum/posts/{id:[0-9]+}/verwijder',       'CommunityFusion\Modules\Forum\ForumModerationController@deletePost',  $perm('forum.moderate'));
 
         // ── Nieuwscategorieën (Wave 9 — zelfde gap als Forumborden hierboven,
         //    nu voor News; identiek patroon, zie CategoryAdminController).

@@ -362,9 +362,115 @@ final class ForumRepository
         });
     }
 
-    public function deletePost(int $postId): void
+    /**
+     * Verwijder één reactie (soft) en herbereken de topic-tellers en het
+     * "laatste bericht". Het eerste bericht kan niet los verwijderd worden — dat
+     * IS het topic; gebruik daarvoor deleteTopic().
+     *
+     * @return bool false als de post niet bestaat of het openingsbericht is
+     */
+    public function deletePost(int $postId): bool
     {
-        $this->db->execute("UPDATE cf_forum_posts SET deleted_at = NOW() WHERE id = ?", [$postId]);
+        $post = $this->findPostById($postId);
+        if ($post === null || (int) $post['is_first_post'] === 1) {
+            return false;
+        }
+
+        $this->db->transaction(function (Connection $db) use ($post) {
+            $db->execute("UPDATE cf_forum_posts SET deleted_at = NOW() WHERE id = ?", [$post['id']]);
+
+            $last = $db->fetchOne(
+                "SELECT id, author_id, created_at FROM cf_forum_posts
+                 WHERE topic_id = ? AND deleted_at IS NULL
+                 ORDER BY created_at DESC, id DESC LIMIT 1",
+                [$post['topic_id']]
+            );
+            $replies = $db->fetchOne(
+                "SELECT COUNT(*) AS c FROM cf_forum_posts
+                 WHERE topic_id = ? AND deleted_at IS NULL AND is_first_post = 0",
+                [$post['topic_id']]
+            );
+
+            $db->execute(
+                "UPDATE cf_forum_topics
+                 SET reply_count = ?, last_post_id = ?, last_post_at = ?, last_post_user_id = ?
+                 WHERE id = ?",
+                [(int) ($replies['c'] ?? 0), $last['id'] ?? null, $last['created_at'] ?? null, $last['author_id'] ?? null, $post['topic_id']]
+            );
+        });
+
+        $this->cache->delete('forum.boards');
+        return true;
+    }
+
+    /**
+     * Verplaats een topic naar een ander forumbord. Heeft het doelbord al een
+     * topic met dezelfde slug (uniek per bord), dan krijgt dit topic een nieuw
+     * achtervoegsel zodat bestaande links van het andere topic heel blijven.
+     *
+     * @return bool false als topic of doelbord niet bestaat
+     */
+    public function moveTopic(int $topicId, int $newBoardId): bool
+    {
+        $topic = $this->findTopicById($topicId);
+        $board = $this->findBoardById($newBoardId);
+        if ($topic === null || $board === null) {
+            return false;
+        }
+        if ((int) $topic['board_id'] === $newBoardId) {
+            return true;
+        }
+
+        $slug = (string) $topic['slug'];
+        if ($this->findTopicBySlug($newBoardId, $slug) !== null) {
+            $slug = substr($slug, 0, 214) . '-' . bin2hex(random_bytes(2));
+        }
+        $this->db->execute(
+            "UPDATE cf_forum_topics SET board_id = ?, slug = ? WHERE id = ?",
+            [$newBoardId, $slug, $topicId]
+        );
+        $this->cache->delete('forum.boards');
+        return true;
+    }
+
+    // ─── MODERATIE-OVERZICHT (admin) ────────────────────────────────────────
+
+    /** Alle topics van alle borden, recentste activiteit eerst. */
+    public function getTopicsForAdmin(int $limit, int $offset): array
+    {
+        return $this->db->fetchAll(
+            "SELECT t.*, u.username, u.display_name, b.name AS board_name, b.slug AS board_slug
+             FROM cf_forum_topics t
+             JOIN cf_users u ON u.id = t.author_id
+             JOIN cf_categories b ON b.id = t.board_id
+             WHERE t.deleted_at IS NULL
+             ORDER BY COALESCE(t.last_post_at, t.created_at) DESC, t.id DESC
+             LIMIT ? OFFSET ?",
+            [$limit, $offset]
+        );
+    }
+
+    public function countAllTopics(): int
+    {
+        $row = $this->db->fetchOne("SELECT COUNT(*) AS count FROM cf_forum_topics WHERE deleted_at IS NULL");
+        return (int) ($row['count'] ?? 0);
+    }
+
+    /** Laatste reacties (zonder openingsberichten) over alle topics heen. */
+    public function getRecentPostsForAdmin(int $limit): array
+    {
+        return $this->db->fetchAll(
+            "SELECT p.id, p.content, p.created_at, u.username, u.display_name,
+                    t.title AS topic_title, t.slug AS topic_slug, b.slug AS board_slug
+             FROM cf_forum_posts p
+             JOIN cf_forum_topics t ON t.id = p.topic_id AND t.deleted_at IS NULL
+             JOIN cf_categories b ON b.id = t.board_id
+             JOIN cf_users u ON u.id = p.author_id
+             WHERE p.deleted_at IS NULL AND p.is_first_post = 0
+             ORDER BY p.created_at DESC, p.id DESC
+             LIMIT ?",
+            [$limit]
+        );
     }
 
     // ─── HELPERS ────────────────────────────────────────────────────────────

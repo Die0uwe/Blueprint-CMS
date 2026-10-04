@@ -55,6 +55,7 @@ $navItem = static function (string $key, string $href, string $icon, string $lab
     $navItem('users', '/admin/users', '👥', Trans::get('admin.sidebar.users'));
     $navItem('roles', '/admin/roles', '🔑', Trans::get('admin.sidebar.roles'));
     $navItem('forum', '/admin/forum/boards', '💬', Trans::get('admin.sidebar.forum'));
+    $navItem('forum_moderation', '/admin/forum/moderatie', '🛡️', Trans::get('admin.sidebar.forum_moderation'));
     $navItem('contact', '/admin/contact', '✉️', Trans::get('admin.sidebar.contact'));
     ?>
 

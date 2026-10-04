@@ -135,6 +135,7 @@ return [
             'users'              => 'Benutzer',
             'roles'              => 'Rollen',
             'forum'              => 'Forenbereiche',
+            'forum_moderation'    => 'Forum-Moderation',
             'contact'            => 'Kontakt',
             'section_appearance' => 'Aussehen',
             'blocks'             => 'Blöcke',
