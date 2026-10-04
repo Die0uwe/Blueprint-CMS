@@ -26,7 +26,33 @@ namespace CommunityFusion\Modules\Gallery;
  */
 final class GalleryThumbnailer
 {
-    public function __construct(private readonly int $maxDimension = 480) {}
+    /**
+     * @param ?bool $gd null = automatisch detecteren (extension_loaded('gd')); expliciet
+     *                  false/true is bedoeld voor tests van de "geen GD"-situatie.
+     */
+    public function __construct(private readonly int $maxDimension = 480, private readonly ?bool $gd = null) {}
+
+    private function gdAvailable(): bool
+    {
+        return ($this->gd ?? (extension_loaded('gd') && function_exists('imagecreatetruecolor')));
+    }
+
+    /** Past het gedecodeerde bitmap-formaat (±5 bytes/pixel) nog binnen memory_limit? */
+    private function fitsInMemory(int $width, int $height): bool
+    {
+        $limit = ini_get('memory_limit');
+        if ($limit === false || $limit === '' || $limit === '-1') {
+            return true;
+        }
+        $n = (int) $limit;
+        $bytes = match (strtolower(substr($limit, -1))) {
+            'g' => $n * 1024 ** 3,
+            'm' => $n * 1024 ** 2,
+            'k' => $n * 1024,
+            default => $n,
+        };
+        return ($width * $height * 5 + memory_get_usage()) < $bytes * 0.9;
+    }
 
     /**
      * Genereer een JPEG-miniatuur van $sourcePath naar $destPath (max
@@ -50,6 +76,13 @@ final class GalleryThumbnailer
         [$width, $height, $type] = $info;
         if ($width <= 0 || $height <= 0) {
             return null;
+        }
+
+        // Zonder GD-extensie (komt voor op eenvoudige hosting) of bij een afbeelding die niet in
+        // het geheugen past: upload blijft staan, alleen zonder miniatuur — i.p.v. een fatale
+        // "undefined function imagecreatefromjpeg()" die élke afbeeldingsupload liet falen.
+        if (!$this->gdAvailable() || !$this->fitsInMemory($width, $height)) {
+            return ['width' => $width, 'height' => $height];
         }
 
         $source = match ($type) {

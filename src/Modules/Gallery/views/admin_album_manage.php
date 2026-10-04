@@ -90,7 +90,10 @@ $flashLabels = ['bijgewerkt' => 'Album bijgewerkt.', 'geupload' => "Bestand geü
 
             <div class="cf-form-group">
               <label class="cf-label">Bestand <span style="color:var(--text-dim);font-weight:400;">— jpg, png, gif, webp, mp4 of webm (max. 25MB)</span></label>
-              <input type="file" name="file" class="cf-input" required accept=".jpg,.jpeg,.png,.gif,.webp,.mp4,.webm">
+              <input type="file" name="file" id="gal-file" class="cf-input" required accept=".jpg,.jpeg,.png,.gif,.webp,.mp4,.webm">
+              <small style="color:var(--text-dim);">Serverlimiet: upload_max_filesize <?= htmlspecialchars((string) ini_get('upload_max_filesize')) ?>, post_max_size <?= htmlspecialchars((string) ini_get('post_max_size')) ?> — grotere video's worden door de server geweigerd.</small>
+              <input type="hidden" name="poster_data" id="gal-poster">
+              <img id="gal-poster-preview" alt="" style="display:none;max-width:240px;margin-top:.5rem;border-radius:8px;border:1px solid var(--border);">
             </div>
 
             <div class="cf-form-group">
@@ -105,6 +108,25 @@ $flashLabels = ['bijgewerkt' => 'Album bijgewerkt.', 'geupload' => "Bestand geü
 
             <button type="submit" class="cf-btn">Uploaden</button>
           </form>
+          <script>
+          (function(){
+            // Poster voor video: neem een frame in de browser (geen ffmpeg op de server nodig).
+            var f=document.getElementById('gal-file'), p=document.getElementById('gal-poster'), pv=document.getElementById('gal-poster-preview'), url=null;
+            f.addEventListener('change',function(){
+              p.value=''; pv.style.display='none'; if(url){URL.revokeObjectURL(url);url=null;}
+              var file=f.files[0]; if(!file || !/^video\//.test(file.type)) return;
+              var v=document.createElement('video'); v.muted=true; v.playsInline=true; v.preload='metadata'; url=URL.createObjectURL(file); v.src=url;
+              v.addEventListener('loadedmetadata',function(){ v.currentTime=Math.min(1,(v.duration||2)*0.1); });
+              v.addEventListener('seeked',function(){
+                try{
+                  var w=Math.min(640,v.videoWidth||640), h=Math.round(w*(v.videoHeight||360)/(v.videoWidth||640));
+                  var c=document.createElement('canvas'); c.width=w; c.height=h; c.getContext('2d').drawImage(v,0,0,w,h);
+                  p.value=c.toDataURL('image/jpeg',0.8); pv.src=p.value; pv.style.display='block';
+                }catch(e){}
+              },{once:true});
+            });
+          })();
+          </script>
         </div>
       </div>
 
@@ -116,8 +138,8 @@ $flashLabels = ['bijgewerkt' => 'Album bijgewerkt.', 'geupload' => "Bestand geü
           <div class="cf-gallery-admin-grid">
             <?php foreach ($items as $item): ?>
               <div class="cf-gallery-admin-item">
-                <?php if ($item['media_type'] === 'image' && !empty($item['thumbnail_path'])): ?>
-                  <img src="/media/<?= htmlspecialchars($item['thumbnail_path']) ?>" alt="<?= htmlspecialchars($item['title'] ?? $item['original_filename']) ?>" loading="lazy">
+                <?php if (!empty($item['thumbnail_path']) || $item['media_type'] === 'image'): ?>
+                  <img src="/media/<?= htmlspecialchars($item['thumbnail_path'] ?: $item['file_path']) ?>" alt="<?= htmlspecialchars($item['title'] ?? $item['original_filename']) ?>" loading="lazy">
                 <?php else: ?>
                   <div class="cf-gallery-video-placeholder">▶️</div>
                 <?php endif; ?>

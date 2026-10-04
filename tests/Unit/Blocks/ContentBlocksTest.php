@@ -33,7 +33,7 @@ final class ContentBlocksTest extends TestCase
             CREATE TABLE cf_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, type TEXT, slug TEXT, name TEXT);
             CREATE TABLE cf_forum_topics (id INTEGER PRIMARY KEY AUTOINCREMENT, board_id INT, slug TEXT, title TEXT, is_pinned INT DEFAULT 0, reply_count INT DEFAULT 0, created_at TEXT, last_post_at TEXT, deleted_at TEXT);
             CREATE TABLE cf_downloads (id INTEGER PRIMARY KEY AUTOINCREMENT, slug TEXT, title TEXT, version TEXT, file_size INT, download_count INT DEFAULT 0, is_published INT DEFAULT 1, created_at TEXT, deleted_at TEXT);
-            CREATE TABLE cf_gallery_items (id INTEGER PRIMARY KEY AUTOINCREMENT, album_id INT, media_type TEXT, thumbnail_path TEXT, title TEXT, is_published INT DEFAULT 1, created_at TEXT, deleted_at TEXT);");
+            CREATE TABLE cf_gallery_items (id INTEGER PRIMARY KEY AUTOINCREMENT, album_id INT, media_type TEXT, file_path TEXT, thumbnail_path TEXT, title TEXT, is_published INT DEFAULT 1, created_at TEXT, deleted_at TEXT);");
         $rc = new \ReflectionClass(Connection::class);
         $this->db = $rc->newInstanceWithoutConstructor();
         $rc->getProperty('pdo')->setValue($this->db, $pdo);
@@ -194,6 +194,21 @@ final class ContentBlocksTest extends TestCase
     }
 
     // ── galerij ─────────────────────────────────────────────────────────────
+
+    #[Test]
+    public function galleryShowsImagesWithoutThumbnailAndVideosWithPosterOnly(): void
+    {
+        $this->db->execute("INSERT INTO cf_categories (type,slug,name) VALUES ('gallery','mix','Mix')");
+        $this->db->execute("INSERT INTO cf_gallery_items (album_id,media_type,file_path,thumbnail_path,title,created_at) VALUES
+            (1,'image','gallery/orig.png',NULL,'Zonder miniatuur','2026-10-01 10:00:00'),
+            (1,'video','gallery/v.webm','gallery/thumbs/v.jpg','Met poster','2026-10-02 10:00:00'),
+            (1,'video','gallery/w.webm',NULL,'Zonder poster','2026-10-03 10:00:00')");
+        $html = (new GalleryLatestBlock(new GalleryRepository($this->db, $this->cache)))->render([]);
+        $this->assertStringContainsString('/media/gallery/orig.png', $html);   // terugval op het origineel
+        $this->assertStringContainsString('/media/gallery/thumbs/v.jpg', $html);
+        $this->assertSame(1, substr_count($html, 'cf-gallery-play-badge'));    // alleen de video met poster
+        $this->assertStringNotContainsString('w.webm', $html);
+    }
 
     #[Test]
     public function galleryLayoutsGridCenteredSlider(): void

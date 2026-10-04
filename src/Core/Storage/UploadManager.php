@@ -215,7 +215,9 @@ final class UploadManager
 
         if ($error !== UPLOAD_ERR_OK) {
             throw new UploadException(match ($error) {
-                UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => 'Bestand is te groot.',
+                UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => 'Bestand is te groot (serverlimiet upload_max_filesize = '
+                    . (ini_get('upload_max_filesize') ?: '?') . ', post_max_size = ' . (ini_get('post_max_size') ?: '?')
+                    . '). Verhoog die in php.ini/.user.ini of kies een kleiner bestand.',
                 UPLOAD_ERR_PARTIAL => 'Upload is niet volledig aangekomen — probeer opnieuw.',
                 default             => 'Upload mislukt.',
             });

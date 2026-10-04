@@ -1,3 +1,12 @@
+## [Unreleased]
+
+### Galerij: afbeeldingsfout, video-upload en ingebouwde videospeler
+- **Fout bij afbeeldingen** (oorzaak): `GalleryThumbnailer` riep GD-functies aan zonder te controleren of de GD-extensie bestaat, en decodeerde ook afbeeldingen die niet in `memory_limit` passen → fatale fout bij elke upload op eenvoudige hosting. Nu blijft de upload staan zonder miniatuur; de album-, beheer- en blokweergave vallen terug op het origineel.
+- **Video werkte niet** (oorzaken): `/media/…` las het hele bestand in het geheugen en kende geen HTTP Range (geen 206 → Safari/iOS spelen niet af, spoelen kan niet). Nu volledige Range-ondersteuning (206/416, `Accept-Ranges`, max. 8 MB per antwoord). Te grote uploads (boven `post_max_size`/`upload_max_filesize`) gaven een misleidende CSRF-403 of "te groot" zonder uitleg; nu een duidelijke melding met de serverlimieten, ook zichtbaar bij het uploadformulier.
+- **Videoposter** zonder ffmpeg: de browser maakt bij het kiezen van een video een frame en stuurt dat mee (`GalleryPoster` valideert op echt afbeeldingstype/afmeting). Video's krijgen een play-badge in album en galerijblok.
+- **Ingebouwde videospeler** (`cf-player.js`, geen library): grote play-knop, voortgangsbalk met buffer, tijd, volume/dempen, snelheid (0,75–2×), volledig scherm, auto-verbergende bediening, toetsenbord (spatie/K, ←/→, ↑/↓, M, F, 0–9), foutmelding met downloadlink. Gebruikt in de lightbox; elke `<video data-cf-player>` wordt automatisch omgebouwd.
+- Tests: `GalleryMediaTest` (6) + blokt-test; Chromium met echte 206-server: afspelen, pauze, ±5 s, dempen, volume, 50 %-sprong, balk-klik, snelheid, auto-hide, volledig scherm, foutpad.
+
 <!--
 ============================================================================
 Copyright (C) 2026  DieOuwe (https://www.dieouwe.nl / https://www.slayeralliance.com)

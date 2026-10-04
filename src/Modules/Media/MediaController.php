@@ -54,6 +54,9 @@ final class MediaController
         private readonly UploadManager $uploads,
     ) {}
 
+    /** Max. bytes per 206-antwoord; browsers vragen de rest vanzelf bij ("bytes=N-"). */
+    private const MAX_RANGE_BYTES = 8 * 1024 * 1024;
+
     public function show(Request $request): Response
     {
         $path = $request->param('path', '');
@@ -65,14 +68,86 @@ final class MediaController
 
         $extension   = strtolower(pathinfo($full, PATHINFO_EXTENSION));
         $contentType = self::CONTENT_TYPES[$extension] ?? 'application/octet-stream';
+        $size        = (int) filesize($full);
 
-        return new Response(file_get_contents($full), 200, [
+        $headers = [
             'Content-Type'  => $contentType,
+            'Accept-Ranges' => 'bytes',
             'Cache-Control' => 'public, max-age=86400, immutable',
             // Bestandsnamen zijn willekeurige hex-tokens (zie UploadManager) —
             // veilig om langdurig te cachen, een nieuwe upload krijgt altijd
             // een nieuwe naam.
-        ]);
+        ];
+
+        $range = self::parseRange((string) $request->header('Range', ''), $size);
+        if ($range === false) {
+            return new Response('', 416, $headers + ['Content-Range' => 'bytes */' . $size]);
+        }
+
+        // Video heeft Range-ondersteuning nodig (spoelen, Safari/iOS spelen zonder 206 niet af)
+        // en mag niet in zijn geheel in het geheugen: lees alleen het gevraagde stuk.
+        if ($range !== null) {
+            [$start, $end] = $range;
+            $end = min($end, $start + self::MAX_RANGE_BYTES - 1);
+            $body = self::readSlice($full, $start, $end - $start + 1);
+            return new Response($body, 206, $headers + [
+                'Content-Range'  => "bytes {$start}-{$end}/{$size}",
+                'Content-Length' => (string) strlen($body),
+            ]);
+        }
+
+        if ($size > self::MAX_RANGE_BYTES && str_starts_with($contentType, 'video/')) {
+            // Zonder Range-header: eerste stuk als 206 (geldig; spelers vragen zelf door).
+            $end  = self::MAX_RANGE_BYTES - 1;
+            $body = self::readSlice($full, 0, $end + 1);
+            return new Response($body, 206, $headers + [
+                'Content-Range'  => "bytes 0-{$end}/{$size}",
+                'Content-Length' => (string) strlen($body),
+            ]);
+        }
+
+        return new Response((string) file_get_contents($full), 200, $headers + ['Content-Length' => (string) $size]);
+    }
+
+    /**
+     * "bytes=a-b" | "bytes=a-" | "bytes=-n" → [start, end] (inclusief),
+     * null = geen/onbruikbare Range-header (volledig antwoord), false = niet te voldoen (416).
+     *
+     * @return array{0:int,1:int}|false|null
+     */
+    public static function parseRange(string $header, int $size): array|false|null
+    {
+        if ($header === '' || $size <= 0 || preg_match('/^bytes=(\d*)-(\d*)$/i', trim($header), $m) !== 1) {
+            return null;
+        }
+        if ($m[1] === '' && $m[2] === '') {
+            return null;
+        }
+        if ($m[1] === '') {                       // laatste n bytes
+            $n = (int) $m[2];
+            if ($n <= 0) {
+                return false;
+            }
+            return [max(0, $size - $n), $size - 1];
+        }
+        $start = (int) $m[1];
+        $end   = $m[2] === '' ? $size - 1 : min((int) $m[2], $size - 1);
+        if ($start >= $size || $end < $start) {
+            return false;
+        }
+        return [$start, $end];
+    }
+
+    private static function readSlice(string $file, int $offset, int $length): string
+    {
+        $h = @fopen($file, 'rb');
+        if ($h === false) {
+            return '';
+        }
+        fseek($h, $offset);
+        $data = (string) fread($h, max(0, $length));
+        fclose($h);
+        return $data;
     }
 }
 

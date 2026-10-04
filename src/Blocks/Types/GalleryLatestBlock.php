@@ -49,7 +49,9 @@ final class GalleryLatestBlock extends AbstractBlock
             $title = H::e($item['title'] ?? '');
             $album = H::e($item['album_slug']);
             $a = '<a href="/galerij/' . $album . '" class="cf-block-gallery-thumb" title="' . $title . '">'
-               . '<img src="/media/' . $thumb . '" alt="' . $title . '" loading="lazy"></a>';
+               . '<img src="/media/' . $thumb . '" alt="' . $title . '" loading="lazy">'
+               . (($item['media_type'] ?? 'image') === 'video' ? '<span class="cf-gallery-play-badge" aria-hidden="true">▶</span>' : '')
+               . '</a>';
             $tiles .= $layout === 'slider' ? '<div class="cf-slider-item cf-slider-photo">' . $a . '</div>' : $a;
         }
 

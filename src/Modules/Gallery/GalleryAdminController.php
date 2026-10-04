@@ -153,8 +153,18 @@ final class GalleryAdminController
     /** POST /admin/gallery/{id}/upload */
     public function upload(Request $request): Response
     {
-        CsrfProtection::validateRequest();
         $albumId = (int) $request->param('id');
+
+        // Is de upload groter dan post_max_size, dan leegt PHP $_POST én $_FILES — de CSRF-
+        // controle zou dan met een misleidende 403 falen. Herken dat eerst en leg het uit.
+        if ($_POST === [] && (int) ($_SERVER['CONTENT_LENGTH'] ?? 0) > 0) {
+            return Response::redirect("/admin/gallery/{$albumId}/beheer?error=" . urlencode(
+                'Het bestand is groter dan wat de server toestaat (post_max_size = ' . (ini_get('post_max_size') ?: '?')
+                . ', upload_max_filesize = ' . (ini_get('upload_max_filesize') ?: '?') . '). Verhoog die limieten of kies een kleiner bestand.'
+            ));
+        }
+
+        CsrfProtection::validateRequest();
         $album   = $this->repo->findAlbumById($albumId);
 
         if ($album === null) {
@@ -197,6 +207,13 @@ final class GalleryAdminController
                         $thumbnailRelative = $thumbRel;
                     }
                 }
+            }
+        }
+
+        if ($mediaType === 'video') {
+            $posterRel = $this->storePoster((string) $request->input('poster_data', ''), $relative);
+            if ($posterRel !== null) {
+                $thumbnailRelative = $posterRel;
             }
         }
 
@@ -244,6 +261,17 @@ final class GalleryAdminController
     }
 
     // ─── HELPERS ────────────────────────────────────────────────────────────
+
+    /** Poster opslaan naast de miniaturen; relatief pad of null (ongeldig/geen poster). */
+    private function storePoster(string $dataUrl, string $videoRelative): ?string
+    {
+        $name = GalleryPoster::save(
+            $dataUrl,
+            CF_ROOT . '/storage/uploads/' . self::STORAGE_SUBDIR . '/thumbs',
+            pathinfo($videoRelative, PATHINFO_FILENAME)
+        );
+        return $name !== null ? self::STORAGE_SUBDIR . '/thumbs/' . $name : null;
+    }
 
     private function logAction(string $action, array $context): void
     {

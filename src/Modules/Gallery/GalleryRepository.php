@@ -42,7 +42,7 @@ final class GalleryRepository
             return $this->db->fetchAll(
                 "SELECT c.id, c.slug, c.name, c.description, c.position,
                         COUNT(i.id) AS item_count,
-                        (SELECT gi.thumbnail_path FROM cf_gallery_items gi
+                        (SELECT COALESCE(gi.thumbnail_path, CASE WHEN gi.media_type = 'image' THEN gi.file_path END) FROM cf_gallery_items gi
                           WHERE gi.album_id = c.id AND gi.is_published = 1 AND gi.deleted_at IS NULL
                           ORDER BY gi.created_at DESC LIMIT 1) AS cover_thumbnail,
                         (SELECT gi.media_type FROM cf_gallery_items gi
@@ -164,10 +164,10 @@ final class GalleryRepository
     public function getLatestPublishedImages(int $limit): array
     {
         return $this->db->fetchAll(
-            "SELECT i.thumbnail_path, i.title, c.slug AS album_slug
+            "SELECT COALESCE(i.thumbnail_path, i.file_path) AS thumbnail_path, i.media_type, i.title, c.slug AS album_slug
              FROM cf_gallery_items i
              JOIN cf_categories c ON c.id = i.album_id
-             WHERE i.media_type = 'image' AND i.thumbnail_path IS NOT NULL
+             WHERE (i.media_type = 'image' OR i.thumbnail_path IS NOT NULL)
                AND i.is_published = 1 AND i.deleted_at IS NULL
              ORDER BY i.created_at DESC
              LIMIT ?",

@@ -17,15 +17,17 @@
   <a href="#" class="cf-gallery-item"
      data-lightbox="{{ item.media_type }}"
      data-src="/media/{{ item.file_path }}"
+     data-poster="{{ item.thumbnail_path ? '/media/' ~ item.thumbnail_path : '' }}"
      data-title="{{ item.title|default(item.original_filename) }}"
      data-author="{{ item.display_name|default(item.username) }}"
      data-date="{{ item.created_at|date('d M Y') }}"
      data-description="{{ item.description|default('') }}">
-    {% if item.media_type == 'image' and item.thumbnail_path %}
-      <img src="/media/{{ item.thumbnail_path }}" alt="{{ item.title|default(item.original_filename) }}" loading="lazy">
+    {% if item.thumbnail_path or item.media_type == 'image' %}
+      <img src="/media/{{ item.thumbnail_path|default(item.file_path) }}" alt="{{ item.title|default(item.original_filename) }}" loading="lazy">
     {% else %}
       <div class="cf-gallery-video-placeholder">▶️</div>
     {% endif %}
+    {% if item.media_type == 'video' %}<span class="cf-gallery-play-badge" aria-hidden="true">▶</span>{% endif %}
     {% if item.title %}<span class="cf-gallery-item-title">{{ item.title }}</span>{% endif %}
   </a>
   {% else %}
@@ -67,14 +69,24 @@
   var subEl   = lightbox.querySelector('.cf-gallery-lightbox-sub');
   var closeEl = lightbox.querySelector('.cf-gallery-lightbox-close');
 
+  var player = null;
+
   function open(item) {
+    if (player) { player.destroy(); player = null; }
     mediaEl.innerHTML = '';
     if (item.dataset.lightbox === 'video') {
-      var video = document.createElement('video');
-      video.src = item.dataset.src;
-      video.controls = true;
-      video.autoplay = true;
-      mediaEl.appendChild(video);
+      // Ingebouwde speler (cf-player.js); native <video controls> als terugval.
+      if (window.CFPlayer) {
+        player = CFPlayer.create(item.dataset.src, { poster: item.dataset.poster || '', autoplay: true, title: item.dataset.title || '' });
+        mediaEl.appendChild(player.holder);
+        player.element.focus();
+      } else {
+        var video = document.createElement('video');
+        video.src = item.dataset.src;
+        video.controls = true;
+        video.autoplay = true;
+        mediaEl.appendChild(video);
+      }
     } else {
       var img = document.createElement('img');
       img.src = item.dataset.src;
@@ -89,6 +101,7 @@
   }
 
   function close() {
+    if (player) { player.destroy(); player = null; }
     lightbox.hidden = true;
     mediaEl.innerHTML = '';
   }
