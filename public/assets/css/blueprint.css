@@ -72,7 +72,7 @@ img { max-width: 100%; }
 
 /* ── Layout ─────────────────────────────────────────────────────────────── */
 .cf-container {
-  max-width: 1280px;
+  max-width: var(--cf-max-w, 1280px);
   margin: 0 auto;
   padding: 0 1.5rem;
   display: flex;
@@ -81,11 +81,11 @@ img { max-width: 100%; }
 }
 
 #cf-layout, .cf-layout {
-  max-width: 1280px;
+  max-width: var(--cf-max-w, 1280px);
   margin: 2rem auto;
   padding: 0 1.5rem;
   display: grid;
-  grid-template-columns: 260px 1fr 260px;
+  grid-template-columns: var(--cf-sidebar-w, 260px) 1fr var(--cf-sidebar-w, 260px);
   gap: 1.5rem;
   align-items: start;
 }
@@ -93,10 +93,31 @@ img { max-width: 100%; }
   grid-template-columns: 1fr;
 }
 .cf-layout:has(#cf-sidebar-left):not(:has(#cf-sidebar-right)) {
-  grid-template-columns: 260px 1fr;
+  grid-template-columns: var(--cf-sidebar-w, 260px) 1fr;
 }
 .cf-layout:not(:has(#cf-sidebar-left)):has(#cf-sidebar-right) {
-  grid-template-columns: 1fr 260px;
+  grid-template-columns: 1fr var(--cf-sidebar-w, 260px);
+}
+
+/* ── Boxed-layout, logo-afbeelding, headerbanner (thema-instellingen) ──── */
+body.cf-layout-boxed { background-color: var(--bg2, var(--bg)); }
+body.cf-layout-boxed #cf-page {
+  max-width: var(--cf-max-w, 1280px);
+  margin: 0 auto;
+  background: var(--bg);
+  min-height: 100vh;
+  box-shadow: 0 0 0 1px var(--border), var(--shadow);
+}
+body.cf-layout-boxed #cf-page .cf-container,
+body.cf-layout-boxed #cf-page .cf-layout { max-width: 100%; }
+.cf-logo-img { max-height: 2.4rem; max-width: 220px; width: auto; display: block; }
+.cf-banner { display: block; padding-block: 1rem 0; }
+.cf-banner img {
+  width: 100%;
+  height: var(--cf-banner-h, 220px);
+  object-fit: cover;
+  border-radius: var(--radius-lg, 12px);
+  display: block;
 }
 
 /* ── Header ─────────────────────────────────────────────────────────────── */

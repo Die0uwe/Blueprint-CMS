@@ -14,20 +14,26 @@
    op <html>). cf-theme-init.js staat bewust blokkerend in <head> zodat de keuze van
    de bezoeker vóór de eerste verf wordt toegepast (geen flits). Validatie van
    theme.json-waarden: Core\Template\ThemeCatalog. #}
-<style id="cf-theme-css">{{ theme_css|raw }}</style>
+<style id="cf-theme-css">{{ theme_css|raw }}{{ theme_overrides|default('')|raw }}</style>
 <script type="application/json" id="cf-themes">{{ theme_picker|json_encode|raw }}</script>
 <script src="{{ asset('js/cf-theme-init.js') }}"></script>
 {% block head %}{% endblock %}
 </head>
-<body class="cf-theme" data-theme-slug="{{ theme.slug|default('') }}" data-theme-name="{{ theme.name|default('') }}">
+<body class="cf-theme cf-layout-{{ (theme_settings.layout_mode|default('wide')) == 'boxed' ? 'boxed' : 'wide' }}" data-theme-slug="{{ theme.slug|default('') }}" data-theme-name="{{ theme.name|default('') }}">
 
+<div id="cf-page">
 {# HEADER ZONE #}
 <header id="cf-header">
   <div class="cf-container">
     <a href="/" class="cf-logo-wrap">
       <span class="cf-logo-row">
+        {% if theme_settings is defined and theme_settings.logo %}
+          <img src="{{ theme_settings.logo }}" alt="{{ settings.site_name|default('Blueprint CMS') }}" class="cf-logo-img">
+          {% if theme_settings.logo_show_name == '1' %}<span class="cf-logo">{{ settings.site_name|default('Blueprint CMS') }}</span>{% endif %}
+        {% else %}
         <img src="{{ asset('img/logo-64.png') }}" alt="" class="cf-logo-icon">
         <span class="cf-logo">{{ settings.site_name|default('Blueprint CMS') }}</span>
+        {% endif %}
       </span>
       {% if settings.site_motd is defined and settings.site_motd %}
         <span class="cf-motd">{{ settings.site_motd }}</span>
@@ -82,6 +88,11 @@
     </div>{# /cf-header-panel #}
   </div>
 </header>
+
+{# HEADERBANNER (thema-instellingen, tab 2) #}
+{% if theme_settings is defined and theme_settings.banner %}
+<div class="cf-banner cf-container"><img src="{{ theme_settings.banner }}" alt=""></div>
+{% endif %}
 
 {# HEADER-ZONE BLOKKEN — #cf-header hierboven heeft een vaste hoogte (logo/nav/acties
    in één rij), dus geplaatste blokken komen in een eigen, los-hoge balk erónder i.p.v.
@@ -150,6 +161,7 @@
     </p>
   </div>
 </footer>
+</div>{# /cf-page #}
 
 <script src="{{ asset('js/blueprint.js') }}"></script>
 <script src="{{ asset('js/cf-theme.js') }}"></script>

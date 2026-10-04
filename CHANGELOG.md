@@ -20,6 +20,14 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ## [Unreleased]
 
+### Fase C — Thema-instellingen in 5 tabs (`/admin/themes/instellingen`)
+- **Tab 1 Algemeen & layout:** Wide of Boxed, vier presets (Standaard, Ruim, Compact, Magazine) of aangepaste inhouds- en zijbalkbreedte.
+- **Tab 2 Branding & headers:** logo (optioneel met sitenaam), site-icoon/favicon (zelfde instelling als Instellingen), headerbanner met instelbare hoogte; oude bestanden worden opgeruimd.
+- **Tab 3 Kleuren & stijl:** live kleurkiezer voor primair, secundair, achtergrond en accent → CSS-variabelen (`--accent`, `--accent2`, `--bg`, `--gold`), leesbare tekstkleur op de primaire kleur, per kleur terug naar de themakleur.
+- **Tab 4 en 5:** bewust leeg, gereserveerd voor uitbreiding.
+- Nieuw: `Core\Template\ThemeSettings` (validatie + CSS-generatie: alleen hex-kleuren, begrensde getallen en eigen `/media/theme/`-paden komen in de CSS), `ThemeSettingsController`, CSS-variabelen `--cf-max-w`, `--cf-sidebar-w`, `--cf-banner-h`; `layout.twig` krijgt `#cf-page`-wrapper, logo- en bannerondersteuning.
+- Geen migratie nodig (opslag in `cf_settings`, groep `theme`).
+
 ### Fase B — Downloadstatistieken
 - Nieuwe tabel `cf_download_log` (IP / gebruiker, tijdstip, versie, verstuurde bytes) + kolom `cf_downloads.version`. **Bestaande sites: `php cli/console.php migrate` uitvoeren** (migratie `20261005_01_download_log`).
 - Elke geserveerde download wordt gelogd (`DownloadStats::record`, faalt nooit de download zelf).

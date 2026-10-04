@@ -23,6 +23,7 @@ $activeNav = 'themes';
   <div class="admin-main">
     <header class="admin-topbar">
       <h1>🎨 Thema's</h1>
+      <a href="/admin/themes/instellingen" class="cf-btn-sm">⚙️ Thema-instellingen</a>
     </header>
 
     <div class="admin-content">
