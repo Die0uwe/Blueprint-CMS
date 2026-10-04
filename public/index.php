@@ -78,6 +78,14 @@ if (file_exists(CF_ROOT . '/.env')) {
     $dotenv->load();
 }
 
+// Achter Cloudflare/nginx: echte bezoekers-IP en https herstellen (alleen als de
+// verbinding van een vertrouwde proxy komt — zie TrustedProxy). Moet vóór alles
+// draaien dat $_SERVER['REMOTE_ADDR'] / ['HTTPS'] leest (sessie, inlog-rem, logs).
+\CommunityFusion\Core\Http\TrustedProxy::apply(
+    $_SERVER,
+    array_filter(array_map('trim', explode(',', (string) ($_ENV['TRUSTED_PROXIES'] ?? getenv('TRUSTED_PROXIES') ?: ''))))
+);
+
 // Controleer of installer nog gedraaid moet worden.
 //
 // Voorheen stuurde dit een HTTP-redirect naar /installer/ — dat werkt

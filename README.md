@@ -118,6 +118,14 @@ cp .env.example .env
 
 ---
 
+## ☁️ Achter Cloudflare (https)
+
+1. Cloudflare → **SSL/TLS → Overview**: kies **Full** (of **Full (strict)** als je server een geldig/Origin-certificaat heeft). Met **Flexible** werkt de site ook; Blueprint herkent https dan via Cloudflare's headers.
+2. Zet **SSL/TLS → Edge Certificates → Always Use HTTPS** aan.
+3. Zet in `config/config.php` (`app.url`) je domein met `https://`. Staat er `http://`, dan wordt dat automatisch https voor bezoekers op https.
+4. Blueprint vertrouwt Cloudflare's IP-ranges en herstelt daardoor het echte bezoekers-IP (inlog-rem, rate-limit, logs) en het https-schema. Staat er nog een eigen proxy (nginx/Docker) tussen, voeg die dan toe in `.env`: `TRUSTED_PROXIES=10.0.0.5,192.168.0.0/16`.
+5. Krijg je een redirect-lus (`ERR_TOO_MANY_REDIRECTS`)? Zet dan op de server/hosting de eigen "forceer https"-optie uit of gebruik SSL-modus **Full**; laat alleen Cloudflare omleiden.
+
 ## 🧩 Modules (11 beschikbaar)
 
 | Module | Blocks | Highlights |

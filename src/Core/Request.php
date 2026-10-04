@@ -193,9 +193,10 @@ final class Request
 
     public function ip(): string
     {
-        return $this->server['HTTP_X_FORWARDED_FOR']
-            ?? $this->server['REMOTE_ADDR']
-            ?? '0.0.0.0';
+        // Bewust alleen REMOTE_ADDR: TrustedProxy::apply() zet dat al goed als de
+        // verbinding van Cloudflare/een vertrouwde proxy komt. X-Forwarded-For
+        // blind vertrouwen liet iedereen z'n IP vervalsen (rate-limit omzeilen).
+        return $this->server['REMOTE_ADDR'] ?? '0.0.0.0';
     }
 
     public function setParams(array $params): void

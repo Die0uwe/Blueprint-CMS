@@ -97,7 +97,10 @@ final class Application
         // mogelijk was.
         $_ENV['APP_KEY']    = $config['app']['key'] ?? ($_ENV['APP_KEY'] ?? '');
         $_ENV['JWT_SECRET'] = $config['jwt']['secret'] ?? ($_ENV['JWT_SECRET'] ?? '');
-        $_ENV['APP_URL']    = $config['app']['url'] ?? ($_ENV['APP_URL'] ?? '');
+        $_ENV['APP_URL']    = \CommunityFusion\Core\Http\TrustedProxy::upgradeUrl(
+            (string) ($config['app']['url'] ?? ($_ENV['APP_URL'] ?? '')),
+            $_SERVER
+        );
 
         // Database
         $this->container->singleton(Connection::class, function() use ($config) {

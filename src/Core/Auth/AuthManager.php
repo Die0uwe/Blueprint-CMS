@@ -370,7 +370,7 @@ final class AuthManager
     private function startSecureSession(): void
     {
         ini_set('session.cookie_httponly', '1');
-        ini_set('session.cookie_secure', isset($_SERVER['HTTPS']) ? '1' : '0');
+        ini_set('session.cookie_secure', \CommunityFusion\Core\Http\TrustedProxy::isHttps($_SERVER) ? '1' : '0');
         ini_set('session.use_strict_mode', '1');
         // Lax, niet Strict: bij "inloggen met Google/Discord/GitHub" komt de
         // browser via een redirect van de provider terug op /auth/{provider}/callback.

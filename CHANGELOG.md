@@ -20,6 +20,14 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ## [Unreleased]
 
+### Golf 5c — Achter Cloudflare / https
+- Nieuw `TrustedProxy` (src/Core/Http): herstelt echte bezoekers-IP (`CF-Connecting-IP`/`X-Forwarded-For`) en https-schema (`CF-Visitor`/`X-Forwarded-Proto`), alléén als de verbinding van Cloudflare, loopback of `TRUSTED_PROXIES` komt. Headers van anderen worden genegeerd.
+- Fix: de inlog-rem, rate-limit en auditlog zagen achter Cloudflare één gedeeld IP.
+- Fix: `Request::ip()` vertrouwde `X-Forwarded-For` blind (IP te vervalsen, rate-limit te omzeilen); gebruikt nu alleen het gecorrigeerde `REMOTE_ADDR`.
+- Fix: sessiecookie `Secure`-vlag klopt nu ook bij https via proxy en bij `HTTPS=off`.
+- Fix: een `http://` `app.url` wordt voor https-bezoekers op dezelfde host automatisch `https://` (geen mixed content).
+- README-sectie "Achter Cloudflare" en `TRUSTED_PROXIES` in `.env.example`; tests: TrustedProxyTest (9).
+
 ### Golf 5b — Blog- en downloads-beheer
 - Nieuw beheeroverzicht `/admin/blog` (permissie `blog.moderate`) en `/admin/downloads` (`downloads.manage`): alle items incl. concepten/verborgen, publiceren ⇄ verbergen, verwijderen; bewerken via de bestaande formulieren (met editor).
 - Acties komen in de auditlog (`blog.publish|unpublish|delete`, `downloads.publish|unpublish|delete`); CSRF op alle POST's.
