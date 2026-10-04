@@ -30,7 +30,7 @@ final class ForumModerationController
 
     public function index(Request $request): Response
     {
-        $page   = max(1, (int) $request->query('page', 1));
+        $page   = $request->page();
         $topics = $this->repo->getTopicsForAdmin(self::PER_PAGE, ($page - 1) * self::PER_PAGE);
         $total  = $this->repo->countAllTopics();
         $pages  = max(1, (int) ceil($total / self::PER_PAGE));

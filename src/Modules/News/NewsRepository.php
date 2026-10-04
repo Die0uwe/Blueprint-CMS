@@ -174,11 +174,10 @@ final class NewsRepository
     public function getAllCategoriesForAdmin(): array
     {
         return $this->db->fetchAll(
-            "SELECT c.*, COUNT(n.id) AS article_count
+            "SELECT c.*,
+                    (SELECT COUNT(*) FROM cf_news n WHERE n.category_id = c.id AND n.deleted_at IS NULL) AS article_count
              FROM cf_categories c
-             LEFT JOIN cf_news n ON n.category_id = c.id AND n.deleted_at IS NULL
              WHERE c.type = 'news'
-             GROUP BY c.id
              ORDER BY c.position ASC, c.name ASC"
         );
     }

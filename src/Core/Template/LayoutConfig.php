@@ -67,7 +67,8 @@ final class LayoutConfig
         $f = is_array($raw['footer'] ?? null) ? $raw['footer'] : [];
         $d['footer']['columns'] = max(1, min(self::MAX_COLUMNS, (int) ($f['columns'] ?? 3)));
 
-        $cells = [];
+        $cells     = [];
+        $hasBlocks = false;
         foreach (is_array($f['cells'] ?? null) ? array_values($f['cells']) : [] as $cell) {
             if (!is_array($cell) || count($cells) >= self::MAX_CELLS) {
                 continue;
@@ -75,6 +76,13 @@ final class LayoutConfig
             $type = is_string($cell['type'] ?? null) ? $cell['type'] : '';
             if (!in_array($type, self::CELL_TYPES, true)) {
                 continue;
+            }
+            // De blokken-cel rendert de footer-zone met vaste element-id's: maximaal één per footer.
+            if ($type === 'blocks') {
+                if ($hasBlocks) {
+                    continue;
+                }
+                $hasBlocks = true;
             }
             $cells[] = [
                 'type'  => $type,

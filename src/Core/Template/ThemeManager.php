@@ -77,28 +77,9 @@ final class ThemeManager
         return $this->twig->render($template, $vars);
     }
 
-    /**
-     * Render een blok via zijn PHP render()-methode en geef HTML terug.
-     */
-    public function renderBlock(array $blockRow, array $context = []): string
-    {
-        // Block rendering wordt door BlockManager afgehandeld
-        return '';
-    }
-
     public function getConfig(): array
     {
         return $this->themeConfig;
-    }
-
-    public function getActiveTheme(): string
-    {
-        return $this->activeTheme;
-    }
-
-    public function getTwig(): \Twig\Environment
-    {
-        return $this->twig;
     }
 
     public function setBlockRegistry(\CommunityFusion\Core\Block\BlockRegistry $registry): void

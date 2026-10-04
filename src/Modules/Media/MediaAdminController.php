@@ -73,7 +73,7 @@ final class MediaAdminController
         $usedDownloads = $this->db->fetchAll("SELECT DISTINCT file_path FROM cf_downloads WHERE deleted_at IS NULL");
         $usedDownloads = array_column($usedDownloads, 'file_path');
 
-        $uploadsFiles   = $this->scanArea(CF_ROOT . '/storage/uploads', [...$usedAvatars, ...$usedGallery]);
+        $uploadsFiles   = $this->scanArea(CF_ROOT . '/storage/uploads', [...$usedAvatars, ...$usedGallery, ...$this->themeFiles()]);
         $downloadsFiles = $this->scanArea(CF_ROOT . '/storage/downloads', $usedDownloads);
 
         $totalBytes = array_sum(array_column($uploadsFiles, 'size')) + array_sum(array_column($downloadsFiles, 'size'));
@@ -99,7 +99,7 @@ final class MediaAdminController
 
         if ($this->isReferenced($area, $path)) {
             return Response::redirect('/admin/media?error=' . urlencode(
-                "\"{$path}\" is nog in gebruik (avatar of download) — kan niet verwijderd worden."
+                "\"{$path}\" is nog in gebruik (avatar, galerij, thema of download) — kan niet verwijderd worden."
             ));
         }
 
@@ -120,11 +120,36 @@ final class MediaAdminController
         };
     }
 
+    /**
+     * Thema-logo, headerbanner en site-icoon (opgeslagen als '/media/…'-URL in cf_settings):
+     * zonder deze telling zou het mediabeheer ze als ongebruikt tonen en laten verwijderen.
+     *
+     * @return list<string> relatieve paden binnen storage/uploads
+     */
+    private function themeFiles(): array
+    {
+        $rows = $this->db->fetchAll(
+            "SELECT `value` FROM cf_settings
+             WHERE (`group` = 'theme' AND `key` IN ('logo', 'banner'))
+                OR (`group` = 'core' AND `key` = 'site_icon')"
+        );
+        $out = [];
+        foreach ($rows as $r) {
+            $v = preg_replace('#^/media/#', '', (string) ($r['value'] ?? ''));
+            if ($v !== '') {
+                $out[] = $v;
+            }
+        }
+        return $out;
+    }
+
     private function isReferenced(string $area, string $path): bool
     {
         if ($area === 'uploads') {
             $row = $this->db->fetchOne("SELECT id FROM cf_users WHERE avatar_url = ?", ['/media/' . $path]);
             if ($row !== null) return true;
+
+            if (in_array($path, $this->themeFiles(), true)) return true;
 
             $row = $this->db->fetchOne(
                 "SELECT id FROM cf_gallery_items WHERE (file_path = ? OR thumbnail_path = ?) AND deleted_at IS NULL",

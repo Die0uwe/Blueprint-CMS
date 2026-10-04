@@ -34,7 +34,7 @@ final class UserAdminController
 
     public function index(Request $request): Response
     {
-        $page    = max(1, (int) $request->query('page', 1));
+        $page    = $request->page();
         $search  = trim((string) $request->query('q', ''));
         $offset  = ($page - 1) * self::PER_PAGE;
         $items   = $this->repo->getAll(self::PER_PAGE, $offset, $search);

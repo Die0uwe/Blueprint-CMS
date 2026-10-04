@@ -78,7 +78,7 @@ final class PageController
 
     public function adminIndex(Request $request): Response
     {
-        $page   = max(1, (int) $request->query('page', 1));
+        $page   = $request->page();
         $offset = ($page - 1) * self::ADMIN_PER_PAGE;
         $items  = $this->pages->getAll(self::ADMIN_PER_PAGE, $offset);
         $total  = $this->pages->countAll();

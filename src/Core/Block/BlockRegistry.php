@@ -113,21 +113,6 @@ final class BlockRegistry
     }
 
     /**
-     * Render alle blocks in een zone naar HTML.
-     */
-    public function renderZone(string $zone, array $context = []): string
-    {
-        $blocks = $this->getZoneBlocks($zone);
-        $html   = '';
-
-        foreach ($blocks as $blockRow) {
-            $html .= $this->renderBlock($blockRow, $context);
-        }
-
-        return $html;
-    }
-
-    /**
      * Render één block instantie.
      * Cache-aware: gebruikt de TTL uit de block instantie of de DB waarde.
      */
@@ -145,16 +130,26 @@ final class BlockRegistry
         $cacheKey = "block.render.{$blockRow['id']}";
 
         if ($ttl > 0) {
-            return $this->cache->remember($cacheKey, $ttl, fn() =>
-                $this->doRender($type, $blockRow, $config, $context)
-            );
+            $hit = $this->cache->get($cacheKey);
+            if (is_string($hit)) {
+                return $hit;
+            }
+            $html = $this->doRender($type, $blockRow, $config, $context);
+            // Een renderfout (HTML-commentaar) niet cachen: een tijdelijke storing zou anders TTL lang blijven hangen.
+            if (!$this->lastRenderFailed) {
+                $this->cache->set($cacheKey, $html, $ttl);
+            }
+            return $html;
         }
 
         return $this->doRender($type, $blockRow, $config, $context);
     }
 
+    private bool $lastRenderFailed = false;
+
     private function doRender(BlockInterface $type, array $row, array $config, array $context): string
     {
+        $this->lastRenderFailed = false;
         try {
             $type->validateConfig($config);
             $inner = $type->render($config, $context);
@@ -168,6 +163,7 @@ final class BlockRegistry
             </div>
             HTML;
         } catch (\Throwable $e) {
+            $this->lastRenderFailed = true;
             return "<!-- Block render fout: " . htmlspecialchars($e->getMessage()) . " -->";
         }
     }

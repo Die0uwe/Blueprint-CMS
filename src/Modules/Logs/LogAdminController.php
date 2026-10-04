@@ -28,7 +28,7 @@ final class LogAdminController
 
     public function index(Request $request): Response
     {
-        $page    = max(1, (int) $request->query('page', 1));
+        $page    = $request->page();
         $action  = trim((string) $request->query('action', ''));
         $offset  = ($page - 1) * self::PER_PAGE;
 

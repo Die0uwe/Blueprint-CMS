@@ -67,11 +67,10 @@ final class GalleryRepository
     public function getAllAlbumsForAdmin(): array
     {
         return $this->db->fetchAll(
-            "SELECT c.*, COUNT(i.id) AS item_count
+            "SELECT c.*,
+                    (SELECT COUNT(*) FROM cf_gallery_items i WHERE i.album_id = c.id AND i.deleted_at IS NULL) AS item_count
              FROM cf_categories c
-             LEFT JOIN cf_gallery_items i ON i.album_id = c.id AND i.deleted_at IS NULL
              WHERE c.type = 'gallery'
-             GROUP BY c.id
              ORDER BY c.position ASC, c.name ASC"
         );
     }
@@ -103,7 +102,7 @@ final class GalleryRepository
             'description' => $description,
             'position'    => $position,
         ]);
-        $this->cache->delete('gallery.albums');
+        $this->cache->clear();   // ook 'laatste items'-blok en albumhoezen
         return (int) $id;
     }
 
@@ -232,7 +231,7 @@ final class GalleryRepository
     public function deleteItem(int $id): void
     {
         $this->db->execute("UPDATE cf_gallery_items SET deleted_at = NOW() WHERE id = ?", [$id]);
-        $this->cache->delete('gallery.albums');
+        $this->cache->clear();
     }
 }
 

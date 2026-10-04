@@ -28,6 +28,20 @@ final class Response
         private array  $headers    = [],
     ) {}
 
+    /** @var array{path:string,start:int,length:int}|null */
+    private ?array $stream = null;
+
+    /**
+     * Bestand in blokken uitsturen i.p.v. in het geheugen te laden (grote downloads, Range).
+     * Content-Length wordt gezet op $length.
+     */
+    public static function stream(string $path, int $start, int $length, int $status = 200, array $headers = []): self
+    {
+        $r = new self('', $status, $headers + ['Content-Length' => (string) $length]);
+        $r->stream = ['path' => $path, 'start' => max(0, $start), 'length' => max(0, $length)];
+        return $r;
+    }
+
     public static function html(string $content, int $status = 200): self
     {
         return new self($content, $status, ['Content-Type' => 'text/html; charset=UTF-8']);
@@ -61,7 +75,33 @@ final class Response
             header("{$name}: {$value}");
         }
 
+        if ($this->stream !== null) {
+            $this->sendStream($this->stream);
+            return;
+        }
+
         echo $this->body;
+    }
+
+    /** @param array{path:string,start:int,length:int} $s */
+    private function sendStream(array $s): void
+    {
+        $h = @fopen($s['path'], 'rb');
+        if ($h === false) {
+            return;
+        }
+        fseek($h, $s['start']);
+        $left = $s['length'];
+        while ($left > 0 && !feof($h) && connection_status() === CONNECTION_NORMAL) {
+            $chunk = fread($h, min(65536, $left));
+            if ($chunk === false || $chunk === '') {
+                break;
+            }
+            echo $chunk;
+            $left -= strlen($chunk);
+            flush();
+        }
+        fclose($h);
     }
 
     public function withHeader(string $name, string $value): self
@@ -72,6 +112,8 @@ final class Response
     }
 
     public function getBody(): string   { return $this->body; }
+    public function isStream(): bool    { return $this->stream !== null; }
+    public function getHeader(string $name): ?string { return $this->headers[$name] ?? null; }
     public function getStatus(): int    { return $this->statusCode; }
 }
 

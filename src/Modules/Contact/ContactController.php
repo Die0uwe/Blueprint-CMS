@@ -138,7 +138,7 @@ final class ContactController
         if ($guard !== null) return $guard;
 
         $perPage = $this->repo->perPage();
-        $page    = max(1, (int) $request->query('page', 1));
+        $page    = $request->page();
         $offset  = ($page - 1) * $perPage;
         $total   = $this->repo->countAll();
 

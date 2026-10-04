@@ -91,4 +91,15 @@ final class LayoutConfigTest extends TestCase
         $this->assertStringContainsString('#cf-header{position:static}', $css);
         $this->assertStringNotContainsString('<', LayoutConfig::css(['header' => ['logo_align' => '</style><script>']]));
     }
+
+    #[Test]
+    public function onlyOneBlocksCellIsKept(): void
+    {
+        $c = LayoutConfig::normalize(['footer' => ['cells' => [
+            ['type' => 'blocks'], ['type' => 'copyright'], ['type' => 'blocks'],
+        ]]]);
+        $types = array_column($c['footer']['cells'], 'type');
+        $this->assertSame(['blocks', 'copyright'], $types);
+    }
 }
+

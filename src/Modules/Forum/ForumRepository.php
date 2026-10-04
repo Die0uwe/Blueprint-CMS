@@ -90,11 +90,10 @@ final class ForumRepository
     public function getAllBoardsForAdmin(): array
     {
         return $this->db->fetchAll(
-            "SELECT c.*, COUNT(t.id) AS topic_count
+            "SELECT c.*,
+                    (SELECT COUNT(*) FROM cf_forum_topics t WHERE t.board_id = c.id AND t.deleted_at IS NULL) AS topic_count
              FROM cf_categories c
-             LEFT JOIN cf_forum_topics t ON t.board_id = c.id AND t.deleted_at IS NULL
              WHERE c.type = 'forum'
-             GROUP BY c.id
              ORDER BY c.position ASC, c.name ASC"
         );
     }

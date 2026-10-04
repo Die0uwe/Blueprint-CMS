@@ -150,6 +150,17 @@ final class Request
         return $this->query[$key] ?? $default;
     }
 
+    /**
+     * Paginanummer uit ?page=: altijd een geheel getal 1..$max (nooit een float/overflow in LIMIT/OFFSET,
+     * en begrensde cache-sleutels).
+     */
+    public function page(string $key = 'page', int $max = 10000): int
+    {
+        $v = $this->query[$key] ?? 1;
+        $n = is_string($v) && preg_match('/^\d{1,9}$/', $v) === 1 ? (int) $v : 1;
+        return max(1, min($max, $n));
+    }
+
     public function input(string $key, mixed $default = null): mixed
     {
         return $this->body[$key] ?? $this->query[$key] ?? $default;

@@ -101,17 +101,28 @@ final class DownloadsRepository
             $row['version'] = $version;
         }
 
-        return (int) $this->db->insert('downloads', $row);
+        $id = (int) $this->db->insert('downloads', $row);
+        $this->cache->clear();
+
+        return $id;
     }
 
     public function updateDetails(int $id, string $title, string $description, bool $isPublished, string $version = ''): void
     {
-        $this->db->update('downloads', [
+        $row = [
             'title'        => trim($title),
             'description'  => trim($description) !== '' ? trim($description) : null,
             'is_published' => $isPublished ? 1 : 0,
-            'version'      => $version !== '' ? $version : null,
-        ], 'id = ?', [$id]);
+        ];
+        try {
+            $this->db->update('downloads', $row + ['version' => $version !== '' ? $version : null], 'id = ?', [$id]);
+        } catch (\PDOException $e) {
+            // Kolom `version` bestaat pas na `php cli/console.php migrate`: dan de rest alsnog opslaan.
+            if (!str_contains(strtolower($e->getMessage()), 'version')) {
+                throw $e;
+            }
+            $this->db->update('downloads', $row, 'id = ?', [$id]);
+        }
 
         $this->cache->clear();
     }
@@ -153,6 +164,17 @@ final class DownloadsRepository
         $this->cache->clear();
     }
 
+    /** Slugs die met vaste routes (/downloads/nieuw) botsen. */
+    private const RESERVED_SLUGS = ['nieuw'];
+
+    private function slugExists(string $slug): bool
+    {
+        if (in_array($slug, self::RESERVED_SLUGS, true)) {
+            return true;
+        }
+        return $this->db->fetchOne("SELECT id FROM cf_downloads WHERE slug = ?", [$slug]) !== null;
+    }
+
     private function uniqueSlug(string $title): string
     {
         $base = strtolower(trim($title));
@@ -162,7 +184,8 @@ final class DownloadsRepository
 
         $candidate = $base;
         $attempt   = 0;
-        while ($this->findBySlug($candidate) !== null) {
+        // Ook soft-deleted rijen tellen mee: de unieke index op slug geldt voor álle rijen.
+        while ($this->slugExists($candidate)) {
             $attempt++;
             $candidate = substr($base, 0, 180 - 6) . '-' . bin2hex(random_bytes(2));
             if ($attempt > 10) {

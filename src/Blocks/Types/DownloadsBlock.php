@@ -38,13 +38,16 @@ final class DownloadsBlock extends AbstractBlock
         $layout = H::pick($config['layout'] ?? 'sidebar', self::LAYOUTS, 'sidebar');
         $order  = $sort === 'popular' ? 'download_count DESC, created_at DESC' : 'created_at DESC';
 
-        $items = $this->db->fetchAll(
-            "SELECT slug, title, version, file_size, download_count FROM cf_downloads
-             WHERE is_published = 1 AND deleted_at IS NULL
-             ORDER BY {$order}
-             LIMIT ?",
-            [$count]
-        );
+        $sql = "SELECT slug, title, %s file_size, download_count FROM cf_downloads
+                WHERE is_published = 1 AND deleted_at IS NULL
+                ORDER BY {$order}
+                LIMIT ?";
+        try {
+            $items = $this->db->fetchAll(sprintf($sql, 'version,'), [$count]);
+        } catch (\PDOException) {
+            // Kolom `version` ontbreekt tot `php cli/console.php migrate` is gedraaid.
+            $items = $this->db->fetchAll(sprintf($sql, "NULL AS version,"), [$count]);
+        }
         if (empty($items)) {
             return '<p class="cf-block-empty">Nog geen downloads.</p>';
         }

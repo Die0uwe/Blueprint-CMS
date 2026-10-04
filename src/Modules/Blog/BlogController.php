@@ -44,7 +44,7 @@ final class BlogController
     public function index(Request $request): Response
     {
         $perPage = $this->repo->perPage();
-        $page    = max(1, (int) $request->query('page', 1));
+        $page    = $request->page();
         $offset  = ($page - 1) * $perPage;
         $total   = $this->repo->countPublished();
 

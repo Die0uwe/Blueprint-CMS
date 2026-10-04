@@ -46,7 +46,7 @@ final class GalleryController
         }
 
         $perPage = $this->repo->itemsPerPage();
-        $page    = max(1, (int) $request->query('page', 1));
+        $page    = $request->page();
         $offset  = ($page - 1) * $perPage;
         $total   = $this->repo->countPublishedItems((int) $album['id']);
 

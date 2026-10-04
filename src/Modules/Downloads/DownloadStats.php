@@ -39,18 +39,17 @@ final class DownloadStats
     /** @return array{total:int,unique:int,bytes:int,last30:int,last30_bytes:int,files:int} */
     public function totals(): array
     {
-        $since = date('Y-m-d H:i:s', time() - 30 * 86400);
         $all = $this->db->fetchOne(
             "SELECT COUNT(*) AS c, COALESCE(SUM(bytes_sent),0) AS b FROM cf_download_log"
         ) ?? [];
         $uniq = $this->db->fetchOne(
             "SELECT COUNT(*) AS c FROM (
-                SELECT DISTINCT download_id, COALESCE(CAST(user_id AS CHAR), ip_address) AS who FROM cf_download_log
+                SELECT DISTINCT COALESCE(download_id, 0) AS did, COALESCE(CAST(user_id AS CHAR), ip_address) AS who FROM cf_download_log
              ) t"
         ) ?? [];
         $recent = $this->db->fetchOne(
             "SELECT COUNT(*) AS c, COALESCE(SUM(bytes_sent),0) AS b FROM cf_download_log WHERE created_at >= ?",
-            [$since]
+            [$this->since(30 * 86400)]
         ) ?? [];
         $files = $this->db->fetchOne("SELECT COUNT(*) AS c FROM cf_downloads WHERE deleted_at IS NULL") ?? [];
 
@@ -67,15 +66,23 @@ final class DownloadStats
     /** Per bestand: totaal, uniek en bandbreedte, populairste eerst. */
     public function perDownload(int $limit = 20): array
     {
+        // Titel/versie komen van de LAATSTE logregel (MAX(title) zou een oude titel kunnen tonen);
+        // logregels van verwijderde downloads (download_id NULL) groeperen op titel i.p.v. samen te vallen.
         return $this->db->fetchAll(
-            "SELECT l.download_id, MAX(l.title) AS title, MAX(l.version) AS version,
-                    COUNT(*) AS total,
-                    COUNT(DISTINCT COALESCE(CAST(l.user_id AS CHAR), l.ip_address)) AS uniq,
-                    COALESCE(SUM(l.bytes_sent),0) AS bytes,
-                    MAX(l.created_at) AS last_at
-             FROM cf_download_log l
-             GROUP BY l.download_id
-             ORDER BY total DESC
+            "SELECT g.download_id, latest.title, latest.version, g.total, g.uniq, g.bytes, g.last_at
+             FROM (
+                SELECT COALESCE(CAST(l.download_id AS CHAR), CONCAT('t:', l.title)) AS gkey,
+                       MAX(l.download_id) AS download_id,
+                       MAX(l.id) AS last_id,
+                       COUNT(*) AS total,
+                       COUNT(DISTINCT COALESCE(CAST(l.user_id AS CHAR), l.ip_address)) AS uniq,
+                       COALESCE(SUM(l.bytes_sent),0) AS bytes,
+                       MAX(l.created_at) AS last_at
+                FROM cf_download_log l
+                GROUP BY gkey
+             ) g
+             JOIN cf_download_log latest ON latest.id = g.last_id
+             ORDER BY g.total DESC
              LIMIT ?",
             [$limit]
         );
@@ -101,7 +108,7 @@ final class DownloadStats
     public function perDay(int $days = 30): array
     {
         $days  = max(1, min(365, $days));
-        $since = date('Y-m-d 00:00:00', time() - ($days - 1) * 86400);
+        $since = date('Y-m-d 00:00:00', strtotime($this->dbNow()) - ($days - 1) * 86400);
         $rows  = $this->db->fetchAll(
             "SELECT DATE(created_at) AS d, COUNT(*) AS c FROM cf_download_log
              WHERE created_at >= ? GROUP BY DATE(created_at)",
@@ -111,11 +118,24 @@ final class DownloadStats
         foreach ($rows as $r) { $map[(string) $r['d']] = (int) $r['c']; }
 
         $out = [];
+        $now = strtotime($this->dbNow());
         for ($i = $days - 1; $i >= 0; $i--) {
-            $d = date('Y-m-d', time() - $i * 86400);
+            $d = date('Y-m-d', $now - $i * 86400);
             $out[$d] = $map[$d] ?? 0;
         }
         return $out;
+    }
+
+    /** Huidige tijd volgens de DATABASE (created_at is een DB-default; PHP-tijdzone kan afwijken). */
+    private function dbNow(): string
+    {
+        $row = $this->db->fetchOne('SELECT NOW() AS n');
+        return (string) ($row['n'] ?? date('Y-m-d H:i:s'));
+    }
+
+    private function since(int $seconds): string
+    {
+        return date('Y-m-d H:i:s', strtotime($this->dbNow()) - $seconds);
     }
 
     public static function formatBytes(int $bytes): string

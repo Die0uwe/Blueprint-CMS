@@ -19,6 +19,7 @@ namespace CommunityFusion\Modules\Downloads;
 
 use CommunityFusion\Core\Security\ContentSanitizer;
 use CommunityFusion\Core\Request;
+use CommunityFusion\Modules\Media\MediaController;
 use CommunityFusion\Core\Response;
 use CommunityFusion\Core\Auth\AuthManager;
 use CommunityFusion\Core\Template\ThemeManager;
@@ -58,7 +59,7 @@ final class DownloadsController
     public function index(Request $request): Response
     {
         $perPage = $this->repo->perPage();
-        $page    = max(1, (int) $request->query('page', 1));
+        $page    = $request->page();
         $offset  = ($page - 1) * $perPage;
         $total   = $this->repo->countPublished();
 
@@ -156,16 +157,45 @@ final class DownloadsController
             return Response::html('<h1>404 — Bestand ontbreekt op de server</h1>', 404);
         }
 
-        $this->repo->incrementDownloadCount((int) $download['id']);
-        $this->stats->record($download, $this->auth->id(), $request->ip(), (int) filesize($full));
+        $size  = (int) filesize($full);
+        $range = MediaController::parseRange((string) $request->header('Range', ''), $size);
+        if ($range === false) {
+            return new Response('', 416, ['Content-Range' => 'bytes */' . $size]);
+        }
 
-        $filename = str_replace('"', '', $download['original_filename']);
+        // Tellen/loggen alleen bij het begin van een download (niet bij elk hervat-verzoek).
+        if ($range === null || $range[0] === 0) {
+            $this->repo->incrementDownloadCount((int) $download['id']);
+            $this->stats->record($download, $this->auth->id(), $request->ip(), $size);
+        }
 
-        return new Response(file_get_contents($full), 200, [
+        $headers = [
             'Content-Type'        => 'application/octet-stream',
-            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
-            'Content-Length'      => (string) filesize($full),
-        ]);
+            'Content-Disposition' => self::contentDisposition((string) $download['original_filename']),
+            'Accept-Ranges'       => 'bytes',
+        ];
+
+        if ($range !== null) {
+            [$start, $end] = $range;
+            return Response::stream($full, $start, $end - $start + 1, 206, $headers + [
+                'Content-Range' => "bytes {$start}-{$end}/{$size}",
+            ]);
+        }
+
+        return Response::stream($full, 0, $size, 200, $headers);
+    }
+
+    /**
+     * Veilige Content-Disposition: ASCII-fallback + RFC 5987 `filename*` voor Unicode;
+     * geen quotes, backslashes of stuurtekens (header-injectie) in de naam.
+     */
+    public static function contentDisposition(string $name): string
+    {
+        $name = preg_replace('/[\x00-\x1F\x7F\/\\"]+/u', '', $name) ?? '';
+        $name = trim($name) !== '' ? trim($name) : 'bestand';
+        $ascii = preg_replace('/[^A-Za-z0-9._ -]+/', '_', $name) ?? 'bestand';
+
+        return 'attachment; filename="' . $ascii . '"; filename*=UTF-8\'\'' . rawurlencode($name);
     }
 
     /** GET /downloads/{slug}/bewerk */

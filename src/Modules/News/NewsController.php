@@ -32,7 +32,7 @@ final class NewsController
 
     public function index(Request $request): Response
     {
-        $page    = max(1, (int) $request->query('page', 1));
+        $page    = $request->page();
         $offset  = ($page - 1) * self::PER_PAGE;
         $items   = $this->repo->getPublished(self::PER_PAGE, $offset);
         $total   = $this->repo->countPublished();
@@ -72,7 +72,7 @@ final class NewsController
 
     public function adminIndex(Request $request): Response
     {
-        $page    = max(1, (int) $request->query('page', 1));
+        $page    = $request->page();
         $offset  = ($page - 1) * self::ADMIN_PER_PAGE;
         $items   = $this->repo->getAll(self::ADMIN_PER_PAGE, $offset);
         $total   = $this->repo->countAll();

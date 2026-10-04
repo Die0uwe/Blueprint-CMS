@@ -61,7 +61,7 @@ final class ForumController
         }
 
         $perPage = $this->repo->topicsPerPage();
-        $page    = max(1, (int) $request->query('page', 1));
+        $page    = $request->page();
         $offset  = ($page - 1) * $perPage;
         $total   = $this->repo->countTopics((int) $board['id']);
 
@@ -149,7 +149,7 @@ final class ForumController
         $this->repo->incrementViews((int) $topic['id']);
 
         $perPage = $this->repo->postsPerPage();
-        $page    = max(1, (int) $request->query('page', 1));
+        $page    = $request->page();
         $offset  = ($page - 1) * $perPage;
         $total   = $this->repo->countPosts((int) $topic['id']);
 

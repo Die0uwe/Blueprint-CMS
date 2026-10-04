@@ -20,6 +20,18 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ## [Unreleased]
 
+### Plan v2 – batch 2: downloads, statistiek en data-integriteit
+- **Downloads**: bestanden worden gestreamd (`Response::stream`) met HTTP Range/206 i.p.v. 50 MB in het geheugen; veilige `Content-Disposition` (`filename*=UTF-8''`, geen header-injectie); download wordt maar één keer geteld per start (niet bij hervatten).
+- **Slug-botsing**: een nieuwe download met de titel van een verwijderde gaf een UNIQUE-fout (500 + weesbestand); slugcontrole telt nu ook soft-deleted rijen mee en de route-slug `nieuw` is gereserveerd.
+- **Vóór `migrate`**: bewerken van een download crashte op de ontbrekende kolom `version`; DownloadsBlock valt terug zonder versie.
+- **Statistiek**: tijdvensters volgens DB-tijd (tijdzone-veilig), logregels van verwijderde downloads vallen niet meer samen, titel/versie komen van de laatste logregel.
+- **`?page=`** wordt overal begrensd (`Request::page()`, 1–10000, alleen cijfers): geen float-overflow in LIMIT/OFFSET en geen onbeperkte cache-sleutels.
+- Cache wordt geleegd bij aanmaken/verwijderen van downloads en galerij-items.
+- Admin-overzichten (nieuws/forum/galerij) gebruiken subqueries i.p.v. `SELECT c.* … GROUP BY c.id` (ONLY_FULL_GROUP_BY-proof).
+- Mediabeheer telt thema-logo, header-banner en site-icoon als "in gebruik".
+- Footer-builder: maximaal één blokken-cel. BlockRegistry cachet renderfouten niet meer; dode code verwijderd (`ThemeManager::renderBlock/getActiveTheme/getTwig`, `BlockRegistry::renderZone`).
+- Tests: `DownloadsHardeningTest`, `BlockRegistryRenderTest`, uitbreiding `LayoutConfigTest`.
+
 ### Plan v2 – batch 1: kritieke fixes (review-ronde)
 - **Lightbox altijd zichtbaar**: `.cf-gallery-lightbox[hidden]` werd door `display:flex` overschreven → CSS-regel toegevoegd.
 - **Blokkensysteem leeg**: `schema` is een gereserveerd woord in MariaDB; de INSERT in `BlockRegistry::syncTypesToDatabase` faalde stil (try/catch) waardoor `cf_block_types` leeg bleef. Nu met backticks.

@@ -24,7 +24,7 @@ final class UsersController
             return Response::json(['error' => 'Geen toegang.'], 403);
         }
 
-        $page  = max(1, (int)$request->query('page', 1));
+        $page  = $request->page();
         $limit = min(50, max(1, (int)$request->query('limit', 20)));
         $offset = ($page - 1) * $limit;
 
