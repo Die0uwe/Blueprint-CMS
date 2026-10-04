@@ -20,6 +20,13 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ## [Unreleased]
 
+### Plan v2 – batch 1: kritieke fixes (review-ronde)
+- **Lightbox altijd zichtbaar**: `.cf-gallery-lightbox[hidden]` werd door `display:flex` overschreven → CSS-regel toegevoegd.
+- **Blokkensysteem leeg**: `schema` is een gereserveerd woord in MariaDB; de INSERT in `BlockRegistry::syncTypesToDatabase` faalde stil (try/catch) waardoor `cf_block_types` leeg bleef. Nu met backticks.
+- **`Connection::insert`** quote en valideert kolomnamen (`group`, `key`, `schema`, …) en tabelnaam.
+- **Marketplace**: thema-ZIP's (`theme.json`, submap) crashten bij installatie en de submap ging verloren. `deployPackage` gebruikt nu het manifest-pad, `type` wordt voor `theme.json` afgeleid, slug en type worden gevalideerd (`^[a-z0-9-]+$`), bestemming volgt de manifest-slug en een mislukte upload-move geeft een fout.
+- Tests: `PackageManagerTest`, `ConnectionInsertTest`.
+
 ### Galerij: afbeeldingsfout, video-upload en ingebouwde videospeler
 - **Fout bij afbeeldingen** (oorzaak): `GalleryThumbnailer` riep GD-functies aan zonder te controleren of de GD-extensie bestaat, en decodeerde ook afbeeldingen die niet in `memory_limit` passen → fatale fout bij elke upload op eenvoudige hosting. Nu blijft de upload staan zonder miniatuur; de album-, beheer- en blokweergave vallen terug op het origineel.
 - **Video werkte niet** (oorzaken): `/media/…` las het hele bestand in het geheugen en kende geen HTTP Range (geen 206 → Safari/iOS spelen niet af, spoelen kan niet). Nu volledige Range-ondersteuning (206/416, `Accept-Ranges`, max. 8 MB per antwoord). Te grote uploads (boven `post_max_size`/`upload_max_filesize`) gaven een misleidende CSRF-403 of "te groot" zonder uitleg; nu een duidelijke melding met de serverlimieten, ook zichtbaar bij het uploadformulier.

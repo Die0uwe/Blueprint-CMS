@@ -238,12 +238,15 @@ final class BlockRegistry
     {
         foreach ($this->types as $slug => $block) {
             $this->db->execute(
-                "INSERT INTO cf_block_types (module_id, slug, name, description, schema)
+                // `schema` is een gereserveerd woord in MariaDB/MySQL (synoniem van DATABASE):
+                // zonder backticks is dit een syntaxfout, die de try/catch in Application stil
+                // slikte → cf_block_types bleef leeg en het blokkensysteem werkte niet.
+                "INSERT INTO cf_block_types (module_id, slug, name, description, `schema`)
                  VALUES (?, ?, ?, ?, ?)
                  ON DUPLICATE KEY UPDATE
                    name = VALUES(name),
                    description = VALUES(description),
-                   schema = VALUES(schema)",
+                   `schema` = VALUES(`schema`)",
                 [
                     $moduleId,
                     $slug,

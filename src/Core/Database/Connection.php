@@ -127,7 +127,13 @@ final class Connection
     public function insert(string $table, array $data): int|string
     {
         $table   = $this->prefix . $table;
-        $columns = implode(', ', array_keys($data));
+        // Kolomnamen altijd quoten: `group`, `key`, `schema` e.d. zijn gereserveerde woorden.
+        $columns = implode(', ', array_map(static function ($c): string {
+            if (!is_string($c) || preg_match('/^[A-Za-z0-9_]+$/', $c) !== 1) {
+                throw new \InvalidArgumentException('Ongeldige kolomnaam in insert().');
+            }
+            return '`' . $c . '`';
+        }, array_keys($data)));
         $placeholders = implode(', ', array_fill(0, count($data), '?'));
 
         $this->execute(

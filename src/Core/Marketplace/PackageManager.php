@@ -52,13 +52,13 @@ final class PackageManager
         $manifest = $this->extractAndValidate($zipPath, $packageSlug);
 
         // 3. Kopieer naar juiste locatie
-        $installPath = $this->deployPackage($packageSlug, $manifest['type'] ?? 'module');
+        $installPath = $this->deployPackage($packageSlug, $manifest);
 
         // 4. Registreer in DB
         $this->registerInstalled($manifest, $installPath);
 
         // 5. Voer module installer uit indien aanwezig
-        $this->runModuleInstaller($packageSlug, $manifest);
+        $this->runModuleInstaller((string) $manifest['slug'], $manifest);
 
         // 6. Verwijder tijdelijke bestanden
         $this->cleanup($zipPath);
@@ -89,12 +89,14 @@ final class PackageManager
         $slug = strtolower(preg_replace('/[^a-z0-9-]/', '-', $slug));
 
         $zipPath = $this->downloadPath() . '/' . $slug . '.zip';
-        move_uploaded_file($tmpPath, $zipPath);
+        if (!move_uploaded_file($tmpPath, $zipPath)) {
+            throw new PackageException('Kan het geüploade ZIP-bestand niet opslaan');
+        }
 
         $manifest    = $this->extractAndValidate($zipPath, $slug);
-        $installPath = $this->deployPackage($slug, $manifest['type'] ?? 'module');
+        $installPath = $this->deployPackage($slug, $manifest);
         $this->registerInstalled($manifest, $installPath);
-        $this->runModuleInstaller($slug, $manifest);
+        $this->runModuleInstaller((string) $manifest['slug'], $manifest);
         $this->cleanup($zipPath);
 
         $this->cache->delete("marketplace.installed");
@@ -326,6 +328,9 @@ final class PackageManager
 
     private function extractAndValidate(string $zipPath, string $slug): array
     {
+        if (preg_match('/^[a-z0-9][a-z0-9-]*$/', $slug) !== 1) {
+            throw new PackageException("Ongeldige package-slug '{$slug}' (alleen a-z, 0-9 en '-')");
+        }
         $extractTo = $this->downloadPath() . "/{$slug}_extracted";
 
         // Verwijder eventuele vorige extractie
@@ -357,7 +362,12 @@ final class PackageManager
             $found = glob($extractTo . '/' . $pattern);
             if (!empty($found)) {
                 $manifestPath = $found[0];
-                $manifest     = json_decode(file_get_contents($manifestPath), true);
+                $decoded      = json_decode((string) file_get_contents($manifestPath), true);
+                $manifest     = is_array($decoded) ? $decoded : null;
+                // theme.json heeft vaak geen 'type'-veld: afleiden uit de bestandsnaam.
+                if ($manifest !== null && basename($manifestPath) === 'theme.json') {
+                    $manifest['type'] = 'theme';
+                }
                 break;
             }
         }
@@ -375,30 +385,42 @@ final class PackageManager
             }
         }
 
+        if (preg_match('/^[a-z0-9][a-z0-9-]*$/', (string) $manifest['slug']) !== 1
+            || !in_array($manifest['type'] ?? 'module', ['module', 'theme'], true)) {
+            $this->deleteDirectory($extractTo);
+            throw new PackageException("Ongeldige slug of type in manifest");
+        }
+
         // Sla extractie-pad op in manifest voor deployPackage()
         $manifest['_extracted_path'] = dirname($manifestPath);
 
         return $manifest;
     }
 
-    private function deployPackage(string $slug, string $type): string
+    /**
+     * Kopieer de uitgepakte package naar modules/ of themes/.
+     * De bronmap komt uit het manifest (`_extracted_path`): die kan een submap van de ZIP zijn,
+     * en het manifest heet module.json of theme.json.
+     */
+    private function deployPackage(string $slug, array $manifest): string
     {
+        $type       = ($manifest['type'] ?? 'module') === 'theme' ? 'theme' : 'module';
         $sourcePath = $this->downloadPath() . "/{$slug}_extracted";
-        $destPath   = ($type === 'theme' ? $this->themesPath() : $this->modulesPath()) . "/{$slug}";
+        // Bestemming volgt het (gevalideerde) manifest, zodat map en registratie nooit uiteenlopen.
+        $destSlug   = (string) ($manifest['slug'] ?? $slug);
+        $destPath   = ($type === 'theme' ? $this->themesPath() : $this->modulesPath()) . "/{$destSlug}";
 
-        // Verwijder bestaande installatie
-        if (is_dir($destPath)) $this->deleteDirectory($destPath);
+        $realSource = (string) ($manifest['_extracted_path'] ?? $sourcePath);
+        if (!is_dir($realSource)) {
+            $realSource = $sourcePath;
+        }
 
-        // Vind de werkelijke bronmap (kan in submap zitten na extractie)
-        $manifest = json_decode(file_get_contents($sourcePath . '/module.json') ?: file_get_contents(glob($sourcePath . '/*/module.json')[0] ?? ''), true);
-        $realSource = isset($manifest['_extracted_path']) ? $manifest['_extracted_path'] : $sourcePath;
+        // Verwijder bestaande installatie pas nu de nieuwe bron zeker bestaat
+        if (is_dir($destPath)) {
+            $this->deleteDirectory($destPath);
+        }
 
-        if (!is_dir($realSource)) $realSource = $sourcePath;
-
-        // Kopieer naar bestemming
         $this->copyDirectory($realSource, $destPath);
-
-        // Verwijder tijdelijke extractie
         $this->deleteDirectory($sourcePath);
 
         return $destPath;

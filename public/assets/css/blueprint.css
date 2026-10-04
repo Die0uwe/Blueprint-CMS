@@ -831,6 +831,7 @@ body.cf-layout-boxed #cf-page .cf-layout { max-width: 100%; }
   position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,.9);
   display: flex; align-items: center; justify-content: center; padding: 2rem 1rem;
 }
+.cf-gallery-lightbox[hidden] { display: none; }
 .cf-gallery-lightbox-close {
   position: absolute; top: 1rem; right: 1.2rem; background: none; border: none;
   color: #fff; font-size: 1.6rem; line-height: 1; cursor: pointer; z-index: 1;
