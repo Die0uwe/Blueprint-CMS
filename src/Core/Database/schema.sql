@@ -527,7 +527,8 @@ CREATE TABLE IF NOT EXISTS `cf_audit_log` (
     PRIMARY KEY (`id`),
     KEY `idx_created` (`created_at`),
     KEY `idx_action` (`action`),
-    KEY `idx_user` (`user_id`)
+    KEY `idx_user` (`user_id`),
+    KEY `idx_throttle` (`action`, `ip_address`, `created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================

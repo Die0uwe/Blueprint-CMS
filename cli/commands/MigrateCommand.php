@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace CommunityFusion\Cli\Commands;
 
 use CommunityFusion\Core\Database\Connection;
+use CommunityFusion\Core\Database\Migrator;
 
 /**
  * Migrate Command
@@ -22,7 +23,11 @@ use CommunityFusion\Core\Database\Connection;
  * idempotent (bestaande tabellen worden overgeslagen, zie importSchema()),
  * geen destructieve DROP TABLE's.
  *
- * Gebruik: php cli/console.php migrate
+ * Daarna draait de versie-gebaseerde Migrator (database/migrations/*.php,
+ * bijgehouden in cf_migrations) voor wijzigingen aan bestaande installaties.
+ *
+ * Gebruik: php cli/console.php migrate          (schema + openstaande migraties)
+ *          php cli/console.php migrate:status   (overzicht, wijzigt niets)
  */
 final class MigrateCommand
 {
@@ -73,5 +78,37 @@ final class MigrateCommand
         )->fetchColumn();
 
         echo "✅ Schema geïmporteerd — {$tableCount} tabellen aanwezig in de database.\n";
+
+        $migrator = new Migrator($pdo, CF_ROOT . '/database/migrations', $db->getPrefix());
+        try {
+            $ran = $migrator->run();
+        } catch (\Throwable $e) {
+            echo "❌ Migratie mislukt: {$e->getMessage()}\n";
+            exit(1);
+        }
+        foreach ($ran as $name) {
+            echo "   ↑ {$name}\n";
+        }
+        echo $ran === [] ? "✅ Geen openstaande migraties.\n" : '✅ ' . count($ran) . " migratie(s) uitgevoerd.\n";
+    }
+
+    public function status(array $argv): void
+    {
+        if (!file_exists(CF_ROOT . '/config/config.php')) {
+            echo "❌ Geen config/config.php gevonden.\n";
+            exit(1);
+        }
+        $app = require CF_ROOT . '/src/Core/Application.php';
+        $app->boot();
+        /** @var Connection $db */
+        $db = $app->make(Connection::class);
+        $rows = (new Migrator($db->getPdo(), CF_ROOT . '/database/migrations', $db->getPrefix()))->status();
+        if ($rows === []) {
+            echo "Geen migraties gevonden.\n";
+            return;
+        }
+        foreach ($rows as $r) {
+            echo ($r['status'] === 'applied' ? '✅' : '⏳') . " {$r['migration']}" . ($r['batch'] !== null ? " (batch {$r['batch']})" : '') . "\n";
+        }
     }
 }

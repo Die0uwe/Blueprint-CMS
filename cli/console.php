@@ -10,6 +10,7 @@ declare(strict_types=1);
  *   queue:work          Verwerk queue jobs
  *   cache:clear         Verwijder alle cache
  *   migrate             Voer database migraties uit
+ *   migrate:status      Toon welke migraties zijn uitgevoerd
  *   module:install      Installeer een module
  *   ai-studio:migrate   Migreer en activeer de AI Studio-module (bestaande installaties)
  */
@@ -40,6 +41,7 @@ match (true) {
     $command === 'queue:work'      => (new CommunityFusion\Cli\Commands\QueueWorkerCommand())->handle($argv),
     $command === 'cache:clear'     => (new CommunityFusion\Cli\Commands\CacheClearCommand())->handle($argv),
     $command === 'migrate'         => (new CommunityFusion\Cli\Commands\MigrateCommand())->handle($argv),
+    $command === 'migrate:status'  => (new CommunityFusion\Cli\Commands\MigrateCommand())->status($argv),
     $command === 'module:install'  => (new CommunityFusion\Cli\Commands\ModuleInstallCommand())->handle($argv),
     $command === 'ai-studio:migrate' => (new CommunityFusion\Cli\Commands\AiStudioMigrateCommand())->handle($argv),
     default => printHelp(),
@@ -56,6 +58,7 @@ Commando's:
   queue:work [--queue=default] [--sleep=3]    Verwerk queue jobs
   cache:clear                                  Verwijder alle cache
   migrate                                      Voer DB migraties uit
+  migrate:status                               Toon migratiestatus
   module:install <slug>                        Installeer een module
   ai-studio:migrate                            Migreer + activeer Blueprint AI Studio
 

@@ -18,7 +18,13 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ---
 
-## [Unreleased] — Thema's, mobiel, editor, blok-instellingen en API-overzicht
+## [Unreleased]
+
+### Golf 5a — Migratie-runner
+- `Migrator` (src/Core/Database) + `database/migrations/*.php`: versie-gebaseerde wijzigingen voor bestaande installaties, bijgehouden in `cf_migrations`; draait nooit dubbel, stopt bij de eerste fout.
+- `php cli/console.php migrate` voert nu schema-import én openstaande migraties uit; nieuw: `migrate:status`.
+- Eerste migratie: index `idx_throttle` op `cf_audit_log` voor de inlog-rem (ook in schema.sql voor nieuwe installaties).
+- Tests: tests/Unit/Core/Database/MigratorTest.php (5). — Thema's, mobiel, editor, blok-instellingen en API-overzicht
 
 ### Inloggen beveiligd (Golf 5)
 
