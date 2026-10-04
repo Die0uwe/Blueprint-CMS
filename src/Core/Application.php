@@ -295,6 +295,13 @@ final class Application
             )
         );
 
+        // Fase D: blog-, forum- en downloads-blokken (zelfde patroon als NewsBlock).
+        $registry = $this->container->make(\CommunityFusion\Core\Block\BlockRegistry::class);
+        $dbConn   = $this->container->make(\CommunityFusion\Core\Database\Connection::class);
+        $registry->register(new \CommunityFusion\Blocks\Types\BlogLatestBlock($dbConn));
+        $registry->register(new \CommunityFusion\Blocks\Types\ForumActivityBlock($dbConn));
+        $registry->register(new \CommunityFusion\Blocks\Types\DownloadsBlock($dbConn));
+
         // BlockRegistry::syncTypesToDatabase() bestond al sinds Sprint 1 maar werd
         // NERGENS aangeroepen — cf_block_types bleef daardoor altijd leeg, en
         // BlockController::store() (/admin/blocks) faalde voor ELK block type,

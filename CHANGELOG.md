@@ -20,6 +20,13 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ## [Unreleased]
 
+### Fase D — Nieuwe en uitgebreide blokken
+- **Laatste nieuws** (`news-latest`): weergave `list` (standaard, ongewijzigd), `ticker` (doorlopende nieuwsbalk, pauzeert bij hover/focus, statisch bij *reduced motion*) en `ticket` (kaarten met datumstrook, samenvatting en optionele afbeelding — alleen eigen `/media/`-afbeeldingen).
+- **Nieuw `blog-latest`** (lijst of ticket), **`forum-activity`** (laatste reactie of nieuwste topics) en **`downloads-latest`** (nieuwste of populairste; lay-out `sidebar`, `centered` of `slider`).
+- **Galerij-blok** (`gallery-latest`): lay-out `grid`, `centered` of `slider`.
+- Generieke slider (`data-cf-slider`): knoppen, pijltjestoetsen, optionele autoplay (pauzeert bij hover/focus, uit bij *reduced motion*). Gedeelde `Blocks\Support\BlockHtml`-helper.
+- Getest in Chromium: ticker-animatie en pauze, sliders (volgende/vorige/wrap), ticket- en gecentreerde lay-outs.
+
 ### Fase C — Thema-instellingen in 5 tabs (`/admin/themes/instellingen`)
 - **Tab 1 Algemeen & layout:** Wide of Boxed, vier presets (Standaard, Ruim, Compact, Magazine) of aangepaste inhouds- en zijbalkbreedte.
 - **Tab 2 Branding & headers:** logo (optioneel met sitenaam), site-icoon/favicon (zelfde instelling als Instellingen), headerbanner met instelbare hoogte; oude bestanden worden opgeruimd.

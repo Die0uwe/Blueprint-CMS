@@ -11,3 +11,28 @@ setTimeout(() => {
     setTimeout(() => el.remove(), 400);
   });
 }, 5000);
+
+/* Sliders (galerij- en downloads-blokken): knoppen, toetsenbord en optionele autoplay. */
+document.querySelectorAll('[data-cf-slider]').forEach(slider => {
+  const track = slider.querySelector('.cf-slider-track');
+  if (!track) return;
+  const step = dir => {
+    const max = track.scrollWidth - track.clientWidth;
+    if (dir > 0 && track.scrollLeft >= max - 4) track.scrollTo({ left: 0 });
+    else if (dir < 0 && track.scrollLeft <= 4) track.scrollTo({ left: max });
+    else track.scrollBy({ left: dir * track.clientWidth });
+  };
+  slider.querySelector('.cf-slider-prev')?.addEventListener('click', () => step(-1));
+  slider.querySelector('.cf-slider-next')?.addEventListener('click', () => step(1));
+  track.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') { step(1); e.preventDefault(); }
+    if (e.key === 'ArrowLeft') { step(-1); e.preventDefault(); }
+  });
+  const ms = parseInt(slider.dataset.autoplay || '0', 10);
+  if (ms >= 2000 && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    let paused = false;
+    ['mouseenter', 'focusin', 'touchstart'].forEach(ev => slider.addEventListener(ev, () => { paused = true; }, { passive: true }));
+    ['mouseleave', 'focusout'].forEach(ev => slider.addEventListener(ev, () => { paused = false; }));
+    setInterval(() => { if (!paused && !document.hidden) step(1); }, ms);
+  }
+});

@@ -867,3 +867,81 @@ body.cf-layout-boxed #cf-page .cf-layout { max-width: 100%; }
 }
 .cf-gallery-admin-item form { padding: 0 .5rem .5rem; }
 .cf-gallery-admin-item .cf-btn-sm { width: 100%; text-align: center; }
+
+/* ── Blokken (fase D): ticker, ticket-kaarten, slider, downloads, forum ─── */
+.cf-ticker {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(var(--surface-rgb), .6);
+}
+.cf-ticker-track {
+  display: inline-flex;
+  white-space: nowrap;
+  animation: cf-ticker var(--cf-ticker-dur, 30s) linear infinite;
+}
+.cf-ticker:hover .cf-ticker-track,
+.cf-ticker:focus-within .cf-ticker-track { animation-play-state: paused; }
+.cf-ticker-item { padding: .55rem 1.5rem; color: var(--text); }
+.cf-ticker-item:hover { color: var(--link); }
+.cf-ticker-dup { display: inline-flex; }
+@keyframes cf-ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@media (prefers-reduced-motion: reduce) {
+  .cf-ticker { overflow-x: auto; }
+  .cf-ticker-track { animation: none; }
+  .cf-ticker-dup { display: none; }
+}
+
+.cf-ticket-list { display: flex; flex-direction: column; gap: .6rem; }
+.cf-ticket {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  overflow: hidden;
+  color: var(--text);
+  transition: transform .15s, border-color .15s;
+}
+.cf-ticket:hover { transform: translateY(-1px); border-color: var(--accent); color: var(--text); }
+.cf-ticket-stub {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-width: 3.4rem; padding: .5rem;
+  background: rgba(var(--accent-rgb), .15);
+  border-right: 2px dashed var(--border);
+  text-transform: uppercase;
+}
+.cf-ticket-stub b { font-size: 1.2rem; line-height: 1; }
+.cf-ticket-stub small { font-size: .65rem; color: var(--text-dim); }
+.cf-ticket-body { display: flex; flex-direction: column; gap: .15rem; padding: .5rem .75rem; min-width: 0; }
+.cf-ticket-body small { color: var(--text-dim); font-size: .75rem; }
+.cf-ticket-img { width: 100%; max-height: 110px; object-fit: cover; border-radius: 6px; margin-bottom: .3rem; }
+
+.cf-slider { position: relative; }
+.cf-slider-track {
+  display: flex; gap: .75rem; padding: .25rem;
+  overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; scrollbar-width: none;
+}
+.cf-slider-track::-webkit-scrollbar { display: none; }
+.cf-slider-item { flex: 0 0 100%; scroll-snap-align: start; }
+.cf-slider-btn {
+  position: absolute; top: 50%; transform: translateY(-50%); z-index: 2;
+  width: 2rem; height: 2rem; border-radius: 50%;
+  border: 1px solid var(--border); background: rgba(var(--surface-rgb), .92); color: var(--text);
+  cursor: pointer; font-size: 1.2rem; line-height: 1;
+}
+.cf-slider-btn:hover { border-color: var(--accent); }
+.cf-slider-prev { left: .25rem; }
+.cf-slider-next { right: .25rem; }
+.cf-slider-photo .cf-block-gallery-thumb { aspect-ratio: 4 / 3; }
+@media (prefers-reduced-motion: reduce) { .cf-slider-track { scroll-behavior: auto; } }
+
+.cf-block-gallery-centered { grid-template-columns: repeat(auto-fit, 120px); justify-content: center; }
+.cf-dl-centered { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: .75rem; text-align: center; }
+.cf-dl-card {
+  display: flex; flex-direction: column; align-items: center; gap: .35rem;
+  border: 1px solid var(--border); border-radius: 10px; padding: .9rem; background: var(--surface);
+}
+.cf-dl-card small { color: var(--text-dim); font-size: .75rem; }
+.cf-dl-actions { display: flex; gap: .4rem; flex-wrap: wrap; justify-content: center; margin-top: .3rem; }
+.cf-block-forum-item { align-items: flex-start; }
+.cf-block-forum-meta { display: block; color: var(--muted); font-size: .72rem; }
