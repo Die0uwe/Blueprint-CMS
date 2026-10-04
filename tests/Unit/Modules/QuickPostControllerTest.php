@@ -95,7 +95,7 @@ final class QuickPostControllerTest extends TestCase
         return (int) (new \ReflectionProperty($r, 'statusCode'))->getValue($r);
     }
 
-    private function count(string $table): int
+    private function rows(string $table): int
     {
         return (int) $this->pdo->query("SELECT COUNT(*) FROM {$table}")->fetchColumn();
     }
@@ -115,7 +115,7 @@ final class QuickPostControllerTest extends TestCase
     {
         $r = $this->ctl(null)->store($this->post(['type' => 'blog', 'title' => 'x', 'content' => 'y']));
         $this->assertStringStartsWith('/login', $this->location($r));
-        $this->assertSame(0, $this->count('cf_blog_posts'));
+        $this->assertSame(0, $this->rows('cf_blog_posts'));
     }
 
     #[Test]
@@ -125,7 +125,7 @@ final class QuickPostControllerTest extends TestCase
         $this->assertSame(403, $this->code($c->store($this->post(['type' => 'post', 'title' => 'x', 'content' => 'y']))));
         $this->assertSame(403, $this->code($c->store($this->post(['type' => 'forum', 'title' => 'x', 'content' => 'y', 'board' => 'algemeen']))));
         $this->assertSame(403, $this->code($c->store($this->post(['type' => 'bogus', 'title' => 'x', 'content' => 'y']))));
-        $this->assertSame(0, $this->count('cf_news') + $this->count('cf_forum_topics'));
+        $this->assertSame(0, $this->rows('cf_news') + $this->rows('cf_forum_topics'));
 
         $r = $c->store($this->post(['type' => 'blog', 'title' => 'Mijn Dag', 'content' => '<p>Hallo <script>alert(1)</script>wereld</p>']));
         $this->assertSame('/blog/ouwe/mijn-dag', $this->location($r));
@@ -148,7 +148,7 @@ final class QuickPostControllerTest extends TestCase
 
         $r = $c->store($this->post(['type' => 'forum', 'title' => 'Vraagje', 'content' => 'Hoe?', 'board' => 'algemeen']));
         $this->assertSame('/forum/algemeen/vraagje', $this->location($r));
-        $this->assertSame(1, $this->count('cf_forum_posts'));
+        $this->assertSame(1, $this->rows('cf_forum_posts'));
     }
 
     #[Test]
@@ -158,7 +158,7 @@ final class QuickPostControllerTest extends TestCase
         $this->assertSame('/?quick=leeg', $this->location($c->store($this->post(['type' => 'post', 'title' => '  ', 'content' => 'x']))));
         $this->assertSame('/?quick=leeg', $this->location($c->store($this->post(['type' => 'post', 'title' => 'x', 'content' => '']))));
         $this->assertSame('/?quick=bord', $this->location($c->store($this->post(['type' => 'forum', 'title' => 'x', 'content' => 'y', 'board' => 'nope']))));
-        $this->assertSame(0, $this->count('cf_news') + $this->count('cf_forum_topics'));
+        $this->assertSame(0, $this->rows('cf_news') + $this->rows('cf_forum_topics'));
     }
 
     #[Test]
