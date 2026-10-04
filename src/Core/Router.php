@@ -217,6 +217,7 @@ final class Router
         // Blokken admin
         $this->get('/admin/blocks',                     'CommunityFusion\Modules\Blocks\BlockController@index',  $perm('blocks.manage'));
         $this->get('/admin/blocks/create',              'CommunityFusion\Modules\Blocks\BlockController@create', $perm('blocks.manage'));
+        $this->get('/admin/blocks/{id:[0-9]+}/edit',    'CommunityFusion\Modules\Blocks\BlockController@edit',   $perm('blocks.manage'));
         $this->post('/admin/blocks/store',              'CommunityFusion\Modules\Blocks\BlockController@store',  $perm('blocks.manage'));
         $this->post('/admin/blocks/{id:[0-9]+}/update', 'CommunityFusion\Modules\Blocks\BlockController@update', $perm('blocks.manage'));
         $this->post('/admin/blocks/{id:[0-9]+}/delete', 'CommunityFusion\Modules\Blocks\BlockController@delete', $perm('blocks.manage'));

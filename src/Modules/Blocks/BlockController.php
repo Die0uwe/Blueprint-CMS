@@ -5,6 +5,7 @@
 declare(strict_types=1);
 namespace CommunityFusion\Modules\Blocks;
 
+use CommunityFusion\Core\Block\BlockConfigNormalizer;
 use CommunityFusion\Core\Block\BlockRegistry;
 use CommunityFusion\Core\Database\Connection;
 use CommunityFusion\Core\Request;
@@ -64,8 +65,13 @@ final class BlockController
         if ($type === null) {
             return Response::json(['error' => 'Block type niet gevonden.'], 404);
         }
+        $schema = $type->getConfigSchema();
+        // Geen invoer (de modal stuurt een lege config) → standaardwaarden uit het schema.
+        $config = (is_array($config) && $config !== [])
+            ? BlockConfigNormalizer::normalize($schema, $config)
+            : BlockConfigNormalizer::defaults($schema);
         try {
-            $type->validateConfig(is_array($config) ? $config : []);
+            $type->validateConfig($config);
         } catch (\Throwable $e) {
             return Response::json(['error' => $e->getMessage()], 422);
         }
@@ -93,30 +99,91 @@ final class BlockController
         ]);
 
         if ($request->isJson() || $request->isAjax()) {
-            return Response::json(['success' => true, 'block_id' => $id]);
+            return Response::json([
+                'success'  => true,
+                'block_id' => $id,
+                // Heeft dit type instellingen? Dan stuurt de UI direct door naar het bewerkscherm.
+                'edit_url' => $schema !== [] ? "/admin/blocks/{$id}/edit" : null,
+            ]);
         }
-        return Response::redirect('/admin/blocks');
+        return Response::redirect($schema !== [] ? "/admin/blocks/{$id}/edit" : '/admin/blocks');
+    }
+
+    public function edit(Request $request): Response
+    {
+        $id  = (int) $request->param('id');
+        $row = $this->registry->findBlock($id);
+        $type = $row !== null ? $this->registry->find((string) $row['type_slug']) : null;
+        if ($row === null || $type === null) {
+            return Response::redirect('/admin/blocks');
+        }
+
+        $block  = $row;
+        $schema = $type->getConfigSchema();
+        $values = json_decode((string) ($row['config'] ?? '{}'), true);
+        $values = is_array($values) ? $values : [];
+        $zones  = self::ZONES;
+        $saved  = $request->query('saved', '') === '1';
+
+        ob_start();
+        include __DIR__ . '/views/edit.php';
+        return Response::html(ob_get_clean());
     }
 
     public function update(Request $request): Response
     {
         CsrfProtection::validateRequest();
-        $id     = (int) $request->param('id');
-        $title  = $request->input('title', '');
-        $config = $request->input('config', []);
-        $vis    = (int) $request->input('is_visible', 1);
-        $zone   = $request->input('zone', '');
+        $id  = (int) $request->param('id');
+        $row = $this->registry->findBlock($id);
+        $type = $row !== null ? $this->registry->find((string) $row['type_slug']) : null;
+        if ($row === null || $type === null) {
+            return Response::json(['error' => 'Blok niet gevonden.'], 404);
+        }
 
-        $data = ['title' => $title ?: null, 'config' => json_encode($config), 'is_visible' => $vis];
-        if (!empty($zone) && array_key_exists($zone, self::ZONES)) {
+        // Alleen de MEEGESTUURDE velden bijwerken. Eerder schreef dit altijd
+        // title = null en config = [] weg zodra een aanroep (zichtbaarheid wisselen,
+        // verplaatsen naar een andere zone) die velden niet meestuurde — dat wiste
+        // de configuratie van het blok.
+        $data = [];
+
+        $title = $request->input('title', null);
+        if ($title !== null) {
+            $title = trim((string) $title);
+            $data['title'] = $title !== '' ? mb_substr($title, 0, 200) : null;
+        }
+
+        $vis = $request->input('is_visible', null);
+        if ($vis !== null) {
+            $data['is_visible'] = (int) ((string) $vis === '1' || $vis === 1 || $vis === true);
+        }
+
+        $zone = $request->input('zone', '');
+        if ($zone !== '') {
+            if (!array_key_exists($zone, self::ZONES)) {
+                return Response::json(['error' => 'Ongeldige zone.'], 422);
+            }
             $data['zone'] = $zone;
         }
-        $this->registry->updateBlock($id, $data);
+
+        $rawConfig = $request->input('config', null);
+        if (is_array($rawConfig) && $rawConfig !== []) {
+            $config = BlockConfigNormalizer::normalize($type->getConfigSchema(), $rawConfig);
+            try {
+                $type->validateConfig($config);
+            } catch (\Throwable $e) {
+                return Response::json(['error' => $e->getMessage()], 422);
+            }
+            $data['config'] = json_encode($config, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        }
+
+        if ($data !== []) {
+            $this->registry->updateBlock($id, $data);
+        }
 
         if ($request->isJson() || $request->isAjax()) {
             return Response::json(['success' => true]);
         }
-        return Response::redirect('/admin/blocks');
+        return Response::redirect("/admin/blocks/{$id}/edit?saved=1");
     }
 
     public function delete(Request $request): Response
@@ -172,7 +239,7 @@ final class BlockController
     {
         $placed = [];
         foreach (self::ZONES as $zone => $_) {
-            $placed[$zone] = $this->registry->getZoneBlocks($zone);
+            $placed[$zone] = $this->registry->getAllZoneBlocks($zone);
         }
         return $placed;
     }

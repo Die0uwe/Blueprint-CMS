@@ -34,7 +34,7 @@ $zones = [
 <title>Blok toevoegen: <?= htmlspecialchars($type->getName()) ?> — Blueprint CMS Admin</title>
 <link rel="stylesheet" href="/assets/css/blueprint.css">
 <?php include __DIR__ . '/../../Shared/views/admin_styles.php'; ?>
-<style>.form-wrap { max-width: 560px; margin: 2rem auto; }</style>
+<style>.form-wrap { max-width: 720px; margin: 2rem auto; }</style>
 </head>
 <body>
 <div class="admin-wrap">
@@ -66,21 +66,7 @@ $zones = [
             </select>
           </div>
 
-          <?php foreach ($type->getConfigSchema() as $key => $field): ?>
-            <div class="cf-form-group">
-              <label class="cf-label"><?= htmlspecialchars($field['label'] ?? $key) ?></label>
-              <?php if (($field['type'] ?? 'string') === 'boolean'): ?>
-                <label style="font-weight:400;display:flex;align-items:center;gap:.4rem;">
-                  <input type="checkbox" name="config[<?= htmlspecialchars($key, ENT_QUOTES) ?>]" value="1" style="width:auto;"
-                         <?= !empty($field['default']) ? 'checked' : '' ?>>
-                  Ingeschakeld
-                </label>
-              <?php else: ?>
-                <input type="text" name="config[<?= htmlspecialchars($key, ENT_QUOTES) ?>]" class="cf-input"
-                       value="<?= htmlspecialchars((string) ($field['default'] ?? '')) ?>">
-              <?php endif; ?>
-            </div>
-          <?php endforeach; ?>
+          <?php $schema = $type->getConfigSchema(); $values = []; include __DIR__ . '/_config_fields.php'; ?>
 
           <button type="submit" class="cf-btn">Blok toevoegen</button>
           <a href="/admin/blocks" class="cf-btn-ghost">Annuleren</a>

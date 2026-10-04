@@ -239,7 +239,7 @@ use CommunityFusion\Core\Security\CsrfProtection;
     <header class="admin-topbar">
       <h1>🧩 Blokken Beheer</h1>
       <div style="display:flex;gap:.8rem;align-items:center;">
-        <span style="font-size:.78rem;color:var(--muted);">Drag & Drop om te herordenen · Wijzigingen worden automatisch opgeslagen</span>
+        <span style="font-size:.78rem;color:var(--muted);">Drag & Drop om te herordenen · ✏️ om een blok te bewerken</span>
         <button class="cf-btn" onclick="openAddModal()">+ Blok Toevoegen</button>
       </div>
     </header>
@@ -314,6 +314,7 @@ use CommunityFusion\Core\Security\CsrfProtection;
                       <div class="block-type"><?= htmlspecialchars($block['type_slug']) ?></div>
                     </div>
                     <div class="block-actions">
+                      <a class="block-btn" href="/admin/blocks/<?= (int) $block['id'] ?>/edit" title="Bewerken" style="text-decoration:none;">✏️</a>
                       <button class="block-btn" onclick="toggleVisible(<?= $block['id'] ?>, <?= $isVisible ? 0 : 1 ?>)">
                         <?= $isVisible ? '👁️' : '🚫' ?>
                       </button>
@@ -437,7 +438,11 @@ async function api(method, url, body = null) {
 
 async function addBlock(typeSlug, zone, title = '') {
   const d = await api('POST', '/admin/blocks/store', { type_slug: typeSlug, zone, title, config: {} });
-  if (d.success) { showToast('✅ Blok toegevoegd'); setTimeout(() => location.reload(), 800); }
+  if (d.success) {
+    showToast('✅ Blok toegevoegd');
+    // Heeft het bloktype instellingen? Ga dan direct naar het bewerkscherm.
+    setTimeout(() => { if (d.edit_url) location.href = d.edit_url; else location.reload(); }, 600);
+  }
   else showToast(d.error || 'Fout', 'error');
 }
 

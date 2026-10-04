@@ -77,6 +77,42 @@ final class BlockRegistry
     }
 
     /**
+     * Alle blokken van een zone voor het ADMIN-scherm: inclusief verborgen
+     * blokken en zonder cache. (getZoneBlocks() filtert op is_visible = 1 voor
+     * de publieke site; in de admin zou een verborgen blok daardoor nooit meer
+     * terug zichtbaar gemaakt kunnen worden.)
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getAllZoneBlocks(string $zone): array
+    {
+        return $this->db->fetchAll(
+            "SELECT b.*, bt.slug as type_slug
+             FROM cf_blocks b
+             JOIN cf_block_types bt ON bt.id = b.block_type_id
+             WHERE b.zone = ?
+             ORDER BY b.position ASC",
+            [$zone]
+        );
+    }
+
+    /**
+     * Eén blok-instantie op id (met type-slug), of null.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findBlock(int $id): ?array
+    {
+        return $this->db->fetchOne(
+            "SELECT b.*, bt.slug as type_slug
+             FROM cf_blocks b
+             JOIN cf_block_types bt ON bt.id = b.block_type_id
+             WHERE b.id = ?",
+            [$id]
+        );
+    }
+
+    /**
      * Render alle blocks in een zone naar HTML.
      */
     public function renderZone(string $zone, array $context = []): string
