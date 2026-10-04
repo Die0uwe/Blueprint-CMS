@@ -57,7 +57,18 @@ jobs:
         run: mysql -h127.0.0.1 -uroot -proot bluprint_test < src/Core/Database/schema.sql
 
       - name: PHPUnit
-        run: composer test
+        shell: bash
+        run: |
+          set +e
+          composer test 2>&1 | tee phpunit-output.txt
+          code=${PIPESTATUS[0]}
+          if [ "$code" -ne 0 ]; then
+            # Logs zijn niet altijd leesbaar buiten de Actions-UI; zet het eind van de
+            # uitvoer daarom ook als annotatie (zichtbaar via API/PR-checks).
+            msg=$(tail -n 40 phpunit-output.txt | head -c 3500 | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g')
+            echo "::error title=PHPUnit uitvoer (laatste regels)::$msg"
+          fi
+          exit $code
         env:
           CF_TEST_DB_HOST: 127.0.0.1
           CF_TEST_DB_NAME: bluprint_test
