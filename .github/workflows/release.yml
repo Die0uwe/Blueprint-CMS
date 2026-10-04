@@ -1,0 +1,32 @@
+# Maakt met één klik een GitHub-release met een kant-en-klare ZIP (incl. vendor/,
+# dus geen Composer nodig). Gebruik: Actions → "Release" → Run workflow → versie invullen.
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Versie, bv. 1.29.0 (wordt tag v1.29.0)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: ZIP bouwen
+        run: |
+          V="${{ github.event.inputs.version }}"
+          git archive --format=zip --prefix="blueprint-cms-v${V}/" -o "blueprint-cms-v${V}.zip" HEAD
+      - name: Release publiceren
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          V="${{ github.event.inputs.version }}"
+          gh release create "v${V}" "blueprint-cms-v${V}.zip" \
+            --title "Blueprint CMS v${V}" \
+            --generate-notes \
+            --notes "Volledige ZIP inclusief vendor/ — geen composer install nodig. Zie CHANGELOG.md voor details."
