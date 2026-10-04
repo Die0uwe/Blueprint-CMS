@@ -20,6 +20,11 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ## [Unreleased]
 
+### Fase E — Snel plaatsen op de homepage
+- Widget **Snel plaatsen** op de startpagina (alleen voor ingelogde bezoekers): nieuwsbericht (`news.create`), blogpost (eigen blog, elke ingelogde gebruiker) of forumtopic (`forum.post`, met bordkeuze). Alleen de toegestane types verschijnen.
+- Nieuw `POST /quick-post` (`QuickPostController`): CSRF, rechtencontrole per type (403 bij misbruik), `ContentSanitizer`, titel max. 200 tekens, redirect naar het nieuwe item; lege invoer of onbekend bord geeft een melding zonder iets op te slaan.
+- Tests: `QuickPostControllerTest` (rechten, aanmaken, validatie, CSRF).
+
 ### Fase D — Nieuwe en uitgebreide blokken
 - **Laatste nieuws** (`news-latest`): weergave `list` (standaard, ongewijzigd), `ticker` (doorlopende nieuwsbalk, pauzeert bij hover/focus, statisch bij *reduced motion*) en `ticket` (kaarten met datumstrook, samenvatting en optionele afbeelding — alleen eigen `/media/`-afbeeldingen).
 - **Nieuw `blog-latest`** (lijst of ticket), **`forum-activity`** (laatste reactie of nieuwste topics) en **`downloads-latest`** (nieuwste of populairste; lay-out `sidebar`, `centered` of `slider`).

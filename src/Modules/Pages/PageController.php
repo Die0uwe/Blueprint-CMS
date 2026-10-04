@@ -30,6 +30,7 @@ final class PageController
         private readonly ThemeManager    $theme,
         private readonly NewsRepository  $news,
         private readonly AuthManager     $auth,
+        private readonly QuickPostController $quickPost,
     ) {}
 
     // ── Publiek ──────────────────────────────────────────────────────────
@@ -44,6 +45,11 @@ final class PageController
             'page_title'  => 'Home',
             'latest_news' => $latestNews,
             'menu_pages'  => $menuPages,
+            'quick_post'  => [
+                'types'  => $this->quickPost->allowedTypes(),
+                'boards' => $this->quickPost->boards(),
+                'status' => (string) $request->query('quick', ''),
+            ],
         ]);
 
         return Response::html($html);

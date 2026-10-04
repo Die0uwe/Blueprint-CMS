@@ -945,3 +945,11 @@ body.cf-layout-boxed #cf-page .cf-layout { max-width: 100%; }
 .cf-dl-actions { display: flex; gap: .4rem; flex-wrap: wrap; justify-content: center; margin-top: .3rem; }
 .cf-block-forum-item { align-items: flex-start; }
 .cf-block-forum-meta { display: block; color: var(--muted); font-size: .72rem; }
+
+/* Fase E — snel plaatsen op de homepage */
+.cf-quickpost{margin:0 0 2rem;padding:1rem 1.25rem;border:1px solid var(--border,rgba(255,255,255,.12));border-radius:12px;background:var(--surface,rgba(255,255,255,.03))}
+.cf-quickpost-form{display:flex;flex-direction:column;gap:.6rem}
+.cf-quickpost-row{display:flex;gap:.6rem;flex-wrap:wrap}
+.cf-quickpost-form input,.cf-quickpost-form textarea,.cf-quickpost-form select{width:100%;max-width:100%;box-sizing:border-box}
+.cf-quickpost-row select{width:auto;flex:1 1 180px}
+.cf-quickpost-form button{align-self:flex-start}

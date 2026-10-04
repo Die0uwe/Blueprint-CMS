@@ -6,6 +6,32 @@
   <p style="color:var(--text-dim);margin-top:.5rem;">Jouw community, jouw regels.</p>
 </div>
 
+{% if quick_post and quick_post.types %}
+<section class="cf-quickpost" id="cf-quickpost">
+  <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:.75rem;">✍️ Snel plaatsen</h2>
+  {% if quick_post.status == 'leeg' %}<p class="cf-alert cf-alert-error">Titel en inhoud zijn verplicht.</p>{% elseif quick_post.status == 'bord' %}<p class="cf-alert cf-alert-error">Kies een geldig forumbord.</p>{% elseif quick_post.status == 'fout' %}<p class="cf-alert cf-alert-error">Plaatsen mislukt.</p>{% endif %}
+  <form method="post" action="/quick-post" class="cf-quickpost-form">
+    {{ csrf_field()|raw }}
+    <div class="cf-quickpost-row">
+      <select name="type" id="cf-qp-type" aria-label="Type bericht">
+        {% if 'post' in quick_post.types %}<option value="post">📰 Nieuwsbericht</option>{% endif %}
+        {% if 'blog' in quick_post.types %}<option value="blog">📝 Blogpost</option>{% endif %}
+        {% if 'forum' in quick_post.types %}<option value="forum">💬 Forumtopic</option>{% endif %}
+      </select>
+      {% if quick_post.boards %}
+      <select name="board" id="cf-qp-board" aria-label="Forumbord">
+        {% for b in quick_post.boards %}<option value="{{ b.slug }}">{{ b.name }}</option>{% endfor %}
+      </select>
+      {% endif %}
+    </div>
+    <input type="text" name="title" maxlength="200" placeholder="Titel" required>
+    <textarea name="content" rows="4" placeholder="Wat wil je delen?" required></textarea>
+    <button type="submit" class="cf-btn">Plaatsen</button>
+  </form>
+  <script>(function(){var t=document.getElementById('cf-qp-type'),b=document.getElementById('cf-qp-board');if(!t||!b)return;function s(){b.style.display=t.value==='forum'?'':'none';}t.addEventListener('change',s);s();})();</script>
+</section>
+{% endif %}
+
 {% if latest_news %}
 <section>
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">

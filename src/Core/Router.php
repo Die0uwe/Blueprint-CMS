@@ -117,6 +117,7 @@ final class Router
 
         // ── Publiek ─────────────────────────────────────────────────────
         $this->get('/',                        'CommunityFusion\Modules\Pages\PageController@home');
+        $this->post('/quick-post',             'CommunityFusion\Modules\Pages\QuickPostController@store', ['CommunityFusion\Api\Middleware\AuthMiddleware']);
         $this->get('/news',                    'CommunityFusion\Modules\News\NewsController@index');
         $this->get('/news/{slug:[a-z0-9-]+}',  'CommunityFusion\Modules\News\NewsController@show');
         $this->get('/page/{slug:[a-z0-9-/]+}', 'CommunityFusion\Modules\Pages\PageController@show');
