@@ -15,7 +15,7 @@ $labels = [
 <link rel="stylesheet" href="/assets/css/blueprint.css">
 <?php include __DIR__ . '/../../Shared/views/admin_styles.php'; ?>
 <style>
-  .api-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:1rem; }
+  .api-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr)); gap:1rem; }
   .api-card { padding:1.1rem 1.25rem; border-left:4px solid var(--border); }
   .api-card[data-status=ok]{border-left-color:#22c55e} .api-card[data-status=error]{border-left-color:#ef4444}
   .api-card[data-status=unconfigured]{border-left-color:#eab308} .api-card[data-status=configured]{border-left-color:#3b82f6}
@@ -26,7 +26,7 @@ $labels = [
   .api-msg { font-size:.85rem; min-height:1.3em; margin-bottom:.7rem; }
   .api-actions { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; }
   .api-switch { display:inline-flex; align-items:center; gap:.4rem; font-size:.85rem; cursor:pointer; }
-  .api-actions button { font:inherit; cursor:pointer; }
+  .api-actions button, .api-actions .cf-btn-ghost { font:inherit; font-size:.875rem; cursor:pointer; display:inline-flex; align-items:center; }
   .api-actions button:disabled { opacity:.45; cursor:not-allowed; }
   .api-summary { display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1.25rem; font-size:.9rem; }
 </style>

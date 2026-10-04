@@ -212,5 +212,6 @@ async function reviewApp(id, action) {
   }
 }
 </script>
+<?php include CF_ROOT . '/src/Modules/Shared/views/admin_mobile.php'; ?>
 </body>
 </html>

@@ -152,5 +152,6 @@
     </div>
   </div>
 </div>
+<?php include CF_ROOT . '/src/Modules/Shared/views/admin_mobile.php'; ?>
 </body>
 </html>

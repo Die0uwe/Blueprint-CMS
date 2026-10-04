@@ -78,6 +78,7 @@ $navItem = static function (string $key, string $href, string $icon, string $lab
     <a href="/logout" class="admin-nav-link"><span class="nav-icon">👋</span> <?= htmlspecialchars(Trans::get('admin.sidebar.logout')) ?></a>
   </div>
 </aside>
+<?php include __DIR__ . '/admin_mobile.php'; ?>
 
 <?php
 // ╔══════════════════════════════════════════════════════════════════════╗

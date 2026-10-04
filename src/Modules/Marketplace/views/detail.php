@@ -170,5 +170,6 @@ async function uninstallPkg(slug){
   else showToast(d.error||'Fout','error');
 }
 </script>
+<?php include CF_ROOT . '/src/Modules/Shared/views/admin_mobile.php'; ?>
 </body>
 </html>

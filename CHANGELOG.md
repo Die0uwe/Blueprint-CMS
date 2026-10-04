@@ -20,6 +20,11 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ## [Unreleased] — Thema's, mobiel, editor, blok-instellingen en API-overzicht
 
+### Admin op mobiel (Golf 5)
+
+- **Fix: admin onbruikbaar op een telefoon.** De zijbalk was vast 240px breed en nam het scherm in. Onder 900px schuift ze nu uit beeld en opent via een hamburgerknop (Escape of tikken naast het menu sluit). Eén gedeeld onderdeel (`Shared/views/admin_mobile.php`) dekt alle admin-schermen, ook die met eigen zijbalk.
+- Brede tabellen scrollen binnen hun kaart, vaste meerkolomsformulieren worden één kolom, invoervelden zijn 16px (geen zoom op iOS) en knoppen minimaal 40px hoog.
+
 ### Thema's en mobiel (Golf 4)
 
 - **Nieuw: 8 thema's**, elk met een lichte én donkere variant: Blueprint Dark, Clean Light, Gaming Dark, Regenboog, Kids, Tech, Nature en Universe. Contrast van tekst, links en knoppen is getest op WCAG AA (ook als unit-test).
