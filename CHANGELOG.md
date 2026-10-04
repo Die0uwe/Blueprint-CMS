@@ -20,6 +20,9 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ## [Unreleased]
 
+### Security (audit oktober 2026)
+- Queue-worker bouwt jobs uit `cf_queue_jobs.payload` alleen nog op voor klassen die van `Core\Queue\Job` erven (voorkomt PHP object injection als de database ooit gemanipuleerd wordt); `FileCache` leest zonder objecten (`allowed_classes => false`).
+
 ### Golf 5e — Lockfile-workflow en strengere Migrator
 - Nieuwe workflow `.github/workflows/lockfile.yml` (handmatig starten): maakt/ververst `composer.lock` zonder `vendor/` aan te raken en commit hem naar `main`. (`composer.lock` kon niet lokaal gegenereerd worden: packagist.org is in de bouwomgeving geblokkeerd.)
 - `Migrator`: strikt tegen `PDO::query/prepare` die `false` kunnen teruggeven (PHPStan level 8, foutmelding i.p.v. crash).

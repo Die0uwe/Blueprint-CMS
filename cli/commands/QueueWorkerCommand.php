@@ -54,7 +54,18 @@ final class QueueWorkerCommand
             echo "[" . date('H:i:s') . "] Verwerking job #{$job['id']} (queue: {$job['queue']})\n";
 
             try {
-                $jobInstance = unserialize($job['payload']);
+                // Object-injection-bescherming: alleen klassen die van Job erven
+                // mogen uit de payload worden opgebouwd (nooit willekeurige klassen).
+                $payload = (string) $job['payload'];
+                $allowed = [];
+                if (preg_match_all('/(?:^|;)O:\d+:"([^"]+)"/', $payload, $mm)) {
+                    foreach (array_unique($mm[1]) as $cls) {
+                        if (is_subclass_of($cls, \CommunityFusion\Core\Queue\Job::class)) {
+                            $allowed[] = $cls;
+                        }
+                    }
+                }
+                $jobInstance = unserialize($payload, ['allowed_classes' => $allowed]);
 
                 if (!is_object($jobInstance) || !method_exists($jobInstance, 'handle')) {
                     throw new \RuntimeException("Ongeldig job payload");

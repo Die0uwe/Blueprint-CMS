@@ -45,7 +45,7 @@ final class FileCache implements CacheInterface
         // warning bleef bij elke volgende get() terugkomen. Gevonden
         // tijdens de S13-inventarisatiepas.
         $raw  = file_get_contents($file);
-        $data = $raw !== false ? @unserialize($raw) : false;
+        $data = $raw !== false ? @unserialize($raw, ['allowed_classes' => false]) : false;
         if (!is_array($data) || !array_key_exists('value', $data) || !array_key_exists('expires', $data)) {
             @unlink($file);
             return $default;
