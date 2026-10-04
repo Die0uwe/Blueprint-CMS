@@ -13,6 +13,7 @@ use CommunityFusion\Core\Response;
 use CommunityFusion\Core\Auth\AuthManager;
 use CommunityFusion\Core\Database\Connection;
 use CommunityFusion\Core\I18n\Translator;
+use CommunityFusion\Core\Security\SafeRedirect;
 
 /**
  * LanguageController — S13 (Multi-language/i18n).
@@ -82,7 +83,9 @@ final class LanguageController
             return '/';
         }
 
-        return $path . ($query !== null ? '?' . $query : '');
+        // "//evil.com" is een geldig pad volgens parse_url (Referer "https://x//evil.com"),
+        // maar een protocol-relatieve redirect: SafeRedirect weigert dat.
+        return SafeRedirect::target($path . ($query !== null ? '?' . $query : ''));
     }
 }
 

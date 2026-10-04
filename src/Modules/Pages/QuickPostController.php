@@ -26,7 +26,25 @@ use CommunityFusion\Modules\News\NewsRepository;
  */
 final class QuickPostController
 {
-    public const TYPES = ['post', 'blog', 'forum'];
+    public const TYPES    = ['post', 'blog', 'forum'];
+    public const COOLDOWN = 20;   // seconden tussen twee snelle posts (per sessie)
+
+    /**
+     * Platte tekst uit het <textarea> → alinea's met regeleinden (anders verdwijnen ze bij weergave
+     * van HTML-inhoud). Bevat de invoer al HTML-tags, dan blijft die ongemoeid (sanitizer volgt).
+     */
+    public static function paragraphs(string $text): string
+    {
+        $text = trim(str_replace("\r\n", "\n", $text));
+        if ($text === '' || strip_tags($text) !== $text) {
+            return $text;
+        }
+        $out = [];
+        foreach (preg_split('/\n{2,}/', $text) ?: [] as $para) {
+            $out[] = '<p>' . nl2br(htmlspecialchars(trim($para), ENT_QUOTES, 'UTF-8'), false) . '</p>';
+        }
+        return implode("\n", $out);
+    }
 
     public function __construct(
         private readonly NewsRepository  $news,
@@ -84,7 +102,7 @@ final class QuickPostController
         }
 
         $title   = trim((string) $request->input('title', ''));
-        $content = ContentSanitizer::cleanForStorage((string) $request->input('content', ''));
+        $content = ContentSanitizer::cleanForStorage(self::paragraphs((string) $request->input('content', '')));
         if ($title === '' || $content === '') {
             return Response::redirect('/?quick=leeg');
         }
@@ -92,13 +110,24 @@ final class QuickPostController
             $title = mb_substr($title, 0, 200);
         }
 
+        // Anti-spam: maximaal één snelle post per COOLDOWN seconden per sessie.
+        $last = (int) ($_SESSION['quickpost_last'] ?? 0);
+        if ($last > 0 && time() - $last < self::COOLDOWN) {
+            return Response::redirect('/?quick=wacht');
+        }
+
         $userId = (int) $this->auth->id();
 
-        return match ($type) {
+        $response = match ($type) {
             'post'  => $this->storePost($userId, $title, $content),
             'blog'  => $this->storeBlog($userId, $title, $content),
             default => $this->storeTopic($userId, $title, $content, (string) $request->input('board', '')),
         };
+        if (!str_starts_with((string) $response->getHeader('Location'), '/?quick=')) {
+            $_SESSION['quickpost_last'] = time();   // alleen een geslaagde post telt
+        }
+
+        return $response;
     }
 
     private function storePost(int $userId, string $title, string $content): Response

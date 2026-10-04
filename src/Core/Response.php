@@ -68,6 +68,11 @@ final class Response
         header('X-Content-Type-Options: nosniff');
         header('Referrer-Policy: strict-origin-when-cross-origin');
         header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
+        $https = (($_SERVER['HTTPS'] ?? '') !== '' && $_SERVER['HTTPS'] !== 'off')
+              || strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
+        if ($https) {
+            header('Strict-Transport-Security: max-age=15552000');   // 180 dagen, zonder includeSubDomains/preload
+        }
 
         http_response_code($this->statusCode);
 

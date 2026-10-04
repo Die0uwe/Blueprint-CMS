@@ -20,6 +20,16 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ## [Unreleased]
 
+### Plan v2 – batch 3: beveiliging
+- **Open redirect** in de taalwisselaar via een Referer als `https://site//evil.example` is gesloten (`SafeRedirect`).
+- **AdBlock**: alleen `http(s)://` of eigen `/pad` als afbeeldings- en link-URL (geen `javascript:`/`data:`); links krijgen `noopener noreferrer sponsored`.
+- **Thema-kiezer-JSON** in `<script>` gebruikt `JSON_HEX_TAG|AMP|APOS|QUOT` (geen `</script>`-breakout via een themanaam).
+- **Quick-post**: cooldown van 20 s per sessie (alleen geslaagde posts tellen), regeleinden/alinea's blijven behouden in nieuws en blog.
+- **RateLimitMiddleware** telt per IP én route; **FileCache** schrijft atomair (tmp + rename) en verwijdert zonder races.
+- **Galerij**: harde pixelgrens (40 MP) voor miniaturen, ook bij `memory_limit=-1`.
+- **HSTS** (180 dagen, zonder subdomeinen/preload) wanneer de pagina via HTTPS wordt geserveerd.
+- Tests: `SecurityHardeningTest`, uitbreiding `QuickPostControllerTest`.
+
 ### Plan v2 – batch 2: downloads, statistiek en data-integriteit
 - **Downloads**: bestanden worden gestreamd (`Response::stream`) met HTTP Range/206 i.p.v. 50 MB in het geheugen; veilige `Content-Disposition` (`filename*=UTF-8''`, geen header-injectie); download wordt maar één keer geteld per start (niet bij hervatten).
 - **Slug-botsing**: een nieuwe download met de titel van een verwijderde gaf een UNIQUE-fout (500 + weesbestand); slugcontrole telt nu ook soft-deleted rijen mee en de route-slug `nieuw` is gereserveerd.

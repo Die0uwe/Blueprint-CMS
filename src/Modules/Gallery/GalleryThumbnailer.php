@@ -40,6 +40,10 @@ final class GalleryThumbnailer
     /** Past het gedecodeerde bitmap-formaat (±5 bytes/pixel) nog binnen memory_limit? */
     private function fitsInMemory(int $width, int $height): bool
     {
+        // Harde bovengrens, ook bij memory_limit=-1: een 40+ megapixel decode kost honderden MB.
+        if ($width * $height > 40_000_000) {
+            return false;
+        }
         $limit = ini_get('memory_limit');
         if ($limit === false || $limit === '' || $limit === '-1') {
             return true;

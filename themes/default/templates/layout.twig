@@ -15,7 +15,7 @@
    de bezoeker vóór de eerste verf wordt toegepast (geen flits). Validatie van
    theme.json-waarden: Core\Template\ThemeCatalog. #}
 <style id="cf-theme-css">{{ theme_css|raw }}{{ theme_overrides|default('')|raw }}</style>
-<script type="application/json" id="cf-themes">{{ theme_picker|json_encode|raw }}</script>
+<script type="application/json" id="cf-themes">{{ theme_picker|json_encode(15)|raw }}</script>
 <script src="{{ asset('js/cf-theme-init.js') }}"></script>
 {% block head %}{% endblock %}
 </head>

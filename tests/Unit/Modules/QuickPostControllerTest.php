@@ -78,8 +78,11 @@ final class QuickPostControllerTest extends TestCase
         );
     }
 
-    private function post(array $body): Request
+    private function post(array $body, bool $resetCooldown = true): Request
     {
+        if ($resetCooldown) {
+            unset($_SESSION['quickpost_last']);   // cooldown staat apart getest
+        }
         $body['_csrf_token'] = 'tok';
         $_POST = $body;
         return new Request('POST', '/quick-post', [], $body, [], [], [], []);
@@ -168,5 +171,16 @@ final class QuickPostControllerTest extends TestCase
         $_POST = ['_csrf_token' => 'wrong'];
         $this->expectException(\CommunityFusion\Core\HttpException::class);
         $c->store(new Request('POST', '/quick-post', [], ['type' => 'blog', 'title' => 'x', 'content' => 'y'], [], [], [], []));
+    }
+
+    #[Test]
+    public function secondPostWithinCooldownIsRefusedAndNewlinesBecomeParagraphs(): void
+    {
+        $c = $this->ctl([]);
+        $r1 = $c->store($this->post(['type' => 'blog', 'title' => 'Een', 'content' => "regel1\nregel2\n\nalinea2"]));
+        $this->assertStringNotContainsString('quick=', $this->location($r1));
+        $this->assertSame('/?quick=wacht', $this->location($c->store($this->post(['type' => 'blog', 'title' => 'Twee', 'content' => 'x'], false))));
+        $this->assertSame("<p>regel1<br>\nregel2</p>\n<p>alinea2</p>", QuickPostController::paragraphs("regel1\r\nregel2\n\nalinea2"));
+        $this->assertSame('<b>x</b>', QuickPostController::paragraphs('<b>x</b>'));
     }
 }

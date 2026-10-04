@@ -25,7 +25,7 @@ final class RateLimitMiddleware
     public function handle(Request $request, callable $next): Response
     {
         $ip       = $request->ip();
-        $key      = 'ratelimit.' . md5($ip . date('YmdHi')); // nieuw venster elke minuut
+        $key      = 'ratelimit.' . md5($ip . '|' . $request->getPath() . '|' . date('YmdHi')); // nieuw venster elke minuut
         $count    = (int)($this->cache->get($key) ?? 0);
 
         if ($count >= $this->maxRequests) {

@@ -24,10 +24,13 @@ final class AdBlock extends AbstractBlock
 
     public function render(array $config, array $context = []): string
     {
-        $img  = htmlspecialchars($config['image_url'] ?? '', ENT_QUOTES);
-        $link = htmlspecialchars($config['link_url']  ?? '#', ENT_QUOTES);
+        // Alleen http(s):// of eigen /pad: geen javascript:/data:-URL's in href of src.
+        $safeUrl = static fn(mixed $u, string $fallback): string =>
+            is_string($u) && preg_match('#^(https?://|/(?!/))[^\s<>"\']*$#i', trim($u)) === 1 ? trim($u) : $fallback;
+        $img  = htmlspecialchars($safeUrl($config['image_url'] ?? '', ''), ENT_QUOTES);
+        $link = htmlspecialchars($safeUrl($config['link_url'] ?? '', '#'), ENT_QUOTES);
         $alt  = htmlspecialchars($config['alt_text']  ?? 'Advertentie', ENT_QUOTES);
-        $target = ($config['open_new'] ?? true) ? ' target="_blank" rel="noopener"' : '';
+        $target = ($config['open_new'] ?? true) ? ' target="_blank" rel="noopener noreferrer sponsored"' : '';
 
         if (empty($img)) return '<!-- Advertentie: geen afbeelding ingesteld -->';
 

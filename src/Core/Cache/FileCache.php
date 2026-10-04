@@ -52,7 +52,7 @@ final class FileCache implements CacheInterface
         }
 
         if ($data['expires'] !== null && $data['expires'] < time()) {
-            unlink($file);
+            @unlink($file);
             return $default;
         }
 
@@ -70,19 +70,31 @@ final class FileCache implements CacheInterface
         }
 
         $data = serialize(['value' => $value, 'expires' => $expires]);
-        return file_put_contents($this->getFilePath($key), $data, LOCK_EX) !== false;
+        // Atomair schrijven (tijdelijk bestand + rename): een gelijktijdige get() ziet nooit een
+        // half geschreven bestand (file_put_contents met LOCK_EX kapt het bestand eerst af).
+        $file = $this->getFilePath($key);
+        $tmp  = $file . '.' . bin2hex(random_bytes(4)) . '.tmp';
+        if (file_put_contents($tmp, $data) === false) {
+            @unlink($tmp);
+            return false;
+        }
+        if (!@rename($tmp, $file)) {
+            @unlink($tmp);
+            return false;
+        }
+        return true;
     }
 
     public function delete(string $key): bool
     {
         $file = $this->getFilePath($key);
-        return file_exists($file) ? unlink($file) : true;
+        return !file_exists($file) || @unlink($file) || !file_exists($file);
     }
 
     public function clear(): bool
     {
         foreach (glob($this->path . '/*.cache') ?: [] as $file) {
-            unlink($file);
+            @unlink($file);
         }
         return true;
     }
