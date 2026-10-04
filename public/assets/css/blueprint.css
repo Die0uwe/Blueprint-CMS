@@ -16,7 +16,7 @@
   --gold:      #f59e0b;
   --text:      #e2e8f0;
   --text-dim:  #94a3b8;
-  --muted:     #64748b;
+  --muted:     #8091a7;   /* ≥4.5:1 op --bg/--surface (was #64748b ≈ 4.1:1) */
   --success:   #10b981;
   --warning:   #f59e0b;
   --error:     #ef4444;
@@ -832,10 +832,18 @@ body.cf-layout-boxed #cf-page .cf-layout { max-width: 100%; }
   display: flex; align-items: center; justify-content: center; padding: 2rem 1rem;
 }
 .cf-gallery-lightbox[hidden] { display: none; }
-.cf-gallery-lightbox-close {
-  position: absolute; top: 1rem; right: 1.2rem; background: none; border: none;
-  color: #fff; font-size: 1.6rem; line-height: 1; cursor: pointer; z-index: 1;
+.cf-gallery-lightbox-close, .cf-gallery-lightbox-nav {
+  position: absolute; background: rgba(255,255,255,.1); border: none; border-radius: 50%;
+  color: #fff; font-size: 1.4rem; line-height: 1; cursor: pointer; z-index: 1;
+  width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center;   /* tikdoel ≥44px */
 }
+.cf-gallery-lightbox-close { top: 1rem; right: 1.2rem; }
+.cf-gallery-lightbox-nav { top: 50%; transform: translateY(-50%); }
+.cf-gallery-lightbox-prev { left: .6rem; }
+.cf-gallery-lightbox-next { right: .6rem; }
+.cf-gallery-lightbox-close:hover, .cf-gallery-lightbox-nav:hover { background: rgba(255,255,255,.22); }
+.cf-gallery-lightbox-error { color: #fff; padding: 2rem 1rem; text-align: center; background: rgba(255,255,255,.08); border-radius: var(--radius); }
+body.cf-lightbox-open { overflow: hidden; }
 .cf-gallery-lightbox-body {
   max-width: 900px; width: 100%; max-height: 100%; overflow-y: auto;
   display: flex; flex-direction: column; gap: .8rem;
@@ -844,8 +852,8 @@ body.cf-layout-boxed #cf-page .cf-layout { max-width: 100%; }
 .cf-gallery-lightbox-media video { width: 100%; max-height: 70vh; object-fit: contain; border-radius: var(--radius); }
 .cf-gallery-lightbox-meta { color: #fff; }
 .cf-gallery-lightbox-title { margin: 0 0 .3rem; font-size: 1.1rem; }
-.cf-gallery-lightbox-description { margin: 0 0 .3rem; color: rgba(var(--fg-rgb),.75); font-size: .85rem; }
-.cf-gallery-lightbox-sub { font-size: .75rem; color: rgba(var(--fg-rgb),.55); }
+.cf-gallery-lightbox-description { margin: 0 0 .3rem; color: rgba(255,255,255,.85); font-size: .85rem; }
+.cf-gallery-lightbox-sub { font-size: .75rem; color: rgba(255,255,255,.7); }
 
 /* Sidebar-widget (GalleryLatestBlock) */
 .cf-block-gallery-grid {
@@ -998,10 +1006,11 @@ body.cf-layout-boxed #cf-page .cf-layout { max-width: 100%; }
 }
 .cf-player:not(.is-playing) .cf-pl-bar, .cf-player.show-bar .cf-pl-bar { opacity: 1; pointer-events: auto; }
 .cf-pl-btn {
-  background: none; border: 0; color: #fff; cursor: pointer; font-size: 1.05rem; min-width: 2.2rem; height: 2.2rem;
+  background: none; border: 0; color: #fff; cursor: pointer; font-size: 1.05rem; min-width: 2.75rem; height: 2.75rem;
   border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; padding: 0 .3rem;
 }
-.cf-pl-btn:hover, .cf-pl-btn:focus-visible { background: rgba(255,255,255,.18); outline: none; }
+.cf-pl-btn:hover { background: rgba(255,255,255,.18); }
+.cf-pl-btn:focus-visible { background: rgba(255,255,255,.18); outline: 2px solid #fff; outline-offset: -2px; }
 .cf-pl-speed { font-size: .8rem; font-weight: 700; }
 .cf-pl-time { font-size: .78rem; font-variant-numeric: tabular-nums; white-space: nowrap; opacity: .9; }
 .cf-pl-seekwrap { position: relative; flex: 1; height: 1.4rem; min-width: 60px; display: flex; align-items: center; }
@@ -1027,3 +1036,20 @@ body.cf-layout-boxed #cf-page .cf-layout { max-width: 100%; }
 .cf-pl-error a { color: var(--accent2, #38bdf8); margin-left: .3rem; text-decoration: underline; }
 @media (max-width: 600px) { .cf-pl-vol { display: none; } .cf-pl-time { font-size: .7rem; } }
 @media (prefers-reduced-motion: reduce) { .cf-pl-bar { transition: none; } .cf-player.is-loading::after { animation: none; } }
+
+
+/* Toegankelijkheid: zichtbare toetsenbordfocus overal + paginering */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent2); outline-offset: 2px;
+}
+.cf-pagination { display: flex; flex-wrap: wrap; gap: .5rem; justify-content: center; margin-top: 1.5rem; }
+.cf-pagination a { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+@media (max-width: 640px) {
+  .cf-gallery-lightbox-nav { top: auto; bottom: 1rem; transform: none; }
+}
+
+.cf-sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.cf-skip-link { position: absolute; left: .5rem; top: -4rem; z-index: 2000; background: var(--accent); color: var(--on-accent); padding: .6rem 1rem; border-radius: 8px; font-weight: 700; }
+.cf-skip-link:focus { top: .5rem; }
+.cf-quickpost-form input, .cf-quickpost-form textarea, .cf-quickpost-form select { font-size: 1rem; }   /* ≥16px: geen iOS-inzoom */
+@media (max-width: 640px) { .cf-quickpost-form button { align-self: stretch; min-height: 44px; } }

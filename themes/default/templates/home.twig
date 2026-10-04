@@ -9,23 +9,27 @@
 {% if quick_post and quick_post.types %}
 <section class="cf-quickpost" id="cf-quickpost">
   <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:.75rem;">✍️ Snel plaatsen</h2>
-  {% if quick_post.status == 'leeg' %}<p class="cf-alert cf-alert-error">Titel en inhoud zijn verplicht.</p>{% elseif quick_post.status == 'bord' %}<p class="cf-alert cf-alert-error">Kies een geldig forumbord.</p>{% elseif quick_post.status == 'fout' %}<p class="cf-alert cf-alert-error">Plaatsen mislukt.</p>{% endif %}
+  <div aria-live="polite">{% if quick_post.status == 'wacht' %}<p class="cf-alert cf-alert-warning" role="status">Even geduld — je kunt pas over een paar seconden opnieuw plaatsen.</p>{% elseif quick_post.status == 'leeg' %}<p class="cf-alert cf-alert-error" role="alert">Titel en inhoud zijn verplicht.</p>{% elseif quick_post.status == 'bord' %}<p class="cf-alert cf-alert-error" role="alert">Kies een geldig forumbord.</p>{% elseif quick_post.status == 'fout' %}<p class="cf-alert cf-alert-error" role="alert">Plaatsen mislukt.</p>{% endif %}</div>
   <form method="post" action="/quick-post" class="cf-quickpost-form">
     {{ csrf_field()|raw }}
     <div class="cf-quickpost-row">
-      <select name="type" id="cf-qp-type" aria-label="Type bericht">
+      <label for="cf-qp-type" class="cf-sr-only">Type bericht</label>
+      <select name="type" id="cf-qp-type" class="cf-input">
         {% if 'post' in quick_post.types %}<option value="post">📰 Nieuwsbericht</option>{% endif %}
         {% if 'blog' in quick_post.types %}<option value="blog">📝 Blogpost</option>{% endif %}
         {% if 'forum' in quick_post.types %}<option value="forum">💬 Forumtopic</option>{% endif %}
       </select>
       {% if quick_post.boards %}
-      <select name="board" id="cf-qp-board" aria-label="Forumbord">
+      <label for="cf-qp-board" class="cf-sr-only">Forumbord</label>
+      <select name="board" id="cf-qp-board" class="cf-input">
         {% for b in quick_post.boards %}<option value="{{ b.slug }}">{{ b.name }}</option>{% endfor %}
       </select>
       {% endif %}
     </div>
-    <input type="text" name="title" maxlength="200" placeholder="Titel" required>
-    <textarea name="content" rows="4" placeholder="Wat wil je delen?" required></textarea>
+    <label for="cf-qp-title" class="cf-sr-only">Titel</label>
+    <input type="text" name="title" id="cf-qp-title" class="cf-input" maxlength="200" placeholder="Titel" required>
+    <label for="cf-qp-content" class="cf-sr-only">Bericht</label>
+    <textarea name="content" id="cf-qp-content" class="cf-input" rows="4" placeholder="Wat wil je delen?" required></textarea>
     <button type="submit" class="cf-btn">Plaatsen</button>
   </form>
   <script>(function(){var t=document.getElementById('cf-qp-type'),b=document.getElementById('cf-qp-board');if(!t||!b)return;function s(){b.style.display=t.value==='forum'?'':'none';}t.addEventListener('change',s);s();})();</script>

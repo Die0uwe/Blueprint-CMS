@@ -20,6 +20,13 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ## [Unreleased]
 
+### Plan v2 – batch 4: toegankelijkheid en bediening
+- **Lightbox**: echte dialoog (`role=dialog`, `aria-modal`, focus naar sluitknop en terug naar de miniatuur, focus-trap, scroll-lock), vorige/volgende (knoppen + pijltjestoetsen), laad-foutmelding bij kapotte afbeelding, 44 px tikdoelen en leesbare tekstkleuren in lichte thema's. Miniaturen zijn echte links (`href` naar het bestand, `aria-label`; Ctrl/⌘-klik opent het bestand).
+- **Videospeler**: `aria-valuetext` op de voortgangsbalk, snelheidsknop met tekstlabel, foutmelding als `role=alert`, knoppen 44 px.
+- **Globaal**: zichtbare `:focus-visible`, skip-link "Naar de inhoud", `aria-label` op het hoofd- en snelmenu, hoger contrast voor `--muted`, paginering als `<nav>` met `aria-current` en wrap op mobiel.
+- **Quick-post**: echte labels, `.cf-input`, live-regio met `role=alert/status`, melding bij cooldown, 16 px invoer (geen iOS-inzoom), volle breedte knop op mobiel.
+- Foutmeldingen (`.cf-alert-error/-warning`) verdwijnen niet meer na 5 seconden.
+
 ### Plan v2 – batch 3: beveiliging
 - **Open redirect** in de taalwisselaar via een Referer als `https://site//evil.example` is gesloten (`SafeRedirect`).
 - **AdBlock**: alleen `http(s)://` of eigen `/pad` als afbeeldings- en link-URL (geen `javascript:`/`data:`); links krijgen `noopener noreferrer sponsored`.

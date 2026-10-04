@@ -21,6 +21,7 @@
 </head>
 <body class="cf-theme cf-layout-{{ (theme_settings.layout_mode|default('wide')) == 'boxed' ? 'boxed' : 'wide' }}" data-theme-slug="{{ theme.slug|default('') }}" data-theme-name="{{ theme.name|default('') }}">
 
+<a href="#cf-content" class="cf-skip-link">Naar de inhoud</a>
 <div id="cf-page">
 {# HEADER ZONE #}
 <header id="cf-header">
@@ -43,7 +44,7 @@
       <span class="cf-menu-bars" aria-hidden="true"></span>
     </button>
     <div class="cf-header-panel" id="cf-header-panel">
-    <nav class="cf-nav">
+    <nav class="cf-nav" aria-label="Hoofdmenu">
       <a href="/news" class="cf-nav-link">{{ trans('nav.news') }}</a>
       <a href="/blog" class="cf-nav-link">{{ trans('nav.blog') }}</a>
       <a href="/forum" class="cf-nav-link">{{ trans('nav.forum') }}</a>
@@ -108,7 +109,7 @@
 {# TOP MENU ZONE — apart van het vaste hoofdmenu in #cf-header, zoals de
    projectblueprint Header en Top Menu als twee losse layout-onderdelen beschrijft. #}
 {% if zones.topmenu is defined and zones.topmenu %}
-<nav id="cf-topmenu" class="cf-container">
+<nav id="cf-topmenu" class="cf-container" aria-label="Snelmenu">
   {% for block in zones.topmenu %}
     {{ render_block(block)|raw }}
   {% endfor %}

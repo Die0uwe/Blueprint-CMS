@@ -57,7 +57,7 @@
     var vol    = el('input', 'cf-pl-vol', { type: 'range', min: '0', max: '1', step: '0.05', value: '1', 'aria-label': 'Volume' });
     var speed  = btn('Afspeelsnelheid', '1×'); speed.className += ' cf-pl-speed';
     var full   = btn('Volledig scherm', '⛶');
-    var err    = el('div', 'cf-pl-error'); err.hidden = true;
+    var err    = el('div', 'cf-pl-error', { role: 'alert' }); err.hidden = true;
 
     seekW.appendChild(buf); seekW.appendChild(seek);
     [play, time, seekW, mute, vol, speed, full].forEach(function (n) { bar.appendChild(n); });
@@ -85,6 +85,7 @@
     function updateTime() {
       var d = video.duration;
       time.textContent = fmt(video.currentTime) + ' / ' + fmt(d);
+      seek.setAttribute('aria-valuetext', fmt(video.currentTime) + ' van ' + fmt(d));
       if (!seeking && isFinite(d) && d > 0) seek.value = String(Math.round(video.currentTime / d * 1000));
       seek.style.setProperty('--cf-pl-pos', (seek.value / 10) + '%');
     }
@@ -118,6 +119,8 @@
       speedIdx = (speedIdx + 1) % SPEEDS.length;
       video.playbackRate = SPEEDS[speedIdx];
       speed.textContent = SPEEDS[speedIdx] + '×';
+      speed.setAttribute('aria-label', 'Afspeelsnelheid ' + SPEEDS[speedIdx] + ' keer');
+      speed.title = speed.getAttribute('aria-label');
     });
     seek.addEventListener('input', function () {
       seeking = true;

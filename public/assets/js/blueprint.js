@@ -5,7 +5,8 @@ document.querySelectorAll('.cf-nav-link').forEach(link => {
   if (link.href === window.location.href) link.classList.add('active');
 });
 setTimeout(() => {
-  document.querySelectorAll('.cf-alert').forEach(el => {
+  // Foutmeldingen blijven staan (de bezoeker moet ze kunnen lezen/oplossen); alleen succes/info verdwijnt.
+  document.querySelectorAll('.cf-alert:not(.cf-alert-error):not(.cf-alert-warning)').forEach(el => {
     el.style.transition = 'opacity .4s';
     el.style.opacity = '0';
     setTimeout(() => el.remove(), 400);

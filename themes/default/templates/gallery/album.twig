@@ -14,7 +14,8 @@
 
 <div class="cf-gallery-items-grid">
   {% for item in items %}
-  <a href="#" class="cf-gallery-item"
+  <a href="/media/{{ item.file_path }}" class="cf-gallery-item"
+     aria-label="{{ item.media_type == 'video' ? 'Video afspelen: ' : 'Bekijk groot: ' }}{{ item.title|default(item.original_filename) }}"
      data-lightbox="{{ item.media_type }}"
      data-src="/media/{{ item.file_path }}"
      data-poster="{{ item.thumbnail_path ? '/media/' ~ item.thumbnail_path : '' }}"
@@ -36,15 +37,17 @@
 </div>
 
 {% if pagination.total > 1 %}
-<div style="display:flex;gap:.5rem;justify-content:center;margin-top:1.5rem;">
+<nav class="cf-pagination" aria-label="Paginering">
   {% for p in 1..pagination.total %}
-    <a href="/galerij/{{ album.slug }}?page={{ p }}" class="cf-btn-sm {{ p == pagination.current ? '' : 'cf-btn-ghost' }}">{{ p }}</a>
+    <a href="/galerij/{{ album.slug }}?page={{ p }}" class="cf-btn-sm {{ p == pagination.current ? '' : 'cf-btn-ghost' }}"{% if p == pagination.current %} aria-current="page"{% endif %}>{{ p }}</a>
   {% endfor %}
-</div>
+</nav>
 {% endif %}
 
-<div id="cf-gallery-lightbox" class="cf-gallery-lightbox" hidden>
+<div id="cf-gallery-lightbox" class="cf-gallery-lightbox" role="dialog" aria-modal="true" aria-label="Mediaviewer" hidden>
   <button type="button" class="cf-gallery-lightbox-close" aria-label="Sluiten">✕</button>
+  <button type="button" class="cf-gallery-lightbox-nav cf-gallery-lightbox-prev" aria-label="Vorige">‹</button>
+  <button type="button" class="cf-gallery-lightbox-nav cf-gallery-lightbox-next" aria-label="Volgende">›</button>
   <div class="cf-gallery-lightbox-body">
     <div class="cf-gallery-lightbox-media"></div>
     <div class="cf-gallery-lightbox-meta">
@@ -69,9 +72,17 @@
   var subEl   = lightbox.querySelector('.cf-gallery-lightbox-sub');
   var closeEl = lightbox.querySelector('.cf-gallery-lightbox-close');
 
+  var prevEl = lightbox.querySelector('.cf-gallery-lightbox-prev');
+  var nextEl = lightbox.querySelector('.cf-gallery-lightbox-next');
+  var items  = Array.prototype.slice.call(document.querySelectorAll('.cf-gallery-item'));
+  var current = -1;
+  var lastFocus = null;
   var player = null;
 
-  function open(item) {
+  function show(index) {
+    var item = items[index];
+    if (!item) return;
+    current = index;
     if (player) { player.destroy(); player = null; }
     mediaEl.innerHTML = '';
     if (item.dataset.lightbox === 'video') {
@@ -79,7 +90,6 @@
       if (window.CFPlayer) {
         player = CFPlayer.create(item.dataset.src, { poster: item.dataset.poster || '', autoplay: true, title: item.dataset.title || '' });
         mediaEl.appendChild(player.holder);
-        player.element.focus();
       } else {
         var video = document.createElement('video');
         video.src = item.dataset.src;
@@ -89,36 +99,79 @@
       }
     } else {
       var img = document.createElement('img');
-      img.src = item.dataset.src;
       img.alt = item.dataset.title || '';
+      img.addEventListener('error', function () {
+        mediaEl.innerHTML = '';
+        var msg = document.createElement('p');
+        msg.className = 'cf-gallery-lightbox-error';
+        msg.setAttribute('role', 'alert');
+        msg.textContent = 'Deze afbeelding kan niet worden geladen.';
+        mediaEl.appendChild(msg);
+      });
+      img.src = item.dataset.src;
       mediaEl.appendChild(img);
     }
     titleEl.textContent = item.dataset.title || '';
     descEl.textContent  = item.dataset.description || '';
     descEl.hidden = !item.dataset.description;
     subEl.textContent = 'door ' + item.dataset.author + ' · ' + item.dataset.date;
+    lightbox.setAttribute('aria-label', item.dataset.title || 'Mediaviewer');
+    var multi = items.length > 1;
+    prevEl.hidden = nextEl.hidden = !multi;
+  }
+
+  function open(index) {
+    lastFocus = document.activeElement;
+    show(index);
     lightbox.hidden = false;
+    document.body.classList.add('cf-lightbox-open');
+    closeEl.focus();
   }
 
   function close() {
     if (player) { player.destroy(); player = null; }
     lightbox.hidden = true;
     mediaEl.innerHTML = '';
+    document.body.classList.remove('cf-lightbox-open');
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
   }
 
-  document.querySelectorAll('.cf-gallery-item').forEach(function (el) {
+  function step(dir) {
+    if (items.length < 2) return;
+    show((current + dir + items.length) % items.length);
+  }
+
+  items.forEach(function (el, i) {
     el.addEventListener('click', function (e) {
+      // Ctrl/Cmd/Shift/middelste klik: laat de browser het bestand zelf openen.
+      if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) return;
       e.preventDefault();
-      open(el);
+      open(i);
     });
   });
 
   closeEl.addEventListener('click', close);
+  prevEl.addEventListener('click', function () { step(-1); });
+  nextEl.addEventListener('click', function () { step(1); });
   lightbox.addEventListener('click', function (e) {
     if (e.target === lightbox) close();
   });
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && !lightbox.hidden) close();
+    if (lightbox.hidden) return;
+    if (e.key === 'Escape') { close(); return; }
+    // Pijltjes blijven voor de videospeler (±5 s) zodra de focus daarin staat.
+    var inPlayer = e.target.closest && e.target.closest('.cf-player');
+    if (!inPlayer && e.key === 'ArrowLeft')  { step(-1); e.preventDefault(); }
+    if (!inPlayer && e.key === 'ArrowRight') { step(1);  e.preventDefault(); }
+    if (e.key === 'Tab') {                     // focus-trap binnen de dialoog
+      var f = Array.prototype.filter.call(
+        lightbox.querySelectorAll('button, a[href], input, select, [tabindex]:not([tabindex="-1"])'),
+        function (n) { return !n.hidden && n.offsetParent !== null; });
+      if (!f.length) return;
+      var first = f[0], last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) { last.focus(); e.preventDefault(); }
+      else if (!e.shiftKey && document.activeElement === last) { first.focus(); e.preventDefault(); }
+    }
   });
 })();
 </script>
