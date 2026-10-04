@@ -45,9 +45,12 @@ final class OllamaApiController
 
         // Sanitize messages
         $clean = [];
-        foreach ($messages as $m) {
-            if (isset($m['role'], $m['content']) && in_array($m['role'], ['user','assistant','system'])) {
-                $clean[] = ['role' => $m['role'], 'content' => substr((string)$m['content'], 0, 2000)];
+        // Alleen user/assistant van de client: een 'system'-bericht zou de ingestelde systeemprompt kunnen
+        // overrulen (prompt-injectie). Maximaal de laatste 20 berichten.
+        foreach (array_slice(array_values($messages), -20) as $m) {
+            if (is_array($m) && isset($m['role'], $m['content']) && is_string($m['content'])
+                && in_array($m['role'], ['user', 'assistant'], true)) {
+                $clean[] = ['role' => $m['role'], 'content' => mb_substr($m['content'], 0, 2000)];
             }
         }
 

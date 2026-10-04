@@ -20,6 +20,14 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ## [Unreleased]
 
+## [1.30.0] — 2026-10-05 — Galerij en videospeler, downloads, beveiliging en toegankelijkheid (review-ronde)
+
+> Review-ronde met vier reviewers (architectuur, beveiliging, UX/toegankelijkheid, tests) over de hele codebase; alle bevindingen zijn in vijf batches verwerkt.
+
+### Plan v2 – batch 5: tests en contracten
+- Nieuwe tests: `ConnectionBindTypesTest` (LIMIT/OFFSET als `PARAM_INT`), `RouteCsrfContractTest` (elke POST-route valideert CSRF, uitzonderingen expliciet met reden), `PackageManagerTest`, `ConnectionInsertTest`, `DownloadsHardeningTest`, `SecurityHardeningTest`, `BlockRegistryRenderTest`.
+- Ollama-chat accepteert van de client alleen `user`/`assistant`-berichten (geen `system`-override), maximaal de laatste 20.
+
 ### Plan v2 – batch 4: toegankelijkheid en bediening
 - **Lightbox**: echte dialoog (`role=dialog`, `aria-modal`, focus naar sluitknop en terug naar de miniatuur, focus-trap, scroll-lock), vorige/volgende (knoppen + pijltjestoetsen), laad-foutmelding bij kapotte afbeelding, 44 px tikdoelen en leesbare tekstkleuren in lichte thema's. Miniaturen zijn echte links (`href` naar het bestand, `aria-label`; Ctrl/⌘-klik opent het bestand).
 - **Videospeler**: `aria-valuetext` op de voortgangsbalk, snelheidsknop met tekstlabel, foutmelding als `role=alert`, knoppen 44 px.
