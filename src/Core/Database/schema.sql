@@ -295,6 +295,7 @@ CREATE TABLE IF NOT EXISTS `cf_marketplace_installed` (
     UNIQUE KEY `uq_slug` (`package_slug`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Gereserveerd voor beoordelingen in de Marketplace (nog niet in de UI gebouwd).
 CREATE TABLE IF NOT EXISTS `cf_marketplace_reviews` (
     `id`            INT UNSIGNED        NOT NULL AUTO_INCREMENT,
     `package_slug`  VARCHAR(100)        NOT NULL,

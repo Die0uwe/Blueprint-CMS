@@ -31,6 +31,9 @@ final class QueueWorkerCommand
         $app = require CF_ROOT . '/src/Core/Application.php';
         $app->boot();
         $db  = $app->make(\CommunityFusion\Core\Database\Connection::class);
+        // QueueManager maakt cf_queue_jobs aan als die nog niet bestaat; zonder
+        // deze aanroep faalde de eerste SELECT op een verse installatie.
+        $app->make(\CommunityFusion\Core\Queue\QueueManager::class);
 
         while (true) {
             $job = $db->fetchOne(
