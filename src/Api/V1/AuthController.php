@@ -31,6 +31,11 @@ final class AuthController
             return Response::json(['error' => 'identifier en password zijn verplicht.'], 422);
         }
 
+        if ($this->auth->isLoginBlocked()) {
+            return Response::json(['error' => 'Te veel mislukte pogingen. Probeer het later opnieuw.'], 429)
+                ->withHeader('Retry-After', (string) $this->auth->loginRetryAfter());
+        }
+
         // startSession=false: dit endpoint geeft een stateless JWT-token uit
         // en mag de browser-sessiecookie niet aanraken — zie de uitleg bij
         // AuthManager::attempt()/login().

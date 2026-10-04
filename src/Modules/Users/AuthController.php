@@ -66,6 +66,14 @@ final class AuthController
         $identifier = $request->input('identifier', '');
         $password   = $request->input('password', '');
 
+        if ($this->auth->isLoginBlocked()) {
+            $html = $this->theme->render('auth/login.twig', [
+                'page_title' => 'Inloggen',
+                'error'      => 'Te veel mislukte pogingen. Probeer het over 15 minuten opnieuw.',
+            ] + $this->oauthVars($request));
+            return Response::html($html, 429)->withHeader('Retry-After', (string) $this->auth->loginRetryAfter());
+        }
+
         if ($this->auth->attempt($identifier, $password)) {
             // Alleen een pad op deze site: een ?redirect=https://… is anders een open redirect.
             return Response::redirect(SafeRedirect::target($request->query('redirect', '/')));

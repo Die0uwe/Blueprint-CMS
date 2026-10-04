@@ -20,6 +20,12 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ## [Unreleased] — Thema's, mobiel, editor, blok-instellingen en API-overzicht
 
+### Inloggen beveiligd (Golf 5)
+
+- **Nieuw: rem op wachtwoord-raden.** Na 5 mislukte pogingen vanaf één IP-adres binnen 15 minuten volgt een melding (web: HTTP 429, API: 429 met `Retry-After`) en wordt het wachtwoord niet meer gecontroleerd, ook niet als het klopt. Gebouwd op de bestaande auditlog (`Core\Auth\LoginThrottle`), dus zonder nieuwe tabel. Geblokkeerde pogingen tellen niet mee, zodat het venster niet eindeloos verlengd wordt.
+- **Fix: onbekende gebruikersnaam telde niet en was herkenbaar.** `attempt()` stopte meteen bij een onbekende gebruiker: de poging werd niet geteld en het antwoord kwam merkbaar sneller (welke accounts bestaan was zo af te leiden). Nu wordt altijd een wachtwoordcontrole gedaan en de mislukking geteld.
+- Bewust alleen per IP, niet per account: een accountlimiet laat een aanvaller elke beheerder buitensluiten. Verspreide aanvallen vanaf veel IP's vangt dit niet af; daarvoor blijven sterke wachtwoorden en later 2FA nodig. Mislukte inlogpogingen in de log bewaren maximaal 100 tekens van de ingetypte naam.
+
 ### Admin op mobiel (Golf 5)
 
 - **Fix: admin onbruikbaar op een telefoon.** De zijbalk was vast 240px breed en nam het scherm in. Onder 900px schuift ze nu uit beeld en opent via een hamburgerknop (Escape of tikken naast het menu sluit). Eén gedeeld onderdeel (`Shared/views/admin_mobile.php`) dekt alle admin-schermen, ook die met eigen zijbalk.

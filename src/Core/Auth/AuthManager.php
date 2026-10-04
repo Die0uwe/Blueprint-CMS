@@ -29,6 +29,10 @@ use CommunityFusion\Core\Auth\OAuth\OAuthAccountDisabledException;
 final class AuthManager
 {
     private ?array $currentUser = null;
+    private ?LoginThrottle $throttle = null;
+
+    /** Geldige bcrypt-hash van een willekeurige tekst: voor de timing-gelijke controle bij onbekende gebruikers. */
+    private const DUMMY_HASH = '$2y$12$HjjWd6EM6nX1guEWFCltn.IurhN0tiEpTI3UwdSPUcWFwwbwufZZy';
 
     public function __construct(
         private readonly Connection   $db,
@@ -74,20 +78,47 @@ final class AuthManager
      */
     public function attempt(string $identifier, string $password, bool $startSession = true): bool
     {
+        // Rem op wachtwoord-raden (5 mislukte pogingen per IP per 15 min). Een
+        // geblokkeerde poging controleert het wachtwoord niet eens.
+        if ($this->isLoginBlocked()) {
+            $this->audit->log('auth.login_blocked', null, null, ['identifier' => mb_substr($identifier, 0, 100)]);
+            return false;
+        }
+
         $user = $this->db->fetchOne(
             "SELECT * FROM cf_users WHERE (username = ? OR email = ?) AND is_active = 1 AND deleted_at IS NULL",
             [$identifier, $identifier]
         );
 
-        if ($user === null) return false;
+        // Ook voor een onbekende gebruiker een wachtwoordcontrole doen (en de
+        // mislukking tellen): anders antwoordt "bestaat niet" merkbaar sneller
+        // en verraadt het welke accounts er zijn, en telt het niet mee voor de rem.
+        $hash = $user['password_hash'] ?? self::DUMMY_HASH;
+        $ok   = password_verify($password, $hash);
 
-        if (!password_verify($password, $user['password_hash'])) {
+        if ($user === null || !$ok) {
             $this->logFailedAttempt($identifier);
             return false;
         }
 
         $this->login($user, $startSession);
         return true;
+    }
+
+    /** Is dit IP-adres tijdelijk geblokkeerd voor inloggen? Controllers tonen dan een 429. */
+    public function isLoginBlocked(): bool
+    {
+        return $this->throttle()->isBlocked();
+    }
+
+    public function loginRetryAfter(): int
+    {
+        return $this->throttle()->retryAfter();
+    }
+
+    private function throttle(): LoginThrottle
+    {
+        return $this->throttle ??= new LoginThrottle($this->db);
     }
 
     /**
@@ -328,13 +359,12 @@ final class AuthManager
      * bestand dat nooit ergens door de applicatie werd uitgelezen (geen
      * enkel scherm bestond om het te bekijken). Nu naar cf_audit_log, dat
      * /admin/logs daadwerkelijk toont, náást geslaagde logins en de
-     * belangrijkste admin-acties. Rate limiting is hier nog steeds niet
-     * geïmplementeerd — zie de originele TODO hierboven, nu verplaatst.
+     * belangrijkste admin-acties. De mislukte pogingen voeden ook
+     * LoginThrottle (rem per IP).
      */
     private function logFailedAttempt(string $identifier): void
     {
-        // TODO: rate limiting kan hier uitgebreid worden
-        $this->audit->log('auth.login_failed', null, null, ['identifier' => $identifier]);
+        $this->audit->log('auth.login_failed', null, null, ['identifier' => mb_substr($identifier, 0, 100)]);
     }
 
     private function startSecureSession(): void
