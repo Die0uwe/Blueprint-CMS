@@ -126,6 +126,8 @@ return [
             'section_content'    => 'Inhalt',
             'dashboard'          => 'Dashboard',
             'news'               => 'Neuigkeiten',
+            'blog'                => 'Blog',
+            'downloads'           => 'Downloads',
             'pages'              => 'Seiten',
             'media'              => 'Medien',
             'gallery'            => 'Galerie',

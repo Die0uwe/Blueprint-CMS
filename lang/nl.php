@@ -127,6 +127,8 @@ return [
             'section_content'    => 'Content',
             'dashboard'          => 'Dashboard',
             'news'               => 'Nieuws',
+            'blog'                => 'Blog',
+            'downloads'           => 'Downloads',
             'pages'              => "Pagina's",
             'media'              => 'Media',
             'gallery'            => 'Galerij',

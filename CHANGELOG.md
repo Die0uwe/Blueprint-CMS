@@ -20,6 +20,12 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ## [Unreleased]
 
+### Golf 5b — Blog- en downloads-beheer
+- Nieuw beheeroverzicht `/admin/blog` (permissie `blog.moderate`) en `/admin/downloads` (`downloads.manage`): alle items incl. concepten/verborgen, publiceren ⇄ verbergen, verwijderen; bewerken via de bestaande formulieren (met editor).
+- Acties komen in de auditlog (`blog.publish|unpublish|delete`, `downloads.publish|unpublish|delete`); CSRF op alle POST's.
+- Sidebar-links + vertalingen (nl/en/de); repositories kregen `getAllForAdmin()`, `countAll()`, `setStatus()`/`setPublished()`.
+- Tests: tests/Unit/Modules/ContentAdminTest.php (3).
+
 ### Golf 5a — Migratie-runner
 - `Migrator` (src/Core/Database) + `database/migrations/*.php`: versie-gebaseerde wijzigingen voor bestaande installaties, bijgehouden in `cf_migrations`; draait nooit dubbel, stopt bij de eerste fout.
 - `php cli/console.php migrate` voert nu schema-import én openstaande migraties uit; nieuw: `migrate:status`.

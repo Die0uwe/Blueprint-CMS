@@ -232,6 +232,14 @@ final class Router
         $this->post('/admin/news/{id:[0-9]+}/bewerk',   'CommunityFusion\Modules\News\NewsController@update',     $perm('news.create'));
         $this->post('/admin/news/{id:[0-9]+}/verwijder','CommunityFusion\Modules\News\NewsController@delete',     $perm('news.create'));
 
+        // ── Blog + Downloads admin-overzicht (Golf 5b) — letterlijke routes ──
+        $this->get('/admin/blog',                         'CommunityFusion\Modules\Blog\BlogAdminController@index',  $perm('blog.moderate'));
+        $this->post('/admin/blog/{id:[0-9]+}/status',      'CommunityFusion\Modules\Blog\BlogAdminController@toggle', $perm('blog.moderate'));
+        $this->post('/admin/blog/{id:[0-9]+}/verwijder',   'CommunityFusion\Modules\Blog\BlogAdminController@delete', $perm('blog.moderate'));
+        $this->get('/admin/downloads',                    'CommunityFusion\Modules\Downloads\DownloadsAdminController@index',  $perm('downloads.manage'));
+        $this->post('/admin/downloads/{id:[0-9]+}/status',    'CommunityFusion\Modules\Downloads\DownloadsAdminController@toggle', $perm('downloads.manage'));
+        $this->post('/admin/downloads/{id:[0-9]+}/verwijder', 'CommunityFusion\Modules\Downloads\DownloadsAdminController@delete', $perm('downloads.manage'));
+
         // ── Pagina's admin (Wave 2 — zelfde gap als News hierboven) ─────────
         $this->get('/admin/pages',                      'CommunityFusion\Modules\Pages\PageController@adminIndex', $perm('pages.manage'));
         $this->get('/admin/pages/create',                'CommunityFusion\Modules\Pages\PageController@createForm', $perm('pages.manage'));

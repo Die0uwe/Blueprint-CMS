@@ -131,6 +131,40 @@ final class BlogRepository
         $this->cache->clear();
     }
 
+    /** Alle posts van alle leden, incl. concepten — voor het beheeroverzicht. */
+    public function getAllForAdmin(int $limit, int $offset): array
+    {
+        return $this->db->fetchAll(
+            "SELECT b.*, u.username, u.display_name
+             FROM cf_blog_posts b
+             JOIN cf_users u ON u.id = b.author_id
+             WHERE b.deleted_at IS NULL
+             ORDER BY b.created_at DESC
+             LIMIT ? OFFSET ?",
+            [$limit, $offset]
+        );
+    }
+
+    public function countAll(): int
+    {
+        $row = $this->db->fetchOne("SELECT COUNT(*) AS count FROM cf_blog_posts WHERE deleted_at IS NULL");
+        return (int) ($row['count'] ?? 0);
+    }
+
+    /** Wissel concept ⇄ gepubliceerd; zet de publiceerdatum alleen bij de overgang naar published. */
+    public function setStatus(int $id, string $status): void
+    {
+        $current = $this->findById($id);
+        if ($current === null || !in_array($status, ['draft', 'published'], true)) return;
+
+        $publishedAt = $current['published_at'];
+        if ($status === 'published' && $current['status'] !== 'published') {
+            $publishedAt = date('Y-m-d H:i:s');
+        }
+        $this->db->update('blog_posts', ['status' => $status, 'published_at' => $publishedAt], 'id = ?', [$id]);
+        $this->cache->clear();
+    }
+
     public function incrementViews(int $id): void
     {
         $this->db->execute("UPDATE cf_blog_posts SET views = views + 1 WHERE id = ?", [$id]);

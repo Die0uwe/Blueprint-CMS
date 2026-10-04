@@ -43,6 +43,8 @@ $navItem = static function (string $key, string $href, string $icon, string $lab
     <?php
     $navItem('dashboard', '/admin', '📊', Trans::get('admin.sidebar.dashboard'));
     $navItem('news', '/admin/news', '📰', Trans::get('admin.sidebar.news'));
+    $navItem('blog', '/admin/blog', '✍️', Trans::get('admin.sidebar.blog'));
+    $navItem('downloads', '/admin/downloads', '📥', Trans::get('admin.sidebar.downloads'));
     $navItem('pages', '/admin/pages', '📄', Trans::get('admin.sidebar.pages'));
     $navItem('media', '/admin/media', '🖼️', Trans::get('admin.sidebar.media'));
     $navItem('gallery', '/admin/gallery', '📷', Trans::get('admin.sidebar.gallery'));

@@ -108,6 +108,32 @@ final class DownloadsRepository
         $this->cache->clear();
     }
 
+    /** Alle downloads incl. niet-gepubliceerde — voor het beheeroverzicht. */
+    public function getAllForAdmin(int $limit, int $offset): array
+    {
+        return $this->db->fetchAll(
+            "SELECT d.*, u.username, u.display_name
+             FROM cf_downloads d
+             JOIN cf_users u ON u.id = d.author_id
+             WHERE d.deleted_at IS NULL
+             ORDER BY d.created_at DESC
+             LIMIT ? OFFSET ?",
+            [$limit, $offset]
+        );
+    }
+
+    public function countAll(): int
+    {
+        $row = $this->db->fetchOne("SELECT COUNT(*) AS count FROM cf_downloads WHERE deleted_at IS NULL");
+        return (int) ($row['count'] ?? 0);
+    }
+
+    public function setPublished(int $id, bool $published): void
+    {
+        $this->db->update('downloads', ['is_published' => $published ? 1 : 0], 'id = ?', [$id]);
+        $this->cache->clear();
+    }
+
     public function incrementDownloadCount(int $id): void
     {
         $this->db->execute("UPDATE cf_downloads SET download_count = download_count + 1 WHERE id = ?", [$id]);
