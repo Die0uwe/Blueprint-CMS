@@ -69,6 +69,7 @@ $navItem = static function (string $key, string $href, string $icon, string $lab
     $navItem('settings', '/admin/settings', '🛠️', Trans::get('admin.sidebar.settings'));
     $navItem('logs', '/admin/logs', '📋', Trans::get('admin.sidebar.logs'));
     $navItem('marketplace', '/admin/marketplace', '🏪', Trans::get('admin.sidebar.marketplace'));
+    $navItem('apistatus', '/admin/api-status', '📡', Trans::get('admin.sidebar.api_status'));
     ?>
 
   </nav>

@@ -282,6 +282,11 @@ final class Router
         $this->post('/admin/menus/{id:[0-9]+}/omhoog',       'CommunityFusion\Modules\Menus\MenuAdminController@moveUp',   $perm('menus.manage'));
         $this->post('/admin/menus/{id:[0-9]+}/omlaag',       'CommunityFusion\Modules\Menus\MenuAdminController@moveDown', $perm('menus.manage'));
 
+        // ── API-overzicht (Golf 3) ───────────────────────────────────────
+        $this->get('/admin/api-status',        'CommunityFusion\Modules\ApiStatus\ApiStatusController@index',  $perm('settings.edit'));
+        $this->post('/admin/api-status/test',   'CommunityFusion\Modules\ApiStatus\ApiStatusController@test',   $perm('settings.edit'));
+        $this->post('/admin/api-status/toggle', 'CommunityFusion\Modules\ApiStatus\ApiStatusController@toggle', $perm('settings.edit'));
+
         // ── Systeemlogs (Wave 5 — alleen-lezen) ─────────────────────────
         $this->get('/admin/logs', 'CommunityFusion\Modules\Logs\LogAdminController@index', $perm('logs.view'));
 

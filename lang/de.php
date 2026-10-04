@@ -138,6 +138,7 @@ return [
             'modules'            => 'Module',
             'settings'           => 'Einstellungen',
             'logs'               => 'Protokolle',
+            'api_status'          => 'API-Übersicht',
             'marketplace'        => 'Marktplatz',
             'view_site'          => 'Seite ansehen',
             'logout'             => 'Abmelden',

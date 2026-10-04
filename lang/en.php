@@ -139,6 +139,7 @@ return [
             'modules'            => 'Modules',
             'settings'           => 'Settings',
             'logs'               => 'Logs',
+            'api_status'          => 'API overview',
             'marketplace'        => 'Marketplace',
             'view_site'          => 'View Site',
             'logout'             => 'Log out',
