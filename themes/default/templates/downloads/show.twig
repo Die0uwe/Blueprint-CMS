@@ -7,6 +7,7 @@
   <div class="cf-news-meta" style="margin-top:.5rem;">
     <span>✍️ {{ download.display_name|default(download.username) }}</span>
     <span>📅 {{ download.created_at|date('d M Y') }}</span>
+    {% if download.version %}<span>🏷️ v{{ download.version }}</span>{% endif %}
     <span>⬇️ {{ download.download_count }} downloads</span>
     <span>💾 {{ (download.file_size / 1024 / 1024)|number_format(1) }} MB</span>
   </div>

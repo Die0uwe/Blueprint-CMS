@@ -46,6 +46,7 @@ final class DownloadsController
         private readonly DownloadsRepository $repo,
         private readonly AuthManager         $auth,
         private readonly ThemeManager        $theme,
+        private readonly DownloadStats        $stats,
     ) {
         $this->uploads = UploadManager::forDownloads(
             CF_ROOT . '/storage/' . self::STORAGE_SUBDIR,
@@ -93,6 +94,7 @@ final class DownloadsController
 
         $title       = trim((string) $request->input('title', ''));
         $description = ContentSanitizer::cleanForStorage((string) $request->input('description', ''));
+        $version     = self::cleanVersion((string) $request->input('version', ''));
         $file        = $request->files()['file'] ?? null;
 
         if ($title === '' || $file === null) {
@@ -112,6 +114,7 @@ final class DownloadsController
             filePath:         $relative,
             originalFilename: (string) ($file['name'] ?? 'bestand'),
             fileSize:         (int) ($file['size'] ?? 0),
+            version:          $version,
         );
 
         $download = $this->repo->findById($id);
@@ -154,6 +157,7 @@ final class DownloadsController
         }
 
         $this->repo->incrementDownloadCount((int) $download['id']);
+        $this->stats->record($download, $this->auth->id(), $request->ip(), (int) filesize($full));
 
         $filename = str_replace('"', '', $download['original_filename']);
 
@@ -202,7 +206,10 @@ final class DownloadsController
             return Response::redirect("/downloads/{$download['slug']}/bewerk?error=leeg");
         }
 
-        $this->repo->updateDetails((int) $download['id'], $title, $description, $isPublished);
+        $this->repo->updateDetails(
+            (int) $download['id'], $title, $description, $isPublished,
+            self::cleanVersion((string) $request->input('version', '')),
+        );
 
         return Response::redirect("/downloads/{$download['slug']}");
     }
@@ -222,6 +229,12 @@ final class DownloadsController
         $this->uploads->delete($download['file_path']);
 
         return Response::redirect('/downloads');
+    }
+
+    /** Versielabel: alleen cijfers, letters en . _ + - (max. 30 tekens). */
+    private static function cleanVersion(string $v): string
+    {
+        return substr((string) preg_replace('/[^0-9A-Za-z._+\-]/', '', trim($v)), 0, 30);
     }
 
     private function requireManager(Request $request): ?Response

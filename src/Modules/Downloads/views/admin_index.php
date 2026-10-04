@@ -25,7 +25,10 @@ $flashText = ['gepubliceerd' => 'gepubliceerd', 'verborgen' => 'verborgen', 'ver
   <div class="admin-main">
     <header class="admin-topbar">
       <h1>📥 Downloads Beheer</h1>
-      <a href="/downloads/nieuw" class="cf-btn-sm">+ Nieuwe download</a>
+      <div style="display:flex;gap:.5rem;">
+        <a href="/admin/downloads/statistieken" class="cf-btn-ghost">📊 Statistieken</a>
+        <a href="/downloads/nieuw" class="cf-btn-sm">+ Nieuwe download</a>
+      </div>
     </header>
 
     <div class="admin-content">

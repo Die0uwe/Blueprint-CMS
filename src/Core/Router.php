@@ -239,6 +239,7 @@ final class Router
         $this->post('/admin/blog/{id:[0-9]+}/status',      'CommunityFusion\Modules\Blog\BlogAdminController@toggle', $perm('blog.moderate'));
         $this->post('/admin/blog/{id:[0-9]+}/verwijder',   'CommunityFusion\Modules\Blog\BlogAdminController@delete', $perm('blog.moderate'));
         $this->get('/admin/downloads',                    'CommunityFusion\Modules\Downloads\DownloadsAdminController@index',  $perm('downloads.manage'));
+        $this->get('/admin/downloads/statistieken',       'CommunityFusion\Modules\Downloads\DownloadsAdminController@stats',  $perm('downloads.manage'));
         $this->post('/admin/downloads/{id:[0-9]+}/status',    'CommunityFusion\Modules\Downloads\DownloadsAdminController@toggle', $perm('downloads.manage'));
         $this->post('/admin/downloads/{id:[0-9]+}/verwijder', 'CommunityFusion\Modules\Downloads\DownloadsAdminController@delete', $perm('downloads.manage'));
 

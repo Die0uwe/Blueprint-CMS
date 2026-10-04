@@ -83,10 +83,11 @@ final class DownloadsRepository
         string $filePath,
         string $originalFilename,
         int    $fileSize,
+        string $version = '',
     ): int {
         $slug = $this->uniqueSlug($title);
 
-        return (int) $this->db->insert('downloads', [
+        $row = [
             'author_id'         => $authorId,
             'slug'              => $slug,
             'title'             => trim($title),
@@ -94,15 +95,22 @@ final class DownloadsRepository
             'file_path'         => $filePath,
             'original_filename' => $originalFilename,
             'file_size'         => $fileSize,
-        ]);
+        ];
+        // Alleen meesturen als gevuld: werkt ook vóór `php cli/console.php migrate`.
+        if ($version !== '') {
+            $row['version'] = $version;
+        }
+
+        return (int) $this->db->insert('downloads', $row);
     }
 
-    public function updateDetails(int $id, string $title, string $description, bool $isPublished): void
+    public function updateDetails(int $id, string $title, string $description, bool $isPublished, string $version = ''): void
     {
         $this->db->update('downloads', [
             'title'        => trim($title),
             'description'  => trim($description) !== '' ? trim($description) : null,
             'is_published' => $isPublished ? 1 : 0,
+            'version'      => $version !== '' ? $version : null,
         ], 'id = ?', [$id]);
 
         $this->cache->clear();

@@ -455,6 +455,7 @@ CREATE TABLE IF NOT EXISTS `cf_downloads` (
     `slug`               VARCHAR(200) NOT NULL,
     `title`              VARCHAR(255) NOT NULL,
     `description`        TEXT NULL,
+    `version`            VARCHAR(30) NULL COMMENT 'Release-versie van het bestand (bv. 1.4.2)',
     `file_path`          VARCHAR(500) NOT NULL COMMENT 'Relatief pad binnen storage/downloads/',
     `original_filename`  VARCHAR(255) NOT NULL,
     `file_size`          INT UNSIGNED NOT NULL DEFAULT 0,
@@ -469,6 +470,24 @@ CREATE TABLE IF NOT EXISTS `cf_downloads` (
     KEY `idx_category` (`category_id`),
     CONSTRAINT `fk_dl_author`   FOREIGN KEY (`author_id`)   REFERENCES `cf_users`(`id`)      ON DELETE CASCADE,
     CONSTRAINT `fk_dl_category` FOREIGN KEY (`category_id`) REFERENCES `cf_categories`(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Downloadlog: één rij per daadwerkelijk geserveerd bestand (statistieken-dashboard).
+-- download_id wordt NULL als de download later verwijderd wordt; titel/versie zijn
+-- een snapshot zodat de geschiedenis leesbaar blijft.
+CREATE TABLE IF NOT EXISTS `cf_download_log` (
+    `id`             BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `download_id`    INT UNSIGNED NULL,
+    `title`          VARCHAR(255) NOT NULL,
+    `version`        VARCHAR(30) NULL,
+    `user_id`        INT UNSIGNED NULL,
+    `ip_address`     VARCHAR(45) NOT NULL DEFAULT '',
+    `bytes_sent`     BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    `created_at`     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `idx_dl_download` (`download_id`, `created_at`),
+    KEY `idx_dl_created` (`created_at`),
+    CONSTRAINT `fk_dl_download` FOREIGN KEY (`download_id`) REFERENCES `cf_downloads`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Contact: publiek formulier, geen login vereist. `user_id` wordt alleen

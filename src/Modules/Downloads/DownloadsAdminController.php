@@ -28,6 +28,7 @@ final class DownloadsAdminController
         private readonly DownloadsRepository $repo,
         private readonly AuthManager         $auth,
         private readonly AuditLogger         $audit,
+        private readonly DownloadStats       $stats,
     ) {
         $this->uploads = UploadManager::forDownloads(CF_ROOT . '/storage/downloads', 50 * 1024 * 1024);
     }
@@ -42,6 +43,19 @@ final class DownloadsAdminController
 
         ob_start();
         include __DIR__ . '/views/admin_index.php';
+        return Response::html((string) ob_get_clean());
+    }
+
+    /** GET /admin/downloads/statistieken */
+    public function stats(Request $request): Response
+    {
+        $totals   = $this->stats->totals();
+        $perFile  = $this->stats->perDownload(20);
+        $recent   = $this->stats->recent(25);
+        $perDay   = $this->stats->perDay(30);
+
+        ob_start();
+        include __DIR__ . '/views/admin_stats.php';
         return Response::html((string) ob_get_clean());
     }
 

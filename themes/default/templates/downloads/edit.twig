@@ -15,6 +15,10 @@
         <input type="text" id="title" name="title" class="cf-input" maxlength="255" value="{{ download.title|default('') }}" required>
       </div>
       <div class="cf-form-group">
+        <label class="cf-label" for="version">Versie (optioneel, bv. 1.4.2)</label>
+        <input type="text" id="version" name="version" class="cf-input" maxlength="30" value="{{ download.version|default('') }}">
+      </div>
+      <div class="cf-form-group">
         <label class="cf-label" for="description">Omschrijving</label>
         <textarea id="description" name="description" class="cf-textarea" data-editor="richtext-lite">{{ download.description|default('') }}</textarea>
       </div>

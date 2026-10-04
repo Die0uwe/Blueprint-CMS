@@ -20,6 +20,13 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ## [Unreleased]
 
+### Fase B — Downloadstatistieken
+- Nieuwe tabel `cf_download_log` (IP / gebruiker, tijdstip, versie, verstuurde bytes) + kolom `cf_downloads.version`. **Bestaande sites: `php cli/console.php migrate` uitvoeren** (migratie `20261005_01_download_log`).
+- Elke geserveerde download wordt gelogd (`DownloadStats::record`, faalt nooit de download zelf).
+- Nieuw dashboard `/admin/downloads/statistieken`: totaal, uniek (per gebruiker of IP per bestand), laatste 30 dagen, bandbreedte, grafiek per dag, top per bestand en recente activiteit.
+- Versieveld bij downloads (nieuw/bewerken) en op de downloadpagina.
+- Queue-worker maakt `cf_queue_jobs` zelf aan op een verse installatie.
+
 ### Security (audit oktober 2026)
 - Queue-worker bouwt jobs uit `cf_queue_jobs.payload` alleen nog op voor klassen die van `Core\Queue\Job` erven (voorkomt PHP object injection als de database ooit gemanipuleerd wordt); `FileCache` leest zonder objecten (`allowed_classes => false`).
 
