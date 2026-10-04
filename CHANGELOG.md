@@ -20,6 +20,10 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ## [Unreleased]
 
+### Golf 5e — Lockfile-workflow en strengere Migrator
+- Nieuwe workflow `.github/workflows/lockfile.yml` (handmatig starten): maakt/ververst `composer.lock` zonder `vendor/` aan te raken en commit hem naar `main`. (`composer.lock` kon niet lokaal gegenereerd worden: packagist.org is in de bouwomgeving geblokkeerd.)
+- `Migrator`: strikt tegen `PDO::query/prepare` die `false` kunnen teruggeven (PHPStan level 8, foutmelding i.p.v. crash).
+
 ### Golf 5d — Forum-moderatie
 - Losse reactie verwijderen: moderator (`forum.moderate`) of de auteur zelf; topic-tellers (`reply_count`, laatste bericht) worden herberekend. Het openingsbericht is het topic zelf en kan niet los weg. (Eerder had `deletePost()` geen route en liet de tellers kloppen noch bijwerken.)
 - Topic verplaatsen naar een ander bord (alleen echte forumborden; slug-botsing in het doelbord wordt opgelost).

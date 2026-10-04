@@ -61,7 +61,9 @@ final class Migrator
     {
         $this->ensureTable();
         $out = [];
-        foreach ($this->pdo->query("SELECT `migration`, `batch` FROM `{$this->table()}`")->fetchAll() as $r) {
+        $stmt = $this->pdo->query("SELECT `migration`, `batch` FROM `{$this->table()}`");
+        $rows = $stmt === false ? [] : $stmt->fetchAll();
+        foreach ($rows as $r) {
             $out[(string) $r['migration']] = (int) $r['batch'];
         }
         return $out;
@@ -105,8 +107,10 @@ final class Migrator
                 throw new \RuntimeException("Migratie {$name} geeft geen closure terug.");
             }
             $fn($this->pdo, $this->prefix);
-            $this->pdo->prepare("INSERT INTO `{$this->table()}` (`migration`, `batch`) VALUES (?, ?)")
-                ->execute([$name, $batch]);
+            $insert = $this->pdo->prepare("INSERT INTO `{$this->table()}` (`migration`, `batch`) VALUES (?, ?)");
+            if ($insert === false || !$insert->execute([$name, $batch])) {
+                throw new \RuntimeException("Kon migratie {$name} niet registreren.");
+            }
             $ran[] = $name;
         }
         return $ran;

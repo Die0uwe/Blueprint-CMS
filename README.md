@@ -104,6 +104,10 @@ cp .env.example .env
 # Navigeer naar http://jouwsite.nl/installer/
 ```
 
+> 🔒 **`composer.lock` aanmaken:** Actions → **Lockfile** → *Run workflow*. GitHub draait dan
+> `composer update --no-install` (raakt `vendor/` niet aan) en commit `composer.lock`; daarna
+> installeert CI exact dezelfde versies.
+
 > 📦 **Sinds v1.28.0 staat `vendor/` gewoon in de git-repository.** Er is hier nooit een
 > `composer.lock` geweest (`packagist.org` was in geen enkele sandbox bereikbaar waarin dit
 > project is gebouwd), dus een losse `composer install`-stap kon toch nooit gegarandeerd

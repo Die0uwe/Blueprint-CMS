@@ -1,0 +1,34 @@
+# Maakt/ververst composer.lock en commit hem naar main (met één klik).
+# Gebruik: Actions → "Lockfile" → Run workflow. Daarna installeert CI exact dezelfde
+# versies als jij (`composer install` gebruikt composer.lock automatisch).
+name: Lockfile
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  lock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+      - name: composer.lock bijwerken (zonder vendor/ aan te raken)
+        run: composer update --no-install --no-autoloader --no-scripts --no-interaction --no-progress
+      - name: Controleren
+        run: composer validate --strict
+      - name: Committen als er iets veranderd is
+        run: |
+          if git diff --quiet -- composer.lock && git ls-files --error-unmatch composer.lock >/dev/null 2>&1; then
+            echo "composer.lock was al actueel"; exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add composer.lock
+          git commit -m "chore: composer.lock bijwerken"
+          git push
