@@ -76,7 +76,26 @@ jobs:
           CF_TEST_DB_PASS: root
 
       - name: PHPStan (level 8, src only)
-        run: composer stan
+        shell: bash
+        run: |
+          set +e
+          vendor/bin/phpstan analyse src --level=8 --no-progress --error-format=raw 2>&1 | tee phpstan-output.txt
+          code=${PIPESTATUS[0]}
+          if [ "$code" -ne 0 ]; then
+            # Logs zijn niet leesbaar buiten de Actions-UI: zet de fouten ook als annotaties
+            # (max. 10 per type per stap, dus afwisselend error/warning/notice).
+            sed 's#'"$GITHUB_WORKSPACE"'/##' phpstan-output.txt > phpstan-short.txt
+            split -b 3500 -d -a 2 phpstan-short.txt chunk_
+            i=0
+            for f in chunk_*; do
+              types=(error warning notice); t=${types[$((i % 3))]}
+              [ "$i" -ge 30 ] && break
+              msg=$(sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g' "$f")
+              echo "::$t title=PHPStan deel $i::$msg"
+              i=$((i+1))
+            done
+          fi
+          exit $code
 
       - name: PHP CodeSniffer (PSR-12, src only)
         run: composer cs
