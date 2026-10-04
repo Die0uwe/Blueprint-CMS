@@ -953,3 +953,12 @@ body.cf-layout-boxed #cf-page .cf-layout { max-width: 100%; }
 .cf-quickpost-form input,.cf-quickpost-form textarea,.cf-quickpost-form select{width:100%;max-width:100%;box-sizing:border-box}
 .cf-quickpost-row select{width:auto;flex:1 1 180px}
 .cf-quickpost-form button{align-self:flex-start}
+
+/* Fase F — footer-grid (thema-instellingen tab 4) */
+.cf-footer-grid{display:grid;grid-template-columns:repeat(var(--cf-footer-cols,3),minmax(0,1fr));gap:1.5rem;margin-bottom:1.5rem;text-align:left}
+.cf-footer-title{font-size:.85rem;font-weight:700;color:var(--text);margin:0 0 .5rem}
+.cf-footer-linklist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.3rem}
+.cf-footer-linklist a{color:var(--muted)}
+.cf-footer-linklist a:hover{color:var(--text)}
+.cf-footer-cell p{margin:0 0 .4rem}
+@media (max-width:768px){.cf-footer-grid{grid-template-columns:1fr}}

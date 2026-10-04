@@ -173,7 +173,7 @@ final class ThemeSettingsControllerTest extends TestCase
     }
 
     #[Test]
-    public function allFiveTabsRenderAndTabsFourAndFiveAreEmpty(): void
+    public function allFiveTabsRenderAndOnlyTabFiveIsEmpty(): void
     {
         foreach ([1, 2, 3, 4, 5, 99] as $tab) {
             $html = $this->ctl->index(new Request('GET', '/admin/themes/instellingen', ['tab' => (string) $tab], [], [], [], [], []))->getBody();
@@ -182,9 +182,29 @@ final class ThemeSettingsControllerTest extends TestCase
             if ($tab === 3) {
                 $this->assertSame(4, substr_count($html, 'type="color"'));
             }
-            if ($tab === 4 || $tab === 5) {
+            if ($tab === 4) {
+                $this->assertStringContainsString('action="/admin/themes/instellingen/layout"', $html);
+                $this->assertStringContainsString('id="lb-list"', $html);
+            }
+            if ($tab === 5) {
                 $this->assertStringNotContainsString('<form', $html);
             }
         }
+    }
+
+    #[Test]
+    public function layoutBuilderSavesNormalisedJsonAndRedirectsToTab4(): void
+    {
+        $r = $this->ctl->saveLayout($this->post([
+            'logo_align' => 'center', 'footer_columns' => '2', 'show_motd' => 'on',
+            'cell_type' => ['text', 'bogus'], 'cell_title' => ['A', 'B'], 'cell_text' => ['hi', 'x'], 'cell_links' => ['', ''],
+        ]));
+        $this->assertStringContainsString('tab=4&ok=opgeslagen', $this->location($r));
+        $cfg = \CommunityFusion\Core\Template\LayoutConfig::normalize($this->settings->get('theme', 'layout_json', ''));
+        $this->assertSame('center', $cfg['header']['logo_align']);
+        $this->assertTrue($cfg['header']['show_motd']);
+        $this->assertFalse($cfg['header']['sticky']);
+        $this->assertSame(2, $cfg['footer']['columns']);
+        $this->assertCount(1, $cfg['footer']['cells']); // onbekend type verworpen
     }
 }

@@ -3,7 +3,7 @@
 // Copyright (C) 2026  DieOuwe — GPL-3.0-or-later
 // ============================================================================
 // Vanuit ThemeSettingsController::index():
-// $tab, $tabs, $s (gevalideerde instellingen), $icon, $presets, $colorFields, $flash, $error
+// $tab, $tabs, $s (gevalideerde instellingen), $icon, $presets, $colorFields, $layout, $flash, $error
 use CommunityFusion\Core\Security\CsrfProtection;
 
 $activeNav = 'themes';
@@ -30,6 +30,13 @@ $themeColorVarFallback = ['color_primary' => '#a855f7', 'color_secondary' => '#3
   .ts-preset small{display:block;color:var(--text-dim);}
   .ts-row{display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;margin-bottom:.6rem;}
   .ts-preview-img{max-width:100%;max-height:120px;border:1px solid var(--border);border-radius:8px;display:block;margin:.4rem 0;}
+  .lb-cell{border:1px solid var(--border);border-radius:10px;padding:.7rem;background:var(--surface);cursor:grab;}
+  .lb-cell.dragging{opacity:.4;}
+  .lb-cell.over{outline:2px dashed var(--accent);}
+  .lb-head{display:flex;gap:.4rem;align-items:center;margin-bottom:.5rem;}
+  .lb-head select{flex:1;}
+  .lb-cell input[type=text],.lb-cell textarea{width:100%;box-sizing:border-box;margin-bottom:.4rem;}
+  .lb-grid{display:grid;gap:.75rem;margin:.75rem 0;}
   #cf-preview{padding:1rem;border-radius:12px;border:1px solid var(--border);background:var(--bg);}
 </style>
 </head>
@@ -49,7 +56,7 @@ $themeColorVarFallback = ['color_primary' => '#a855f7', 'color_secondary' => '#3
 
       <nav class="ts-tabs" aria-label="Thema-instellingen">
         <?php foreach ($tabs as $n => $t): ?>
-          <a class="ts-tab<?= $n === $tab ? ' active' : '' ?><?= $n >= 4 ? ' reserved' : '' ?>"
+          <a class="ts-tab<?= $n === $tab ? ' active' : '' ?><?= $n >= 5 ? ' reserved' : '' ?>"
              href="/admin/themes/instellingen?tab=<?= (int) $n ?>"><?= $n ?>. <?= $e($t['label']) ?></a>
         <?php endforeach; ?>
       </nav>
@@ -189,8 +196,114 @@ $themeColorVarFallback = ['color_primary' => '#a855f7', 'color_secondary' => '#3
       })();
       </script>
 
+      <?php elseif ($tab === 4): ?>
+      <!-- TAB 4: Header & footer — grid-builder -->
+      <?php $cellTypes = ['text' => '📝 Tekst', 'links' => '🔗 Links', 'siteinfo' => 'ℹ️ Site-info', 'blocks' => '🧱 Footer-blokken', 'copyright' => '© Copyright']; ?>
+      <form method="post" action="/admin/themes/instellingen/layout" id="lb-form">
+        <?= CsrfProtection::field() ?>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1rem;">
+          <div class="cf-card" style="padding:1.25rem;">
+            <h2 style="margin-top:0;">Header</h2>
+            <div class="ts-row">
+              <label>Logo-uitlijning
+                <select name="logo_align">
+                  <?php foreach (['left' => 'Links', 'center' => 'Midden (eigen rij)', 'right' => 'Rechts'] as $v => $l): ?>
+                    <option value="<?= $e($v) ?>"<?= $layout['header']['logo_align'] === $v ? ' selected' : '' ?>><?= $e($l) ?></option>
+                  <?php endforeach; ?>
+                </select>
+              </label>
+              <label>Menu-uitlijning
+                <select name="nav_align">
+                  <?php foreach (['left' => 'Links', 'center' => 'Midden', 'right' => 'Rechts'] as $v => $l): ?>
+                    <option value="<?= $e($v) ?>"<?= $layout['header']['nav_align'] === $v ? ' selected' : '' ?>><?= $e($l) ?></option>
+                  <?php endforeach; ?>
+                </select>
+              </label>
+            </div>
+            <label class="ts-row"><input type="checkbox" name="show_motd"<?= $layout['header']['show_motd'] ? ' checked' : '' ?>> Site-info (motto) onder de sitenaam tonen</label>
+            <label class="ts-row"><input type="checkbox" name="sticky"<?= $layout['header']['sticky'] ? ' checked' : '' ?>> Header blijft bovenaan staan bij scrollen</label>
+            <p style="color:var(--text-dim);font-size:.8rem;">Uitlijning werkt vanaf tablet/desktop; op mobiel blijft het hamburgermenu.</p>
+          </div>
+          <div class="cf-card" style="padding:1.25rem;">
+            <h2 style="margin-top:0;">Footer-grid</h2>
+            <label>Kolommen
+              <select name="footer_columns" id="lb-cols">
+                <?php for ($i = 1; $i <= 4; $i++): ?><option value="<?= $i ?>"<?= (int) $layout['footer']['columns'] === $i ? ' selected' : '' ?>><?= $i ?></option><?php endfor; ?>
+              </select>
+            </label>
+            <p style="color:var(--text-dim);font-size:.85rem;">Sleep de cellen om de volgorde te wijzigen (of gebruik ▲ ▼). Zonder cellen blijft de klassieke footer staan.</p>
+          </div>
+        </div>
+
+        <div id="lb-list" class="lb-grid" style="grid-template-columns:repeat(<?= (int) $layout['footer']['columns'] ?>,minmax(0,1fr));">
+          <?php foreach ($layout['footer']['cells'] as $c): ?>
+            <div class="lb-cell" draggable="true">
+              <div class="lb-head">
+                <select name="cell_type[]"><?php foreach ($cellTypes as $v => $l): ?><option value="<?= $e($v) ?>"<?= $c['type'] === $v ? ' selected' : '' ?>><?= $e($l) ?></option><?php endforeach; ?></select>
+                <button type="button" class="cf-btn-sm cf-btn-ghost" data-lb="up" aria-label="Omhoog">▲</button>
+                <button type="button" class="cf-btn-sm cf-btn-ghost" data-lb="down" aria-label="Omlaag">▼</button>
+                <button type="button" class="cf-btn-sm cf-btn-ghost" data-lb="del" aria-label="Verwijderen">✕</button>
+              </div>
+              <input type="text" name="cell_title[]" maxlength="80" placeholder="Titel (optioneel)" value="<?= $e($c['title']) ?>">
+              <textarea name="cell_text[]" rows="3" maxlength="1000" placeholder="Tekst"><?= $e($c['text']) ?></textarea>
+              <textarea name="cell_links[]" rows="3" placeholder="Eén link per regel: Label|/pad"><?= $e(implode("\n", array_map(static fn($l) => $l['label'] . '|' . $l['url'], $c['links']))) ?></textarea>
+            </div>
+          <?php endforeach; ?>
+        </div>
+        <p><button type="button" class="cf-btn-sm cf-btn-ghost" id="lb-add">+ Cel toevoegen</button>
+           <button type="submit" class="cf-btn">Opslaan</button></p>
+        <p style="color:var(--text-dim);font-size:.8rem;">Maximaal 8 cellen. Tekst wordt als platte tekst getoond; links mogen alleen naar een eigen pad (/…) of https://.</p>
+      </form>
+
+      <template id="lb-tpl">
+        <div class="lb-cell" draggable="true">
+          <div class="lb-head">
+            <select name="cell_type[]"><?php foreach ($cellTypes as $v => $l): ?><option value="<?= $e($v) ?>"><?= $e($l) ?></option><?php endforeach; ?></select>
+            <button type="button" class="cf-btn-sm cf-btn-ghost" data-lb="up" aria-label="Omhoog">▲</button>
+            <button type="button" class="cf-btn-sm cf-btn-ghost" data-lb="down" aria-label="Omlaag">▼</button>
+            <button type="button" class="cf-btn-sm cf-btn-ghost" data-lb="del" aria-label="Verwijderen">✕</button>
+          </div>
+          <input type="text" name="cell_title[]" maxlength="80" placeholder="Titel (optioneel)">
+          <textarea name="cell_text[]" rows="3" maxlength="1000" placeholder="Tekst"></textarea>
+          <textarea name="cell_links[]" rows="3" placeholder="Eén link per regel: Label|/pad"></textarea>
+        </div>
+      </template>
+      <script>
+      (function(){
+        var list=document.getElementById('lb-list'), cols=document.getElementById('lb-cols'), drag=null;
+        function sync(cell){
+          var t=cell.querySelector('[name="cell_type[]"]').value;
+          cell.querySelector('[name="cell_text[]"]').style.display = t==='text' ? '' : 'none';
+          cell.querySelector('[name="cell_links[]"]').style.display = t==='links' ? '' : 'none';
+        }
+        [].forEach.call(list.children,sync);
+        list.addEventListener('change',function(ev){ var c=ev.target.closest('.lb-cell'); if(c) sync(c); });
+        function grid(){ list.style.gridTemplateColumns='repeat('+cols.value+',minmax(0,1fr))'; }
+        cols.addEventListener('change',grid);
+        document.getElementById('lb-add').addEventListener('click',function(){
+          if(list.children.length>=8) return;
+          var n=document.getElementById('lb-tpl').content.firstElementChild.cloneNode(true); list.appendChild(n); sync(n);
+        });
+        list.addEventListener('click',function(ev){
+          var b=ev.target.closest('[data-lb]'); if(!b) return;
+          var cell=b.closest('.lb-cell'), a=b.dataset.lb;
+          if(a==='del') cell.remove();
+          if(a==='up' && cell.previousElementSibling) list.insertBefore(cell,cell.previousElementSibling);
+          if(a==='down' && cell.nextElementSibling) list.insertBefore(cell.nextElementSibling,cell);
+        });
+        list.addEventListener('dragstart',function(ev){ var c=ev.target.closest('.lb-cell'); if(!c) return; drag=c; c.classList.add('dragging'); ev.dataTransfer.effectAllowed='move'; try{ev.dataTransfer.setData('text/plain','cell');}catch(e){} });
+        list.addEventListener('dragend',function(){ if(drag) drag.classList.remove('dragging'); drag=null; [].forEach.call(list.children,function(c){c.classList.remove('over');}); });
+        list.addEventListener('dragover',function(ev){ var c=ev.target.closest('.lb-cell'); if(!drag||!c||c===drag) return; ev.preventDefault(); [].forEach.call(list.children,function(x){x.classList.toggle('over',x===c);}); });
+        list.addEventListener('drop',function(ev){
+          var c=ev.target.closest('.lb-cell'); if(!drag||!c||c===drag) return; ev.preventDefault();
+          var kids=[].slice.call(list.children);
+          if(kids.indexOf(drag)<kids.indexOf(c)) list.insertBefore(drag,c.nextSibling); else list.insertBefore(drag,c);
+        });
+      })();
+      </script>
+
       <?php else: ?>
-      <!-- TAB 4 / 5: bewust leeg, gereserveerd voor uitbreiding -->
+      <!-- TAB 5: bewust leeg, gereserveerd voor uitbreiding -->
       <div class="cf-card" style="padding:2rem;text-align:center;color:var(--text-dim);">
         <div style="font-size:2rem;">🧩</div>
         <p>Dit tabblad is gereserveerd voor toekomstige uitbreiding van de thema-instellingen.</p>

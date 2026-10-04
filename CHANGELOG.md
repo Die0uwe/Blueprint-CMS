@@ -18,7 +18,13 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ---
 
-## [Unreleased]
+## [1.29.0] — 2026-10-05 — Thema-instellingen, grid-builder, nieuwe blokken, downloadstatistieken en snel plaatsen
+
+### Fase F — Header- & footer-builder (thema-instellingen, tab 4)
+- **Header**: logo-uitlijning (links / midden op eigen rij / rechts), menu-uitlijning, site-info (motto) tonen of verbergen, vaste header aan/uit. Uitlijning geldt vanaf tablet/desktop; mobiel behoudt het hamburgermenu.
+- **Footer-grid**: 1–4 kolommen en maximaal 8 cellen (tekst, links, site-info, footer-blokken, copyright) die je met slepen of ▲ ▼ herschikt; zonder cellen blijft de klassieke footer ongewijzigd.
+- Nieuw `Core\Template\LayoutConfig`: één JSON-instelling (`theme.layout_json`), bij elk gebruik opnieuw gevalideerd (vaste opties, geheel getallen, platte tekst; links alleen `/pad` of `http(s)://`). Route `POST /admin/themes/instellingen/layout`.
+- Tests: `LayoutConfigTest` (7) + controllertest; Chromium: footer-grid (2 kolommen desktop, 1 mobiel), gecentreerd logo, slepen/▲▼/toevoegen/verwijderen, maximaal 8 cellen, geen JS-fouten.
 
 ### Fase E — Snel plaatsen op de homepage
 - Widget **Snel plaatsen** op de startpagina (alleen voor ingelogde bezoekers): nieuwsbericht (`news.create`), blogpost (eigen blog, elke ingelogde gebruiker) of forumtopic (`forum.post`, met bordkeuze). Alleen de toegestane types verschijnen.
@@ -117,7 +123,7 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ---
 
-## [Unreleased] — Inloggen met GitHub, Google en Discord werkt echt
+### (ook in 1.29.0) Inloggen met GitHub, Google en Discord werkt echt
 
 De knoppen "Inloggen met …" stonden er al, maar geen enkele OAuth-login kon slagen. Gevonden en opgelost:
 
@@ -137,7 +143,7 @@ De knoppen "Inloggen met …" stonden er al, maar geen enkele OAuth-login kon sl
 - Tests: `SafeRedirectTest`, `OAuthClientTest`, `OAuthAccountTest` (echte MariaDB) en een end-to-end-run tegen een nep-provider.
 - Documentatie: `docs/oauth-login.md`.
 
-## [Unreleased] — Wachtwoord vergeten en herstellen
+### (ook in 1.29.0) Wachtwoord vergeten en herstellen
 
 - Nieuw: **Wachtwoord vergeten?** op `/login` en in het login-blok. `/wachtwoord-vergeten` mailt een herstellink (60 minuten geldig, eenmalig) naar `/wachtwoord-herstellen/{token}`, waar de gebruiker een nieuw wachtwoord kiest.
 - Nieuw: tabel `cf_password_resets` (alleen de SHA-256-hash van het token). Bestaande installaties: `php cli/console.php migrate`.
@@ -149,7 +155,7 @@ De knoppen "Inloggen met …" stonden er al, maar geen enkele OAuth-login kon sl
 
 ---
 
-## [Unreleased] — Blueprint AI Studio (`modules/ai-studio`)
+### (ook in 1.29.0) Blueprint AI Studio (`modules/ai-studio`)
 
 - Nieuwe module: chat met zes AI-providers naast een eigen editor met diff-voorstellen.
 - Nieuw: `Core\Security\ContentSanitizer` (escape/text/whitelist-HTML op DOMDocument) met tests.

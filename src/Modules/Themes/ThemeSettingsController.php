@@ -14,6 +14,7 @@ use CommunityFusion\Core\Response;
 use CommunityFusion\Core\Security\CsrfProtection;
 use CommunityFusion\Core\Storage\UploadException;
 use CommunityFusion\Core\Storage\UploadManager;
+use CommunityFusion\Core\Template\LayoutConfig;
 use CommunityFusion\Core\Template\ThemeSettings;
 use CommunityFusion\Modules\Settings\SettingsRepository;
 
@@ -31,7 +32,7 @@ final class ThemeSettingsController
         1 => ['key' => 'algemeen', 'label' => '⚙️ Algemeen & layout'],
         2 => ['key' => 'branding', 'label' => '🖼️ Branding & headers'],
         3 => ['key' => 'kleuren',  'label' => '🎨 Kleuren & stijl'],
-        4 => ['key' => 'tab4',     'label' => '🧩 Gereserveerd'],
+        4 => ['key' => 'layout',   'label' => '🧱 Header & footer'],
         5 => ['key' => 'tab5',     'label' => '🧩 Gereserveerd'],
     ];
 
@@ -51,6 +52,7 @@ final class ThemeSettingsController
         $flash = $request->query('ok');
         $error = $request->query('error');
         $tabs  = self::TABS;
+        $layout = LayoutConfig::normalize($this->settings->get(ThemeSettings::GROUP, LayoutConfig::KEY, ''));
         $presets = ThemeSettings::PRESETS;
         $colorFields = ThemeSettings::COLOR_FIELDS;
 
@@ -127,6 +129,21 @@ final class ThemeSettingsController
 
         $this->log('themes.branding', []);
         return Response::redirect($back . '&ok=opgeslagen');
+    }
+
+    /** POST — tab 4 (grid-builder voor header en footer) */
+    public function saveLayout(Request $request): Response
+    {
+        CsrfProtection::validateRequest();
+
+        $cfg = LayoutConfig::fromForm((array) $request->all());
+        $this->settings->set(ThemeSettings::GROUP, LayoutConfig::KEY, LayoutConfig::toJson($cfg));
+        $this->log('themes.layout_builder', [
+            'footer_cells' => count($cfg['footer']['cells']),
+            'columns'      => $cfg['footer']['columns'],
+        ]);
+
+        return Response::redirect('/admin/themes/instellingen?tab=4&ok=opgeslagen');
     }
 
     /** POST — tab 3 */

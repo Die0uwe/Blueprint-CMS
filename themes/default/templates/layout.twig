@@ -35,7 +35,7 @@
         <span class="cf-logo">{{ settings.site_name|default('Blueprint CMS') }}</span>
         {% endif %}
       </span>
-      {% if settings.site_motd is defined and settings.site_motd %}
+      {% if settings.site_motd is defined and settings.site_motd and (layout_cfg is not defined or layout_cfg.header.show_motd) %}
         <span class="cf-motd">{{ settings.site_motd }}</span>
       {% endif %}
     </a>
@@ -146,6 +146,32 @@
 {# FOOTER #}
 <footer id="cf-footer">
   <div class="cf-container">
+    {% if layout_cfg is defined and layout_cfg.footer.cells %}
+    {# Grid-builder (thema-instellingen tab 4): cellen in de gekozen volgorde #}
+    <div class="cf-footer-grid" style="--cf-footer-cols:{{ layout_cfg.footer.columns }}">
+      {% for cell in layout_cfg.footer.cells %}
+      <section class="cf-footer-cell cf-footer-{{ cell.type }}">
+        {% if cell.title %}<h4 class="cf-footer-title">{{ cell.title }}</h4>{% endif %}
+        {% if cell.type == 'text' %}
+          <p>{{ cell.text|nl2br }}</p>
+        {% elseif cell.type == 'links' %}
+          <ul class="cf-footer-linklist">
+            {% for l in cell.links %}<li><a href="{{ l.url }}"{% if l.url starts with 'http' %} rel="noopener noreferrer"{% endif %}>{{ l.label }}</a></li>{% endfor %}
+          </ul>
+        {% elseif cell.type == 'siteinfo' %}
+          <p><strong>{{ settings.site_name|default('Blueprint CMS') }}</strong></p>
+          {% if settings.site_motd is defined and settings.site_motd %}<p>{{ settings.site_motd }}</p>{% endif %}
+        {% elseif cell.type == 'blocks' %}
+          <div id="cf-footer-blocks">
+            {% for block in zones.footer|default([]) %}{{ render_block(block)|raw }}{% endfor %}
+          </div>
+        {% elseif cell.type == 'copyright' %}
+          <p>© {{ "now"|date("Y") }} {{ settings.site_name|default('Blueprint CMS') }}</p>
+        {% endif %}
+      </section>
+      {% endfor %}
+    </div>
+    {% else %}
     {% if zones.footer is defined and zones.footer %}
     <div id="cf-footer-blocks">
       {% for block in zones.footer %}
@@ -154,6 +180,7 @@
     </div>
     {% endif %}
     <p>© {{ "now"|date("Y") }} {{ settings.site_name|default('Blueprint CMS') }}</p>
+    {% endif %}
     <p class="cf-footer-links">
       <a href="https://www.dieouwe.nl">DieOuwe</a> ·
       <a href="https://www.scriptspace.nl">ScriptSpace</a> ·

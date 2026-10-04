@@ -352,7 +352,10 @@ final class Application
             // via ThemeSettings; layout.twig voegt de CSS ná de thema-CSS toe.
             $themeRaw = $settingsRepo->getGroup(\CommunityFusion\Core\Template\ThemeSettings::GROUP);
             $theme->addGlobal('theme_settings', \CommunityFusion\Core\Template\ThemeSettings::load($themeRaw));
-            $theme->addGlobal('theme_overrides', \CommunityFusion\Core\Template\ThemeSettings::css($themeRaw));
+            $layoutCfg = \CommunityFusion\Core\Template\LayoutConfig::normalize($themeRaw[\CommunityFusion\Core\Template\LayoutConfig::KEY] ?? '');
+            $theme->addGlobal('layout_cfg', $layoutCfg);
+            $theme->addGlobal('theme_overrides', \CommunityFusion\Core\Template\ThemeSettings::css($themeRaw)
+                . \CommunityFusion\Core\Template\LayoutConfig::css($layoutCfg));
 
             // S13 (Multi-language/i18n) — registreert de `trans()`-Twig-functie
             // en `|trans`-filter (zie ThemeManager::setTranslator()) en zet de

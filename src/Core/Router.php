@@ -314,6 +314,7 @@ final class Router
         $this->post('/admin/themes/instellingen/algemeen',  'CommunityFusion\Modules\Themes\ThemeSettingsController@saveGeneral',  $perm('themes.manage'));
         $this->post('/admin/themes/instellingen/branding',  'CommunityFusion\Modules\Themes\ThemeSettingsController@saveBranding', $perm('themes.manage'));
         $this->post('/admin/themes/instellingen/kleuren',   'CommunityFusion\Modules\Themes\ThemeSettingsController@saveColors',   $perm('themes.manage'));
+        $this->post('/admin/themes/instellingen/layout',    'CommunityFusion\Modules\Themes\ThemeSettingsController@saveLayout',    $perm('themes.manage'));
         $this->post('/admin/themes/bezoekerskeuze',        'CommunityFusion\Modules\Themes\ThemeAdminController@visitorChoice', $perm('themes.manage'));
         $this->post('/admin/themes/{slug:[a-z0-9-]+}/activeren', 'CommunityFusion\Modules\Themes\ThemeAdminController@activate', $perm('themes.manage'));
 

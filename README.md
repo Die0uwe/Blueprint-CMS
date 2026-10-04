@@ -16,7 +16,7 @@ GPL-3.0-or-later
 [![PHP](https://img.shields.io/badge/PHP-8.3%2B-777BB4?style=flat-square&logo=php)](https://php.net)
 [![MariaDB](https://img.shields.io/badge/MariaDB-10.11%2B-003545?style=flat-square&logo=mariadb)](https://mariadb.org)
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.28.0-brightgreen?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-1.29.0-brightgreen?style=flat-square)](CHANGELOG.md)
 [![CI](https://img.shields.io/github/actions/workflow/status/Die0uwe/bluprint-cms/ci.yml?branch=main&style=flat-square&label=CI)](.github/workflows/ci.yml)
 
 *Geïnspireerd door PHP-Fusion · Down Under Fusion · ImpressCMS*
@@ -225,7 +225,14 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 
 ---
 
-## ⚠️ Bekende beperkingen (stand v1.28.0)
+## 🆕 Nieuw in v1.29.0
+
+- **Downloadstatistieken** (`/admin/downloads/statistieken`) en versienummer per download; elke download wordt gelogd. Bestaande installaties: draai `php cli/console.php migrate`.
+- **Thema-instellingen in 5 tabs** (`/admin/themes/instellingen`): wide/boxed + presets, logo/favicon/banner, live kleurkiezer, header- en footer-builder (tab 5 is bewust nog leeg).
+- **Nieuwe blokken**: nieuws-ticker/-ticket, blog, forum-activiteit, downloads en galerij (gecentreerd, zijbalk of slider).
+- **Snel plaatsen** op de homepage: nieuwsbericht, blogpost of forumtopic, afhankelijk van je rechten.
+
+## ⚠️ Bekende beperkingen (stand v1.29.0)
 
 Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben opgelost — zie
 `docs/wave-0-gap-analysis.md` en `CHANGELOG.md` voor de volledige context per punt.
@@ -752,7 +759,7 @@ GPL-3.0-or-later — © 2026 [DieOuwe](https://www.dieouwe.nl) / [Slayer Allianc
 
 <!--
 ╔══════════════════════════════════════════════════════════════════════╗
-║  File: README.md | Role: Docs | Version: 1.28.0                      ║
+║  File: README.md | Role: Docs | Version: 1.29.0                      ║
 ║  Updated: 2026-09-30 — vendor/ gecommit (opgeschoond, 2.6MB/414       ║
 ║           bestanden) — geen losse Composer-stap meer nodig om deze   ║
 ║           repo te deployen. Zie ook: .htaccess blokkeert 'm al.      ║
