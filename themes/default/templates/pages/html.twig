@@ -3,7 +3,23 @@
 {% block meta_desc %}{{ page.meta_desc|default('') }}{% endblock %}
 {% block content %}
 {# Eigen HTML-pagina: staat afgeschermd in een iframe (zie HtmlBlock::frame). #}
-<div class="cf-page-content cf-page-full cf-page-html">
+<div class="cf-page-content cf-page-full cf-page-html" id="cf-page-html">
+  <button type="button" class="cf-btn-ghost cf-html-fs-btn" id="cf-html-fs" aria-pressed="false" title="Volledig scherm (Esc om te sluiten)">⛶ Volledig scherm</button>
   {{ page_frame|raw }}
 </div>
+<script>
+(function () {
+  var box = document.getElementById('cf-page-html'), btn = document.getElementById('cf-html-fs');
+  if (!box || !btn) return;
+  function set(on) {
+    box.classList.toggle('is-fullview', on);
+    document.documentElement.classList.toggle('cf-fullview-lock', on);
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    btn.textContent = on ? '✕ Sluiten' : '⛶ Volledig scherm';
+  }
+  btn.addEventListener('click', function () { set(!box.classList.contains('is-fullview')); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && box.classList.contains('is-fullview')) set(false); });
+  if (location.hash === '#volledig') set(true);
+})();
+</script>
 {% endblock %}

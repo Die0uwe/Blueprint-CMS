@@ -1084,3 +1084,12 @@ body.cf-lightbox-open { overflow: hidden; }
 .cf-skip-link:focus { top: .5rem; }
 .cf-quickpost-form input, .cf-quickpost-form textarea, .cf-quickpost-form select { font-size: 1rem; }   /* ≥16px: geen iOS-inzoom */
 @media (max-width: 640px) { .cf-quickpost-form button { align-self: stretch; min-height: 44px; } }
+
+/* Eigen HTML-pagina: knop + volledig-scherm weergave (iframe vult het hele venster) */
+.cf-page-html { position: relative; }
+.cf-html-fs-btn { display: inline-block; margin: 0 0 .5rem auto; float: right; font-size: .85rem; }
+.cf-page-html::after { content: ""; display: block; clear: both; }
+.cf-page-html.is-fullview { position: fixed; inset: 0; z-index: 9999; margin: 0; padding: 0; max-width: none; width: auto; background: var(--bg, #0f172a); }
+.cf-page-html.is-fullview .cf-html-frame { height: 100% !important; width: 100% !important; border-radius: 0 !important; }
+.cf-page-html.is-fullview .cf-html-fs-btn { position: fixed; top: .6rem; right: .6rem; z-index: 10000; margin: 0; float: none; background: rgba(15,23,42,.85); color: #fff; }
+html.cf-fullview-lock, html.cf-fullview-lock body { overflow: hidden; }
