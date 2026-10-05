@@ -93,14 +93,36 @@ final class OllamaProvider extends AbstractProvider
             if ($this->apiKey !== '') {
                 $headers['Authorization'] = 'Bearer ' . $this->apiKey;
             }
-            return $this->streamOpenAiSse(
+            return $this->withoutThinking($this->streamOpenAiSse(
                 $this->build('POST', $this->openWebUiUrl() . '/api/chat/completions', $headers, $body, $this->timeout())
-            );
+            ));
         }
 
-        return $this->readNdjson(
+        return $this->withoutThinking($this->readNdjson(
             $this->build('POST', $this->host() . '/api/chat', ['Content-Type' => 'application/json'], $body, $this->timeout())
-        );
+        ));
+    }
+
+    /**
+     * Redeneermodellen (DeepSeek-R1, Qwen3, …) sturen hun denkwerk soms als
+     * <think>…</think> midden in het antwoord mee; dat hoort niet in de chat.
+     *
+     * @param iterable<int, string> $chunks
+     * @return \Generator<int, string>
+     */
+    private function withoutThinking(iterable $chunks): \Generator
+    {
+        $filter = new \CommunityFusion\Core\Ai\ThinkFilter();
+        foreach ($chunks as $chunk) {
+            $text = $filter->feed($chunk);
+            if ($text !== '') {
+                yield $text;
+            }
+        }
+        $rest = $filter->flush();
+        if ($rest !== '') {
+            yield $rest;
+        }
     }
 
     /**

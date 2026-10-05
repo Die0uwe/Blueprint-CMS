@@ -13,23 +13,13 @@ use CommunityFusion\Core\Cache\CacheManager;
 final class OllamaApiController
 {
     private OllamaClient $client;
+    /** @var array<string, string> */
+    private array $cfg;
 
     public function __construct(Connection $db, CacheManager $cache)
     {
-        $config = [];
-        try {
-            $rows = $db->fetchAll("SELECT `key`,`value` FROM cf_settings WHERE `group`='ollama'");
-            foreach ($rows as $r) $config[$r['key']] = $r['value'];
-        } catch (\Throwable) {}
-
-        $this->client = new OllamaClient(
-            host:         $config['host']          ?? 'http://localhost:11434',
-            model:        $config['default_model'] ?? 'llama3.2',
-            timeout:      (int)($config['timeout'] ?? 30),
-            cache:        $cache,
-            openWebUiUrl: $config['open_webui_url'] ?? '',
-            openWebUiKey: $config['open_webui_key'] ?? '',
-        );
+        $this->cfg    = OllamaConfig::load($db);
+        $this->client = OllamaConfig::client($this->cfg, $cache);
     }
 
     /**
@@ -59,7 +49,7 @@ final class OllamaApiController
         }
 
         try {
-            $reply = $this->client->communityChat($clean);
+            $reply = $this->client->communityChat($clean, $this->cfg['guild_name'] ?? '', 'World of Warcraft', $this->cfg['system_prompt'] ?? '');
             return Response::json(['reply' => $reply, 'ok' => true]);
         } catch (\RuntimeException $e) {
             return Response::json(['error' => 'AI niet beschikbaar: ' . $e->getMessage()], 503);

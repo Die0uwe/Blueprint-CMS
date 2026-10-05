@@ -15,7 +15,7 @@ final class ThemeSettingsTest extends TestCase
     {
         $s = ThemeSettings::load([]);
         $this->assertSame('wide', $s['layout_mode']);
-        $this->assertSame(1280, $s['layout_width']);
+        $this->assertSame(1600, $s['layout_width']);
         $this->assertSame('', $s['logo']);
         $this->assertSame('', $s['color_primary']);
     }
@@ -42,7 +42,7 @@ final class ThemeSettingsTest extends TestCase
     #[Test]
     public function cssMaxWidthFollowsMode(): void
     {
-        $this->assertStringContainsString('--cf-max-w:1280px', ThemeSettings::css(['layout_mode' => 'wide']));
+        $this->assertStringContainsString('--cf-max-w:1600px', ThemeSettings::css(['layout_mode' => 'wide']));
         $this->assertStringContainsString('--cf-max-w:100%', ThemeSettings::css(['layout_mode' => 'full']));
         $this->assertStringContainsString('--cf-max-w:75vw', ThemeSettings::css(['layout_mode' => 'fluid', 'layout_fluid' => '75']));
         $this->assertStringContainsString('--cf-max-w:100vw', ThemeSettings::css(['layout_mode' => 'fluid', 'layout_fluid' => '999']));
@@ -74,8 +74,8 @@ final class ThemeSettingsTest extends TestCase
     public function cssAlwaysCarriesLayoutVariablesButNoColorsByDefault(): void
     {
         $css = ThemeSettings::css([]);
-        $this->assertStringContainsString('--cf-max-w:1280px', $css);
-        $this->assertStringContainsString('--cf-sidebar-w:260px', $css);
+        $this->assertStringContainsString('--cf-max-w:1600px', $css);
+        $this->assertStringContainsString('--cf-sidebar-w:280px', $css);
         $this->assertStringNotContainsString('--accent', $css);
     }
 
@@ -104,7 +104,7 @@ final class ThemeSettingsTest extends TestCase
         $css = ThemeSettings::css(['color_primary' => 'red;}</style><script>alert(1)</script>', 'layout_width' => '1200px;}']);
         $this->assertStringNotContainsString('<', $css);
         $this->assertStringNotContainsString('script', $css);
-        $this->assertStringContainsString('--cf-max-w:1280px', $css); // ongeldige breedte → default
+        $this->assertStringContainsString('--cf-max-w:1600px', $css); // ongeldige breedte → default
     }
 
     #[Test]
@@ -112,8 +112,8 @@ final class ThemeSettingsTest extends TestCase
     {
         $s = ThemeSettings::applyPreset(ThemeSettings::load([]), 'compact');
         $this->assertSame('boxed', $s['layout_mode']);
-        $this->assertSame(1100, $s['layout_width']);
-        $this->assertSame(240, $s['sidebar_width']);
+        $this->assertSame(1200, $s['layout_width']);
+        $this->assertSame(260, $s['sidebar_width']);
         $this->assertSame('compact', $s['layout_preset']);
 
         $c = ThemeSettings::applyPreset(ThemeSettings::load(['layout_width' => 1000]), 'bestaat-niet');
@@ -125,8 +125,8 @@ final class ThemeSettingsTest extends TestCase
     public function everyPresetIsWithinTheValidRanges(): void
     {
         foreach (ThemeSettings::PRESETS as $id => $p) {
-            $this->assertTrue(in_array($p['mode'], ['wide', 'boxed'], true), $id);
-            $this->assertTrue($p['width'] >= 900 && $p['width'] <= 1800, $id);
+            $this->assertTrue(in_array($p['mode'], ['wide', 'boxed', 'full'], true), $id);
+            $this->assertTrue($p['width'] >= 900 && $p['width'] <= 3840, $id);
             $this->assertTrue($p['sidebar'] >= 180 && $p['sidebar'] <= 500, $id);
         }
     }
@@ -146,6 +146,18 @@ final class ThemeSettingsTest extends TestCase
         $s = ThemeSettings::load(['sidebar_left' => '170', 'sidebar_right' => 'abc']);
         $this->assertSame(0, $s['sidebar_left']);
         $this->assertSame(0, $s['sidebar_right']);
+    }
+
+    #[Test]
+    public function ultrawidePresetsExistAndStayWithinTheSliderRange(): void
+    {
+        foreach (['ultrawide', 'superwide', 'scherm'] as $id) {
+            $this->assertArrayHasKey($id, ThemeSettings::PRESETS);
+        }
+        $s = ThemeSettings::applyPreset(ThemeSettings::load([]), 'ultrawide');
+        $this->assertSame(2560, $s['layout_width']);
+        $this->assertStringContainsString('--cf-max-w:2560px', ThemeSettings::css($s));
+        $this->assertStringContainsString('--cf-max-w:100%', ThemeSettings::css(ThemeSettings::applyPreset(ThemeSettings::load([]), 'scherm')));
     }
 
     #[Test]

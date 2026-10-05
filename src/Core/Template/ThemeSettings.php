@@ -22,10 +22,13 @@ final class ThemeSettings
 
     /** @var array<string, array{label:string, mode:string, width:int, sidebar:int}> */
     public const PRESETS = [
-        'standaard' => ['label' => 'Standaard',          'mode' => 'wide',  'width' => 1280, 'sidebar' => 260],
-        'ruim'      => ['label' => 'Ruim (breedbeeld)',  'mode' => 'wide',  'width' => 1520, 'sidebar' => 280],
-        'compact'   => ['label' => 'Compact (boxed)',    'mode' => 'boxed', 'width' => 1100, 'sidebar' => 240],
-        'magazine'  => ['label' => 'Magazine (boxed)',   'mode' => 'boxed', 'width' => 1320, 'sidebar' => 300],
+        'standaard' => ['label' => 'Standaard (laptop / Full HD)',      'mode' => 'wide',  'width' => 1600, 'sidebar' => 280],
+        'ruim'      => ['label' => 'Ruim (Full HD breedbeeld)',          'mode' => 'wide',  'width' => 1920, 'sidebar' => 300],
+        'ultrawide' => ['label' => 'Ultrawide (21:9, 3440 px)',         'mode' => 'wide',  'width' => 2560, 'sidebar' => 340],
+        'superwide' => ['label' => 'Super-ultrawide (32:9 / 4K)',        'mode' => 'wide',  'width' => 3200, 'sidebar' => 400],
+        'scherm'    => ['label' => 'Schermvullend (rand tot rand)',      'mode' => 'full',  'width' => 1920, 'sidebar' => 320],
+        'compact'   => ['label' => 'Compact (boxed)',                    'mode' => 'boxed', 'width' => 1200, 'sidebar' => 260],
+        'magazine'  => ['label' => 'Magazine (boxed)',                   'mode' => 'boxed', 'width' => 1500, 'sidebar' => 300],
     ];
 
     /** Instelling → CSS-variabele die het thema al gebruikt. */
@@ -48,9 +51,9 @@ final class ThemeSettings
         return [
             'layout_mode'      => 'wide',
             'layout_preset'    => 'standaard',
-            'layout_width'     => 1280,
+            'layout_width'     => 1600,
             'layout_fluid'     => 90,
-            'sidebar_width'    => 260,
+            'sidebar_width'    => 280,
             'sidebar_left'     => 0,   // 0 = gelijk aan sidebar_width
             'sidebar_right'    => 0,
             'logo'             => '',
@@ -145,6 +148,7 @@ final class ThemeSettings
             'fluid' => $s['layout_fluid'] . 'vw',
             default => $s['layout_width'] . 'px',
         };
+        // 'wide' mag nooit smaller worden dan het scherm toelaat, maar ook niet buiten het scherm lopen.
         $out = sprintf(
             ':root{--cf-max-w:%s;--cf-sidebar-w:%dpx;--cf-sidebar-l-w:%dpx;--cf-sidebar-r-w:%dpx;--cf-banner-h:%dpx;}',
             $maxW, $s['sidebar_width'],

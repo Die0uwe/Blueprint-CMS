@@ -1,22 +1,81 @@
 {
-    "slug":        "ollama",
-    "name":        "Ollama AI Integratie",
-    "version":     "1.0.0",
+    "slug": "ollama",
+    "name": "Ollama AI Integratie",
+    "version": "1.1.0",
     "description": "Gratis lokale AI via Ollama. Community chatbot, content assistent, guild rekrutering AI, nieuws samenvatting en meer. Optioneel Open WebUI koppeling.",
-    "author":      "DieOuwe",
-    "author_url":  "https://www.slayeralliance.com",
-    "min_cms":     "1.0.0",
-    "class":       "CommunityFusion\\Modules\\Ollama\\OllamaModule",
-    "is_core":     false,
-    "blocks":      ["ollama-chat", "ollama-assistant"],
-    "permissions": ["ollama.use", "ollama.admin"],
+    "author": "DieOuwe",
+    "author_url": "https://www.slayeralliance.com",
+    "min_cms": "1.0.0",
+    "class": "CommunityFusion\\Modules\\Ollama\\OllamaModule",
+    "is_core": false,
+    "blocks": [
+        "ollama-chat",
+        "ollama-assistant"
+    ],
+    "permissions": [
+        "ollama.use",
+        "ollama.admin"
+    ],
     "settings": [
-        {"key": "host",         "label": "Ollama host URL",       "type": "string",  "default": "http://localhost:11434"},
-        {"key": "default_model","label": "Standaard model",       "type": "string",  "default": "llama3.2"},
-        {"key": "timeout",      "label": "Timeout (seconden)",    "type": "int",     "default": "30"},
-        {"key": "system_prompt","label": "Systeem prompt",        "type": "string",  "default": "Je bent een behulpzame community assistent."},
-        {"key": "open_webui_url","label": "Open WebUI URL (opt.)","type": "string",  "default": ""},
-        {"key": "open_webui_key","label": "Open WebUI API Key",   "type": "encrypted","default": ""},
-        {"key": "enabled_features","label": "Functies",           "type": "json",    "default": "[\"chat\",\"summarize\",\"recruit\"]"}
+        {
+            "key": "host",
+            "label": "Ollama host URL",
+            "type": "string",
+            "default": "http://localhost:11434"
+        },
+        {
+            "key": "default_model",
+            "label": "Standaard model",
+            "type": "string",
+            "default": "llama3.2"
+        },
+        {
+            "key": "timeout",
+            "label": "Timeout (seconden)",
+            "type": "int",
+            "default": "30"
+        },
+        {
+            "key": "system_prompt",
+            "label": "Systeem prompt",
+            "type": "string",
+            "default": "Je bent een behulpzame community assistent."
+        },
+        {
+            "key": "open_webui_url",
+            "label": "Open WebUI URL (opt.)",
+            "type": "string",
+            "default": ""
+        },
+        {
+            "key": "open_webui_key",
+            "label": "Open WebUI API Key",
+            "type": "encrypted",
+            "default": ""
+        },
+        {
+            "key": "enabled_features",
+            "label": "Functies",
+            "type": "json",
+            "default": "[\"chat\",\"summarize\",\"recruit\"]"
+        },
+        {
+            "key": "guild_name",
+            "label": "Naam van je community",
+            "type": "string",
+            "default": ""
+        },
+        {
+            "key": "num_ctx",
+            "label": "Context-venster (0 = standaard)",
+            "type": "int",
+            "default": "0"
+        },
+        {
+            "key": "keep_alive",
+            "label": "Model geladen houden (bv. 24h)",
+            "type": "string",
+            "default": ""
+        }
     ]
 }

@@ -285,6 +285,22 @@ final class ProvidersTest extends TestCase
     }
 
     #[Test]
+    public function testOllamaHidesDeepSeekThinkBlockEvenWhenTagsAreSplitOverChunks(): void
+    {
+        $lines = [];
+        foreach (['<thi', 'nk>Even na', 'denken</th', 'ink>', "\n\nHal", 'lo!'] as $c) {
+            $lines[] = ['message' => ['role' => 'assistant', 'content' => $c], 'done' => false];
+        }
+        $lines[] = ['message' => ['role' => 'assistant', 'content' => ''], 'done' => true];
+        $raw = implode("\n", array_map('json_encode', $lines)) . "\n";
+        $t = FakeTransport::withChunks(str_split($raw, 7));
+        $p = new OllamaProvider($t, new SsrfGuard(fn (): array => ['127.0.0.1']), ['host' => 'http://localhost:11434', 'default_model' => 'deepseek-r1:8b']);
+
+        self::assertSame('Hallo!', implode('', $this->collect($p)));
+        self::assertSame('deepseek-r1:8b', self::body($t)['model']);
+    }
+
+    #[Test]
     public function testOllamaUsesOpenWebUiOpenAiEndpointWhenConfigured(): void
     {
         $t = FakeTransport::withChunks(self::openAiChunks(['Dieouwe', ' AI']));

@@ -25,11 +25,12 @@ final class OllamaModule implements ModuleInterface
         $registry  = $app->make(BlockRegistry::class);
         $hooks     = $app->make(HookManager::class);
 
-        $client = $this->makeClient($db, $cache);
+        $cfg    = OllamaConfig::load($db);
+        $client = OllamaConfig::client($cfg, $cache);
 
         // Registreer blocks
-        $registry->register(new OllamaChatBlock($client, $this->getConfig($db)));
-        $registry->register(new OllamaAssistantBlock($client, $this->getConfig($db)));
+        $registry->register(new OllamaChatBlock($client, $cfg));
+        $registry->register(new OllamaAssistantBlock($client, $cfg));
 
         // Routes
         $hooks->addAction('router.routes', function($router) {
@@ -55,6 +56,7 @@ final class OllamaModule implements ModuleInterface
             $router->post('/api/ollama/summarize', 'CommunityFusion\Modules\Ollama\OllamaApiController@summarize', $rate);
             $router->get('/api/ollama/models',     'CommunityFusion\Modules\Ollama\OllamaApiController@models',    $rate);
             $router->get('/admin/ollama',          'CommunityFusion\Modules\Ollama\OllamaAdminController@index', $perm('ollama.admin'));
+            $router->post('/admin/ollama/test',    'CommunityFusion\Modules\Ollama\OllamaAdminController@test',  $perm('ollama.admin'));
             $router->post('/admin/ollama/save',    'CommunityFusion\Modules\Ollama\OllamaAdminController@save',  $perm('ollama.admin'));
         });
 
@@ -78,27 +80,4 @@ final class OllamaModule implements ModuleInterface
     public function install(): void {}
     public function uninstall(): void {}
     public function getBlocks(): array { return ['ollama-chat', 'ollama-assistant']; }
-
-    private function makeClient(Connection $db, CacheManager $cache): OllamaClient
-    {
-        $config = $this->getConfig($db);
-        return new OllamaClient(
-            host:          $config['host']          ?? 'http://localhost:11434',
-            model:         $config['default_model'] ?? 'llama3.2',
-            timeout:       (int)($config['timeout'] ?? 30),
-            cache:         $cache,
-            openWebUiUrl:  $config['open_webui_url'] ?? '',
-            openWebUiKey:  $config['open_webui_key'] ?? '',
-        );
-    }
-
-    private function getConfig(Connection $db): array
-    {
-        try {
-            $rows = $db->fetchAll("SELECT `key`,`value` FROM cf_settings WHERE `group`='ollama'");
-            $cfg  = [];
-            foreach ($rows as $r) $cfg[$r['key']] = $r['value'];
-            return $cfg;
-        } catch (\Throwable) { return []; }
-    }
 }

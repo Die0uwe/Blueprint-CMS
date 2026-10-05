@@ -86,8 +86,8 @@ final class ThemeSettingsControllerTest extends TestCase
         $this->assertStringContainsString('tab=1&ok=opgeslagen', $this->location($r));
         $s = $this->s();
         $this->assertSame('boxed', $s['layout_mode']);
-        $this->assertSame(1100, $s['layout_width']);
-        $this->assertSame(240, $s['sidebar_width']);
+        $this->assertSame(1200, $s['layout_width']);
+        $this->assertSame(260, $s['sidebar_width']);
     }
 
     #[Test]

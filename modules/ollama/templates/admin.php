@@ -38,9 +38,9 @@
       <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap;">
         <h1 style="font-size:1.4rem;font-weight:800;">🤖 Ollama AI Integratie</h1>
         <?php if ($available): ?>
-          <span class="status-badge online">🟢 Ollama Online</span>
+          <span class="status-badge online">🟢 <?= !empty($viaWebUi) ? 'Open WebUI' : 'Ollama' ?> online</span>
         <?php else: ?>
-          <span class="status-badge offline">🔴 Ollama Offline</span>
+          <span class="status-badge offline">🔴 <?= !empty($viaWebUi) ? 'Open WebUI' : 'Ollama' ?> offline</span>
         <?php endif; ?>
       </div>
 
@@ -77,18 +77,45 @@
               <div class="cf-form-group">
                 <label class="cf-label">Timeout (sec.)</label>
                 <input class="cf-input" type="number" name="timeout"
-                       value="<?= (int)($settings['timeout'] ?? 30) ?>" min="5" max="120">
+                       value="<?= (int)($settings['timeout'] ?? 30) ?>" min="5" max="300">
               </div>
             </div>
 
             <div class="cf-form-group">
               <label class="cf-label">Standaard Model</label>
-              <input class="cf-input" type="text" name="default_model"
+              <input class="cf-input" type="text" name="default_model" id="ol-model" list="ol-models"
                      value="<?= htmlspecialchars($settings['default_model'] ?? 'llama3.2',ENT_QUOTES) ?>"
-                     placeholder="llama3.2, mistral, gemma2, qwen2.5, ...">
+                     placeholder="llama3.2, mistral, deepseek-r1:8b, qwen2.5, ...">
+              <datalist id="ol-models">
+                <?php
+                  $seen = [];
+                  foreach (($models ?? []) as $m) { $n = (string) ($m['name'] ?? ''); if ($n !== '') { $seen[$n] = true; echo '<option value="' . htmlspecialchars($n, ENT_QUOTES) . '">'; } }
+                  foreach (\CommunityFusion\Modules\Ollama\OllamaConfig::DEEPSEEK_SUGGESTIONS as $n) { if (!isset($seen[$n])) echo '<option value="' . htmlspecialchars($n, ENT_QUOTES) . '">'; }
+                ?>
+              </datalist>
               <p style="font-size:.75rem;color:var(--muted);margin-top:.3rem;">
-                Model moet geïnstalleerd zijn via <code>ollama pull llama3.2</code>
+                Model moet geïnstalleerd zijn via <code>ollama pull llama3.2</code>.
+                <strong>DeepSeek:</strong> <code>ollama pull deepseek-r1:8b</code> en vul <code>deepseek-r1:8b</code> hier in
+                (7B/8B past op 8 GB videogeheugen, 14B op 12–16 GB, 32B op 24 GB). Het "denkwerk" van DeepSeek-R1 wordt automatisch uit het antwoord gehaald.
               </p>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;">
+              <div class="cf-form-group">
+                <label class="cf-label">Naam van je community</label>
+                <input class="cf-input" type="text" name="guild_name" maxlength="100"
+                       value="<?= htmlspecialchars($settings['guild_name'] ?? '',ENT_QUOTES) ?>" placeholder="Slayer Alliance">
+              </div>
+              <div class="cf-form-group">
+                <label class="cf-label">Context-venster (num_ctx)</label>
+                <input class="cf-input" type="number" name="num_ctx" min="0" max="131072" step="512"
+                       value="<?= (int)($settings['num_ctx'] ?? 0) ?>" placeholder="0 = standaard">
+              </div>
+              <div class="cf-form-group">
+                <label class="cf-label">Model geladen houden</label>
+                <input class="cf-input" type="text" name="keep_alive" maxlength="8"
+                       value="<?= htmlspecialchars($settings['keep_alive'] ?? '',ENT_QUOTES) ?>" placeholder="bv. 24h of -1">
+              </div>
             </div>
 
             <div class="cf-form-group">
@@ -110,8 +137,13 @@
                 </div>
                 <div class="cf-form-group">
                   <label class="cf-label">Open WebUI API Key</label>
-                  <input class="cf-input" type="password" name="open_webui_key"
-                         placeholder="<?= !empty($settings['open_webui_key']) ? '●●●● (ingesteld)' : 'sk-...' ?>">
+                  <input class="cf-input" type="password" name="open_webui_key" autocomplete="new-password"
+                         placeholder="<?= !empty($keySet) ? '●●●● (ingesteld — leeg laten = ongewijzigd)' : 'sk-...' ?>">
+                  <?php if (!empty($keySet)): ?>
+                    <label style="font-size:.75rem;color:var(--muted);display:flex;gap:.4rem;align-items:center;margin-top:.3rem;">
+                      <input type="checkbox" name="clear_open_webui_key" value="1" style="width:auto;"> Sleutel wissen
+                    </label>
+                  <?php endif; ?>
                 </div>
               </div>
             </div>
@@ -122,6 +154,42 @@
           </form>
         </div>
       </div>
+
+      <!-- Verbindingstest -->
+      <div class="cf-card" style="margin-bottom:1rem;">
+        <div class="cf-card-header">🔌 Verbinding testen</div>
+        <div class="cf-card-body">
+          <p style="font-size:.82rem;color:var(--text-dim);margin-bottom:.8rem;">
+            Test eerst <em>opslaan</em>, dan hier. De test controleert de verbinding, de modellen en stelt het gekozen model een korte vraag.
+          </p>
+          <button type="button" class="cf-btn" id="ol-test">▶ Test met het gekozen model</button>
+          <div id="ol-result" style="margin-top:.9rem;font-size:.85rem;line-height:1.7;"></div>
+        </div>
+      </div>
+      <script>
+      (function () {
+        var btn = document.getElementById('ol-test'), out = document.getElementById('ol-result');
+        function esc(t) { return String(t).replace(/[&<>"']/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+        btn.addEventListener('click', function () {
+          btn.disabled = true; out.textContent = 'Bezig… (een groot model kan even duren)';
+          var fd = new FormData();
+          fd.append('_csrf_token', document.querySelector('input[name=_csrf_token]').value);
+          fd.append('model', document.getElementById('ol-model').value);
+          fetch('/admin/ollama/test', { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+              var h = '';
+              (d.steps || []).forEach(function (s) {
+                h += '<div>' + (s.ok ? '✅ ' : '❌ ') + esc(s.label) + (s.hint ? '<div style="margin-left:1.6rem;color:var(--muted);">' + esc(s.hint) + '</div>' : '') + '</div>';
+              });
+              if (d.ok) h += '<div style="margin-top:.6rem;padding:.6rem .8rem;border:1px solid var(--border);border-radius:8px;">💬 ' + esc(d.reply) + ' <span style="color:var(--muted);">(' + d.ms + ' ms)</span></div>';
+              out.innerHTML = h || 'Geen resultaat.';
+            })
+            .catch(function () { out.textContent = 'De test zelf mislukte (sessie verlopen? Herlaad de pagina).'; })
+            .finally(function () { btn.disabled = false; });
+        });
+      })();
+      </script>
 
       <!-- Open WebUI info -->
       <div class="cf-card">
