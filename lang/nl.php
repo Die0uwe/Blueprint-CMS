@@ -202,6 +202,7 @@ return [
             'settings'           => 'Instellingen',
             'logs'               => 'Logs',
             'api_status'          => 'API-overzicht',
+            'api_settings'        => 'API-instellingen',
             'marketplace'        => 'Marketplace',
             'view_site'          => 'Bekijk Site',
             'logout'             => 'Uitloggen',

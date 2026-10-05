@@ -45,6 +45,7 @@ final class ThemeSettings
             'layout_mode'      => 'wide',
             'layout_preset'    => 'standaard',
             'layout_width'     => 1280,
+            'layout_fluid'     => 90,
             'sidebar_width'    => 260,
             'logo'             => '',
             'logo_show_name'   => '0',
@@ -69,12 +70,14 @@ final class ThemeSettings
         $d = self::defaults();
 
         $mode = (string) ($raw['layout_mode'] ?? $d['layout_mode']);
-        $d['layout_mode'] = $mode === 'boxed' ? 'boxed' : 'wide';
+        // wide = tot max. px, boxed = vak in px, fluid = % van het scherm, full = schermbreed
+        $d['layout_mode'] = in_array($mode, ['boxed', 'full', 'fluid'], true) ? $mode : 'wide';
 
         $preset = (string) ($raw['layout_preset'] ?? '');
         $d['layout_preset'] = ($preset === 'aangepast' || isset(self::PRESETS[$preset])) ? $preset : 'standaard';
 
-        $d['layout_width']  = self::intIn($raw['layout_width']  ?? null, 900, 1800, (int) $d['layout_width']);
+        $d['layout_width']  = self::intIn($raw['layout_width']  ?? null, 900, 2400, (int) $d['layout_width']);
+        $d['layout_fluid']  = self::intIn($raw['layout_fluid']  ?? null, 50, 100, (int) $d['layout_fluid']);
         $d['sidebar_width'] = self::intIn($raw['sidebar_width'] ?? null, 180, 360, (int) $d['sidebar_width']);
         $d['banner_height'] = self::intIn($raw['banner_height'] ?? null, 80, 600, (int) $d['banner_height']);
 
@@ -119,9 +122,14 @@ final class ThemeSettings
     {
         $s = self::load($raw);
 
+        $maxW = match ($s['layout_mode']) {
+            'full'  => '100%',
+            'fluid' => $s['layout_fluid'] . 'vw',
+            default => $s['layout_width'] . 'px',
+        };
         $out = sprintf(
-            ':root{--cf-max-w:%dpx;--cf-sidebar-w:%dpx;--cf-banner-h:%dpx;}',
-            $s['layout_width'], $s['sidebar_width'], $s['banner_height']
+            ':root{--cf-max-w:%s;--cf-sidebar-w:%dpx;--cf-banner-h:%dpx;}',
+            $maxW, $s['sidebar_width'], $s['banner_height']
         );
 
         $vars = '';

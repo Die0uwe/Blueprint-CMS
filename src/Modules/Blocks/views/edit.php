@@ -22,6 +22,9 @@ $h = static fn(mixed $v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'U
   .form-actions { display:flex; gap:.8rem; align-items:center; margin-top:1.5rem; }
   .saved-note { background: rgba(16,185,129,.12); border:1px solid var(--success); color: var(--success);
                 padding:.6rem .9rem; border-radius:8px; margin-bottom:1rem; }
+  .form-wrap.is-full { position:fixed; inset:0; z-index:9990; overflow:auto; max-width:none; margin:0; padding:1rem 1.5rem; background:var(--bg); }
+  .blk-preview { margin-top:1.5rem; }
+  .blk-preview iframe { width:100%; min-height:220px; border:1px solid var(--border); border-radius:8px; background:#0f172a; resize:vertical; }
   .danger-zone { margin-top:2.5rem; padding-top:1rem; border-top:1px solid var(--border); }
 </style>
 </head>
@@ -36,7 +39,10 @@ $h = static fn(mixed $v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'U
     </header>
 
     <div class="admin-content">
-      <div class="form-wrap">
+      <div class="form-wrap" id="blk-wrap">
+        <div style="display:flex;justify-content:flex-end;margin-bottom:.5rem;">
+          <button type="button" class="cf-btn-sm" id="blk-full" aria-pressed="false">⛶ Volledig scherm</button>
+        </div>
         <?php if (!empty($saved)): ?>
           <div class="saved-note">✅ Blok opgeslagen.</div>
         <?php endif; ?>
@@ -76,9 +82,16 @@ $h = static fn(mixed $v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'U
 
           <div class="form-actions">
             <button type="submit" class="cf-btn">Opslaan</button>
+            <button type="button" class="cf-btn-ghost" id="blk-preview-btn">👁 Voorbeeld</button>
             <a href="/admin/blocks" class="cf-btn-ghost">Annuleren</a>
           </div>
         </form>
+
+        <section class="blk-preview" id="blk-preview" hidden>
+          <h3 style="margin:0 0 .5rem;">Voorbeeld <small style="color:var(--muted);font-weight:400;">(niet opgeslagen; scripts worden niet uitgevoerd)</small></h3>
+          <p id="blk-preview-err" style="color:var(--error);" hidden></p>
+          <iframe id="blk-preview-frame" sandbox="" title="Voorbeeld van het blok"></iframe>
+        </section>
 
         <div class="danger-zone">
           <form method="post" action="/admin/blocks/<?= (int) $block['id'] ?>/delete"
@@ -92,5 +105,36 @@ $h = static fn(mixed $v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'U
   </div>
 </div>
 <?= \CommunityFusion\Core\Template\EditorAssets::tags() ?>
+<script>
+(function () {
+  var form = document.querySelector('form[action$="/update"]');
+  var wrap = document.getElementById('blk-wrap');
+  var full = document.getElementById('blk-full');
+  full.addEventListener('click', function () {
+    var on = !wrap.classList.contains('is-full');
+    wrap.classList.toggle('is-full', on);
+    full.setAttribute('aria-pressed', on ? 'true' : 'false');
+    full.textContent = on ? '✕ Sluiten' : '⛶ Volledig scherm';
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && wrap.classList.contains('is-full') && !document.querySelector('.cf-ed-full, .tox-fullscreen')) full.click();
+  });
+  var btn = document.getElementById('blk-preview-btn');
+  btn.addEventListener('click', function () {
+    if (window.tinymce) window.tinymce.triggerSave();
+    var box = document.getElementById('blk-preview'), err = document.getElementById('blk-preview-err'), fr = document.getElementById('blk-preview-frame');
+    box.hidden = false; err.hidden = true; btn.disabled = true;
+    fetch(form.getAttribute('action').replace(/\/update$/, '/preview'), {
+      method: 'POST', body: new FormData(form), headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }, credentials: 'same-origin'
+    }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (res) {
+        if (!res.ok || res.j.error) { err.textContent = res.j.error || 'Voorbeeld mislukt.'; err.hidden = false; fr.srcdoc = ''; return; }
+        fr.srcdoc = '<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="/assets/css/blueprint.css"><body style="background:#0f172a;color:#e2e8f0;font-family:system-ui,sans-serif;padding:1rem">' + res.j.html;
+      })
+      .catch(function () { err.textContent = 'Voorbeeld mislukt (netwerk).'; err.hidden = false; })
+      .then(function () { btn.disabled = false; });
+  });
+})();
+</script>
 </body>
 </html>

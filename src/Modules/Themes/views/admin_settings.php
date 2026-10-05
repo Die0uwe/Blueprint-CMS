@@ -65,10 +65,30 @@ $themeColorVarFallback = ['color_primary' => '#a855f7', 'color_secondary' => '#3
       <!-- TAB 1: Algemeen & layout -->
       <form method="post" action="/admin/themes/instellingen/algemeen" class="cf-card" style="padding:1.25rem;">
         <?= CsrfProtection::field() ?>
-        <h2 style="margin-top:0;">Layout</h2>
-        <div class="ts-row">
-          <label><input type="radio" name="layout_mode" value="wide" <?= $s['layout_mode'] === 'wide' ? 'checked' : '' ?>> <strong>Wide</strong> — volle breedte, inhoud tot de maximale breedte</label>
-          <label><input type="radio" name="layout_mode" value="boxed" <?= $s['layout_mode'] === 'boxed' ? 'checked' : '' ?>> <strong>Boxed</strong> — de hele site in een gecentreerd vak</label>
+        <h2 style="margin-top:0;">Layout &amp; weergave</h2>
+        <div class="ts-grid" id="ts-modes">
+          <?php foreach ([
+              'wide'  => ['Wide', 'Inhoud tot een maximale breedte (px)'],
+              'boxed' => ['Boxed', 'De hele site in een gecentreerd vak (px)'],
+              'fluid' => ['Fluid / auto', 'Breedte schaalt mee: % van het scherm (slider)'],
+              'full'  => ['Full screen', 'Van schermrand tot schermrand'],
+          ] as $m => [$lbl, $desc]): ?>
+            <label class="ts-preset"><input type="radio" name="layout_mode" value="<?= $m ?>" <?= $s['layout_mode'] === $m ? 'checked' : '' ?>>
+              <strong><?= $e($lbl) ?></strong><small><?= $e($desc) ?></small></label>
+          <?php endforeach; ?>
+        </div>
+
+        <div class="ts-row" style="margin-top:1rem;flex-direction:column;align-items:stretch;gap:1rem;">
+          <label id="row-width">Inhoudsbreedte (Wide/Boxed): <output id="out-width"><?= (int) $s['layout_width'] ?></output> px
+            <input type="range" name="layout_width" id="layout_width" min="900" max="2400" step="10" value="<?= (int) $s['layout_width'] ?>" style="width:100%"></label>
+          <label id="row-fluid">Breedte (Fluid): <output id="out-fluid"><?= (int) $s['layout_fluid'] ?></output> % van het scherm
+            <input type="range" name="layout_fluid" id="layout_fluid" min="50" max="100" step="1" value="<?= (int) $s['layout_fluid'] ?>" style="width:100%"></label>
+          <label>Zijbalkbreedte: <output id="out-sidebar"><?= (int) $s['sidebar_width'] ?></output> px
+            <input type="range" name="sidebar_width" id="sidebar_width" min="180" max="360" step="10" value="<?= (int) $s['sidebar_width'] ?>" style="width:100%"></label>
+        </div>
+        <div id="ts-preview" aria-hidden="true" style="margin:1rem 0;border:1px dashed var(--border);border-radius:8px;padding:.5rem;background:var(--bg2,transparent);">
+          <div id="ts-preview-bar" style="height:28px;margin:0 auto;border-radius:6px;background:var(--accent);opacity:.65;"></div>
+          <small style="color:var(--text-dim);">Schematisch (breedte t.o.v. een scherm van 1920 px)</small>
         </div>
 
         <h3>Presets</h3>
@@ -84,34 +104,40 @@ $themeColorVarFallback = ['color_primary' => '#a855f7', 'color_secondary' => '#3
           <?php endforeach; ?>
           <label class="ts-preset">
             <input type="radio" name="layout_preset" value="aangepast" <?= $s['layout_preset'] === 'aangepast' ? 'checked' : '' ?>>
-            <strong>Aangepast</strong><small>Eigen breedtes hieronder</small>
+            <strong>Aangepast</strong><small>Eigen modus en breedtes</small>
           </label>
         </div>
 
-        <div class="ts-row" style="margin-top:1rem;">
-          <label>Inhoudsbreedte (900–1800 px)
-            <input type="number" class="cf-input" name="layout_width" id="layout_width" min="900" max="1800" step="10" value="<?= (int) $s['layout_width'] ?>"></label>
-          <label>Zijbalkbreedte (180–360 px)
-            <input type="number" class="cf-input" name="sidebar_width" id="sidebar_width" min="180" max="360" step="10" value="<?= (int) $s['sidebar_width'] ?>"></label>
-        </div>
         <button type="submit" class="cf-btn">Opslaan</button>
       </form>
       <script>
       (function(){
-        var f=document.getElementById('ts-presets'); if(!f) return;
+        var $=function(id){return document.getElementById(id);};
+        function mode(){var r=document.querySelector('input[name=layout_mode]:checked');return r?r.value:'wide';}
+        function custom(){var c=document.querySelector('input[name=layout_preset][value=aangepast]'); if(c) c.checked=true;}
+        function sync(){
+          var m=mode();
+          $('out-width').textContent=$('layout_width').value;
+          $('out-fluid').textContent=$('layout_fluid').value;
+          $('out-sidebar').textContent=$('sidebar_width').value;
+          $('row-width').style.display=(m==='wide'||m==='boxed')?'':'none';
+          $('row-fluid').style.display=(m==='fluid')?'':'none';
+          var pct=m==='full'?100:(m==='fluid'?+$('layout_fluid').value:Math.min(100,+$('layout_width').value/1920*100));
+          $('ts-preview-bar').style.width=pct+'%';
+        }
+        var f=$('ts-presets');
         f.addEventListener('change',function(e){
           var r=e.target; if(r.name!=='layout_preset'||!r.dataset.mode) return;
           document.querySelector('input[name=layout_mode][value='+r.dataset.mode+']').checked=true;
-          document.getElementById('layout_width').value=r.dataset.width;
-          document.getElementById('sidebar_width').value=r.dataset.sidebar;
+          $('layout_width').value=r.dataset.width; $('sidebar_width').value=r.dataset.sidebar; sync();
         });
-        ['layout_width','sidebar_width'].forEach(function(id){
-          document.getElementById(id).addEventListener('input',function(){
-            document.querySelector('input[name=layout_preset][value=aangepast]').checked=true; });
+        ['layout_width','layout_fluid','sidebar_width'].forEach(function(id){
+          $(id).addEventListener('input',function(){ custom(); sync(); });
         });
         document.querySelectorAll('input[name=layout_mode]').forEach(function(r){
-          r.addEventListener('change',function(){ document.querySelector('input[name=layout_preset][value=aangepast]').checked=true; });
+          r.addEventListener('change',function(){ custom(); sync(); });
         });
+        sync();
       })();
       </script>
 

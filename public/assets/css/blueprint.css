@@ -110,6 +110,10 @@ body.cf-layout-boxed #cf-page {
 }
 body.cf-layout-boxed #cf-page .cf-container,
 body.cf-layout-boxed #cf-page .cf-layout { max-width: 100%; }
+/* Full-screen / fluid: de inhoud volgt het scherm (breedte via --cf-max-w) */
+body.cf-layout-full .cf-container, body.cf-layout-full .cf-layout,
+body.cf-layout-fluid .cf-container, body.cf-layout-fluid .cf-layout { width: 100%; }
+body.cf-layout-full .cf-container, body.cf-layout-full .cf-layout { padding-inline: clamp(.75rem, 2vw, 2rem); box-sizing: border-box; }
 .cf-logo-img { max-height: 2.4rem; max-width: 220px; width: auto; display: block; }
 .cf-banner { display: block; padding-block: 1rem 0; }
 .cf-banner img {

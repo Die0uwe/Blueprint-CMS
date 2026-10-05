@@ -4,8 +4,9 @@
  * Hangt zich automatisch aan elke  <textarea data-editor="...">:
  *   richtext       volledige WYSIWYG-editor (TinyMCE, self-hosted)
  *   richtext-lite  compacte editor (forum, reacties): geen tabellen/afbeeldingen
- *   code           monospace code-veld (Tab = inspringen) — voor HTML-blokken
- *   plain          ongewijzigd (korte tekstvelden)
+ *   code           code-editor voor HTML-blokken: snippet-knoppen, voorbeeld, regelafbreking,
+ *                  volledig scherm, Tab = inspringen
+ *   plain          tekstveld met teller + volledig scherm
  *
  * De toegestane tags/attributen komen overeen met ContentSanitizer::ALLOWED.
  * De server sanitized altijd opnieuw: dit script is gemak, geen beveiliging.
@@ -115,6 +116,133 @@
     }
   }
 
+  // ── Code-editor (HTML-blok): snippet-knoppen, voorbeeld, regelafbreking, volledig scherm ──────────
+  var CSS = '.cf-ed{border:1px solid var(--border,#334155);border-radius:8px;background:var(--surface,#111827);overflow:hidden}' +
+    '.cf-ed-bar{display:flex;flex-wrap:wrap;gap:.25rem;padding:.35rem;border-bottom:1px solid var(--border,#334155);background:var(--bg2,rgba(255,255,255,.04));align-items:center}' +
+    '.cf-ed-bar button{font:inherit;font-size:.78rem;padding:.2rem .5rem;border:1px solid var(--border,#334155);border-radius:6px;background:transparent;color:var(--text,#e2e8f0);cursor:pointer}' +
+    '.cf-ed-bar button:hover,.cf-ed-bar button[aria-pressed=true]{background:var(--accent,#6c3df4);color:var(--on-accent,#fff)}' +
+    '.cf-ed-sp{flex:1}' +
+    '.cf-ed-body{display:flex;min-height:12rem}' +
+    '.cf-ed-body textarea{flex:1;min-width:0;border:0!important;border-radius:0!important;margin:0;resize:vertical;min-height:12rem;background:transparent;color:inherit;box-sizing:border-box}' +
+    '.cf-ed-body iframe{flex:1;min-width:0;border:0;border-left:1px solid var(--border,#334155);background:#0f172a;min-height:12rem}' +
+    '.cf-ed-foot{padding:.2rem .5rem;font-size:.72rem;color:var(--muted,#8091a7);border-top:1px solid var(--border,#334155)}' +
+    '.cf-ed.cf-ed-full{position:fixed;inset:0;z-index:99999;border-radius:0;display:flex;flex-direction:column;background:var(--bg,#0b1120)}' +
+    '.cf-ed.cf-ed-full .cf-ed-body{flex:1;min-height:0}' +
+    '.cf-ed.cf-ed-full .cf-ed-body textarea{resize:none;height:100%;font-size:.95rem}' +
+    'html.cf-ed-lock{overflow:hidden}';
+
+  var SNIPPETS = [
+    ['B', '<strong>|</strong>', 'Vet'], ['I', '<em>|</em>', 'Cursief'], ['H2', '<h2>|</h2>', 'Kop 2'], ['H3', '<h3>|</h3>', 'Kop 3'],
+    ['¶', '<p>|</p>', 'Alinea'], ['Link', '<a href="https://">|</a>', 'Link'], ['Img', '<img src="" alt="|">', 'Afbeelding'],
+    ['Lijst', '<ul>\n  <li>|</li>\n</ul>', 'Opsomming'], ['Div', '<div>\n|\n</div>', 'Blok (div)'],
+    ['Knop', '<a class="cf-btn" href="#">|</a>', 'Knop'], ['<br>', '<br>\n', 'Regeleinde'], ['<!-- -->', '<!-- | -->', 'Commentaar']
+  ];
+
+  function injectCss() {
+    if (document.getElementById('cf-ed-css')) return;
+    var st = document.createElement('style');
+    st.id = 'cf-ed-css';
+    st.textContent = CSS;
+    document.head.appendChild(st);
+  }
+
+  function btn(label, title, onClick, pressable) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = label;
+    b.title = title;
+    if (pressable) b.setAttribute('aria-pressed', 'false');
+    b.addEventListener('click', onClick);
+    return b;
+  }
+
+  function insertSnippet(el, tpl) {
+    var s = el.selectionStart, t = el.selectionEnd, sel = el.value.slice(s, t);
+    var i = tpl.indexOf('|');
+    var out = i < 0 ? tpl : tpl.slice(0, i) + sel + tpl.slice(i + 1);
+    el.value = el.value.slice(0, s) + out + el.value.slice(t);
+    var caret = i < 0 ? s + out.length : s + i + sel.length;
+    el.focus();
+    el.selectionStart = el.selectionEnd = caret;
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  /** Verpakt een textarea in een editor met knoppenbalk. mode: 'code' (snippets + voorbeeld) of 'plain'. */
+  function wrapEditor(el, mode) {
+    injectCss();
+    var wrap = document.createElement('div'); wrap.className = 'cf-ed';
+    var bar = document.createElement('div'); bar.className = 'cf-ed-bar';
+    var body = document.createElement('div'); body.className = 'cf-ed-body';
+    var foot = document.createElement('div'); foot.className = 'cf-ed-foot';
+    el.parentNode.insertBefore(wrap, el);
+    wrap.appendChild(bar); wrap.appendChild(body); wrap.appendChild(foot);
+    body.appendChild(el);
+
+    var frame = null, previewBtn = null, wrapBtn = null, fullBtn = null;
+
+    function count() {
+      var v = el.value;
+      foot.textContent = (v === '' ? 0 : v.split('\n').length) + ' regels · ' + v.length + ' tekens';
+    }
+    function refreshPreview() {
+      if (!frame) return;
+      frame.srcdoc = '<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="/assets/css/blueprint.css">' +
+        '<body style="background:#0f172a;color:#e2e8f0;font-family:system-ui,sans-serif;padding:1rem">' + el.value;
+    }
+    function setFull(on) {
+      wrap.classList.toggle('cf-ed-full', on);
+      document.documentElement.classList.toggle('cf-ed-lock', on);
+      fullBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      fullBtn.textContent = on ? '✕ Sluiten' : '⛶ Volledig scherm';
+      if (on) el.focus();
+    }
+
+    if (mode === 'code') {
+      SNIPPETS.forEach(function (sn) {
+        bar.appendChild(btn(sn[0], sn[2], function () { insertSnippet(el, sn[1]); }));
+      });
+    }
+    var sp = document.createElement('span'); sp.className = 'cf-ed-sp'; bar.appendChild(sp);
+    if (mode === 'code') {
+      wrapBtn = btn('Regelafbreking', 'Lange regels afbreken aan/uit', function () {
+        var on = el.getAttribute('wrap') === 'off';
+        el.setAttribute('wrap', on ? 'soft' : 'off');
+        el.style.whiteSpace = on ? 'pre-wrap' : 'pre';
+        wrapBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      }, true);
+      bar.appendChild(wrapBtn);
+      previewBtn = btn('Voorbeeld', 'Voorbeeld naast de code (scripts worden niet uitgevoerd)', function () {
+        var on = !frame;
+        if (on) {
+          frame = document.createElement('iframe');
+          frame.setAttribute('sandbox', ''); // geen scripts, geen formulieren
+          frame.title = 'Voorbeeld';
+          body.appendChild(frame);
+          refreshPreview();
+        } else {
+          frame.remove(); frame = null;
+        }
+        previewBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      }, true);
+      bar.appendChild(previewBtn);
+    }
+    fullBtn = btn('⛶ Volledig scherm', 'Volledig scherm (Esc om te sluiten)', function () {
+      setFull(!wrap.classList.contains('cf-ed-full'));
+    }, true);
+    bar.appendChild(fullBtn);
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && wrap.classList.contains('cf-ed-full')) setFull(false);
+    });
+    var t = null;
+    el.addEventListener('input', function () {
+      count();
+      if (frame) { clearTimeout(t); t = setTimeout(refreshPreview, 250); }
+    });
+    count();
+    return wrap;
+  }
+
   function initCode(el) {
     el.addEventListener('keydown', function (e) {
       if (e.key !== 'Tab' || e.ctrlKey || e.metaKey || e.altKey) return;
@@ -126,6 +254,7 @@
     el.style.tabSize = 2;
     el.style.whiteSpace = 'pre';
     el.setAttribute('wrap', 'off');
+    wrapEditor(el, 'code');
   }
 
   function boot() {
@@ -140,6 +269,8 @@
       });
     }
     document.querySelectorAll('textarea[data-editor="code"]').forEach(initCode);
+    // Gewone tekstvelden (blokken, formulieren): ook volledig scherm + teller
+    document.querySelectorAll('textarea[data-editor="plain"]').forEach(function (el) { wrapEditor(el, 'plain'); });
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);

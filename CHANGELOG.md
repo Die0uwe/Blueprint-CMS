@@ -20,6 +20,18 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ## [Unreleased]
 
+## [1.31.0] — 2026-10-06 — Accounts samenvoegen, weergave-sliders, API-placeholders, blok-editors
+
+### Toegevoegd
+- **Meerdere e-mailadressen per account** (max. 3, `cf_user_emails`): extra adres toevoegen met bevestigingsmail (24 uur geldig, eenmalig), hoofdadres kiezen (alleen bevestigde adressen), adres verwijderen. Migratie `20261006_01_user_emails` vult het huidige adres als hoofdadres.
+- **Accounts samenvoegen** (`/profiel/samenvoegen`, naar ScriptSpace): je behoudt het account waarmee je bent ingelogd en bewijst het andere via zijn gekoppelde provider (`/auth/{provider}?intent=merge`) of gebruikersnaam + wachtwoord (met de login-rem). Bewijs geldt 10 min, eenmalig, per sessie; bevestigen door SAMENVOEGEN te typen. Verhuist logins, rollen, e-mailadressen (tot max. 3) en inhoud (nieuws, pagina's, forum, blog, downloads, galerij, contact, gilde, AI-gesprekken) in één transactie; dubbele provider: behouden account wint. Mail naar beide adressen + auditlog `account.merged`.
+- **Weergave**: modes Wide / Boxed / **Fluid** (auto, % van het scherm) / **Full screen**, echte sliders met live schema (Thema → Instellingen, tab 1). Breedte tot 2400 px.
+- **API-instellingen** (`/admin/api-instellingen`): Steam (key, Steam-ID, App-ID) en 3 lege "Custom API"-slots (titel, basis-URL, header, sleutel, notities). Sleutels versleuteld; nog door geen module gebruikt.
+- **Blok-editors**: HTML-blok krijgt een code-editor (snippet-knoppen, voorbeeld in sandbox-iframe, regelafbreking, volledig scherm); alle tekstvelden krijgen teller + volledig scherm; elk bloktype heeft op het bewerkscherm een live **Voorbeeld** (`POST /admin/blocks/{id}/preview`, nooit gecachet) en een volledig-schermknop.
+
+### Gewijzigd
+- `OAuthLoginFlow` kent een derde intentie `merge`; nieuwe foutcodes `merge_unknown`, `merge_same`.
+
 ## [1.30.0] — 2026-10-05 — Galerij en videospeler, downloads, beveiliging en toegankelijkheid (review-ronde)
 
 > Review-ronde met vier reviewers (architectuur, beveiliging, UX/toegankelijkheid, tests) over de hele codebase; alle bevindingen zijn in vijf batches verwerkt.

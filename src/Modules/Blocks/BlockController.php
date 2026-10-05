@@ -186,6 +186,36 @@ final class BlockController
         return Response::redirect("/admin/blocks/{$id}/edit?saved=1");
     }
 
+    /**
+     * POST /admin/blocks/{id}/preview — render het blok met de (nog niet opgeslagen) formulierwaarden.
+     * Nooit uit de cache, schrijft niets weg. De admin toont het resultaat in een sandboxed iframe.
+     */
+    public function preview(Request $request): Response
+    {
+        CsrfProtection::validateRequest();
+        $id   = (int) $request->param('id');
+        $row  = $this->registry->findBlock($id);
+        $type = $row !== null ? $this->registry->find((string) $row['type_slug']) : null;
+        if ($row === null || $type === null) {
+            return Response::json(['error' => 'Blok niet gevonden.'], 404);
+        }
+
+        $raw    = $request->input('config', []);
+        $config = BlockConfigNormalizer::normalize($type->getConfigSchema(), is_array($raw) ? $raw : []);
+        try {
+            $type->validateConfig($config);
+        } catch (\Throwable $e) {
+            return Response::json(['error' => $e->getMessage()], 422);
+        }
+
+        $row['config']    = json_encode($config, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $row['cache_ttl'] = 0;
+        $title = trim((string) $request->input('title', (string) ($row['title'] ?? '')));
+        $row['title'] = $title !== '' ? mb_substr($title, 0, 200) : null;
+
+        return Response::json(['html' => $this->registry->renderBlock($row, [])]);
+    }
+
     public function delete(Request $request): Response
     {
         CsrfProtection::validateRequest();

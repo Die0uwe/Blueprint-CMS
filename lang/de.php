@@ -201,6 +201,7 @@ return [
             'settings'           => 'Einstellungen',
             'logs'               => 'Protokolle',
             'api_status'          => 'API-Übersicht',
+            'api_settings'        => 'API-Einstellungen',
             'marketplace'        => 'Marktplatz',
             'view_site'          => 'Seite ansehen',
             'logout'             => 'Abmelden',

@@ -69,12 +69,13 @@ final class ThemeSettingsController
         $clean  = ThemeSettings::load([
             'layout_mode'   => $request->input('layout_mode'),
             'layout_width'  => $request->input('layout_width'),
+            'layout_fluid'  => $request->input('layout_fluid'),
             'sidebar_width' => $request->input('sidebar_width'),
         ]);
         $preset = (string) $request->input('layout_preset', 'aangepast');
         $clean  = ThemeSettings::applyPreset($clean, $preset);
 
-        foreach (['layout_mode', 'layout_preset', 'layout_width', 'sidebar_width'] as $k) {
+        foreach (['layout_mode', 'layout_preset', 'layout_width', 'layout_fluid', 'sidebar_width'] as $k) {
             $this->settings->set(ThemeSettings::GROUP, $k, (string) $clean[$k]);
         }
         $this->log('themes.layout', ['preset' => $clean['layout_preset'], 'mode' => $clean['layout_mode']]);

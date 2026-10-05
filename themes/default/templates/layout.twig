@@ -19,7 +19,7 @@
 <script src="{{ asset('js/cf-theme-init.js') }}"></script>
 {% block head %}{% endblock %}
 </head>
-<body class="cf-theme cf-layout-{{ (theme_settings.layout_mode|default('wide')) == 'boxed' ? 'boxed' : 'wide' }}" data-theme-slug="{{ theme.slug|default('') }}" data-theme-name="{{ theme.name|default('') }}">
+<body class="cf-theme cf-layout-{{ (theme_settings.layout_mode|default('wide')) in ['boxed', 'full', 'fluid'] ? theme_settings.layout_mode : 'wide' }}" data-theme-slug="{{ theme.slug|default('') }}" data-theme-name="{{ theme.name|default('') }}">
 
 <a href="#cf-content" class="cf-skip-link">Naar de inhoud</a>
 <div id="cf-page">

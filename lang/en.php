@@ -202,6 +202,7 @@ return [
             'settings'           => 'Settings',
             'logs'               => 'Logs',
             'api_status'          => 'API overview',
+            'api_settings'        => 'API settings',
             'marketplace'        => 'Marketplace',
             'view_site'          => 'View Site',
             'logout'             => 'Log out',

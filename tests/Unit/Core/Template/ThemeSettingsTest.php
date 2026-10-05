@@ -24,16 +24,28 @@ final class ThemeSettingsTest extends TestCase
     public function widthsAreClampedAndGarbageFallsBack(): void
     {
         $s = ThemeSettings::load(['layout_width' => '99999', 'sidebar_width' => '5', 'banner_height' => 'abc']);
-        $this->assertSame(1800, $s['layout_width']);
+        $this->assertSame(2400, $s['layout_width']);
         $this->assertSame(180, $s['sidebar_width']);
         $this->assertSame(220, $s['banner_height']);
     }
 
     #[Test]
-    public function layoutModeOnlyAcceptsWideOrBoxed(): void
+    public function layoutModeOnlyAcceptsKnownModes(): void
     {
         $this->assertSame('boxed', ThemeSettings::load(['layout_mode' => 'boxed'])['layout_mode']);
+        $this->assertSame('full', ThemeSettings::load(['layout_mode' => 'full'])['layout_mode']);
+        $this->assertSame('fluid', ThemeSettings::load(['layout_mode' => 'fluid'])['layout_mode']);
         $this->assertSame('wide', ThemeSettings::load(['layout_mode' => 'weird'])['layout_mode']);
+    }
+
+    #[Test]
+    public function cssMaxWidthFollowsMode(): void
+    {
+        $this->assertStringContainsString('--cf-max-w:1280px', ThemeSettings::css(['layout_mode' => 'wide']));
+        $this->assertStringContainsString('--cf-max-w:100%', ThemeSettings::css(['layout_mode' => 'full']));
+        $this->assertStringContainsString('--cf-max-w:75vw', ThemeSettings::css(['layout_mode' => 'fluid', 'layout_fluid' => '75']));
+        $this->assertStringContainsString('--cf-max-w:100vw', ThemeSettings::css(['layout_mode' => 'fluid', 'layout_fluid' => '999']));
+        $this->assertStringContainsString('--cf-max-w:50vw', ThemeSettings::css(['layout_mode' => 'fluid', 'layout_fluid' => '1']));
     }
 
     #[Test]

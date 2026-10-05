@@ -235,6 +235,7 @@ final class Router
         $this->post('/admin/blocks/store',              'CommunityFusion\Modules\Blocks\BlockController@store',  $perm('blocks.manage'));
         $this->post('/admin/blocks/{id:[0-9]+}/update', 'CommunityFusion\Modules\Blocks\BlockController@update', $perm('blocks.manage'));
         $this->post('/admin/blocks/{id:[0-9]+}/delete', 'CommunityFusion\Modules\Blocks\BlockController@delete', $perm('blocks.manage'));
+        $this->post('/admin/blocks/{id:[0-9]+}/preview', 'CommunityFusion\Modules\Blocks\BlockController@preview', $perm('blocks.manage'));
 
         // ── Nieuws admin (Wave 2 — dashboard.php linkte al sinds Sprint 2
         //    naar /admin/news, dat bestond niet) — letterlijke /create-route
@@ -315,6 +316,8 @@ final class Router
         $this->get('/admin/api-status',        'CommunityFusion\Modules\ApiStatus\ApiStatusController@index',  $perm('settings.edit'));
         $this->post('/admin/api-status/test',   'CommunityFusion\Modules\ApiStatus\ApiStatusController@test',   $perm('settings.edit'));
         $this->post('/admin/api-status/toggle', 'CommunityFusion\Modules\ApiStatus\ApiStatusController@toggle', $perm('settings.edit'));
+        $this->get('/admin/api-instellingen',  'CommunityFusion\Modules\Settings\ApiSettingsController@edit',   $perm('settings.edit'));
+        $this->post('/admin/api-instellingen', 'CommunityFusion\Modules\Settings\ApiSettingsController@update', $perm('settings.edit'));
 
         // ── Systeemlogs (Wave 5 — alleen-lezen) ─────────────────────────
         $this->get('/admin/logs', 'CommunityFusion\Modules\Logs\LogAdminController@index', $perm('logs.view'));

@@ -16,7 +16,7 @@ GPL-3.0-or-later
 [![PHP](https://img.shields.io/badge/PHP-8.3%2B-777BB4?style=flat-square&logo=php)](https://php.net)
 [![MariaDB](https://img.shields.io/badge/MariaDB-10.11%2B-003545?style=flat-square&logo=mariadb)](https://mariadb.org)
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.30.0-brightgreen?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-1.31.0-brightgreen?style=flat-square)](CHANGELOG.md)
 [![CI](https://img.shields.io/github/actions/workflow/status/Die0uwe/bluprint-cms/ci.yml?branch=main&style=flat-square&label=CI)](.github/workflows/ci.yml)
 
 *Geïnspireerd door PHP-Fusion · Down Under Fusion · ImpressCMS*
@@ -225,6 +225,13 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 
 ---
 
+## 🆕 Nieuw in v1.31.0
+
+- **Accounts samenvoegen** en **max. 3 e-mailadressen** per account met hoofdadres (`/profiel`). Bestaande installaties: draai `php cli/console.php migrate` (of de meegeleverde SQL in phpMyAdmin).
+- **Weergave**: Wide, Boxed, Fluid (auto, slider) en Full screen.
+- **API-instellingen**: Steam + lege Custom API-slots (`/admin/api-instellingen`).
+- **Blok-editors**: code-editor voor het HTML-blok, volledig scherm en live voorbeeld bij elk blok.
+
 ## 🆕 Nieuw in v1.30.0
 
 - **Galerij**: afbeeldingsfout opgelost, video-upload werkt (Range/206), ingebouwde videospeler (`cf-player.js`) en een toegankelijke lightbox met vorige/volgende.
@@ -239,7 +246,7 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 - **Nieuwe blokken**: nieuws-ticker/-ticket, blog, forum-activiteit, downloads en galerij (gecentreerd, zijbalk of slider).
 - **Snel plaatsen** op de homepage: nieuwsbericht, blogpost of forumtopic, afhankelijk van je rechten.
 
-## ⚠️ Bekende beperkingen (stand v1.30.0)
+## ⚠️ Bekende beperkingen (stand v1.31.0)
 
 Eerlijk overzicht van wat deze doorlopen (Wave 1 + Wave 2) wél en niet hebben opgelost — zie
 `docs/wave-0-gap-analysis.md` en `CHANGELOG.md` voor de volledige context per punt.
@@ -766,7 +773,7 @@ GPL-3.0-or-later — © 2026 [DieOuwe](https://www.dieouwe.nl) / [Slayer Allianc
 
 <!--
 ╔══════════════════════════════════════════════════════════════════════╗
-║  File: README.md | Role: Docs | Version: 1.30.0                      ║
+║  File: README.md | Role: Docs | Version: 1.31.0                      ║
 ║  Updated: 2026-09-30 — vendor/ gecommit (opgeschoond, 2.6MB/414       ║
 ║           bestanden) — geen losse Composer-stap meer nodig om deze   ║
 ║           repo te deployen. Zie ook: .htaccess blokkeert 'm al.      ║
