@@ -48,6 +48,9 @@ final class GalleryAdminController
 
     private UploadManager $uploads;
 
+    /** Max. aantal bestanden per upload-actie. */
+    public const MAX_BATCH = 20;
+
     public function __construct(
         private readonly GalleryRepository  $repo,
         private readonly AuthManager        $auth,
@@ -171,18 +174,63 @@ final class GalleryAdminController
             return Response::html('<h1>404 — Album niet gevonden</h1>', 404);
         }
 
-        $title       = trim((string) $request->input('title', ''));
-        $description = trim((string) $request->input('description', ''));
-        $file        = $request->files()['file'] ?? null;
-
-        if ($file === null) {
+        // Tot MAX_BATCH bestanden per keer: velden file_0..file_N met eigen title_N / description_N / poster_data_N.
+        // Het oude enkelvoudige veld "file" (title, description, poster_data) blijft werken.
+        $files = $request->files();
+        $slots = [];
+        for ($n = 0; $n < self::MAX_BATCH; $n++) {
+            if (isset($files["file_{$n}"]) && $this->hasUpload($files["file_{$n}"])) {
+                $slots[] = [
+                    'file'  => $files["file_{$n}"],
+                    'title' => trim((string) $request->input("title_{$n}", '')),
+                    'desc'  => trim((string) $request->input("description_{$n}", '')),
+                    'poster' => (string) $request->input("poster_data_{$n}", ''),
+                ];
+            }
+        }
+        if ($slots === [] && isset($files['file']) && $this->hasUpload($files['file'])) {
+            $slots[] = [
+                'file'  => $files['file'],
+                'title' => trim((string) $request->input('title', '')),
+                'desc'  => trim((string) $request->input('description', '')),
+                'poster' => (string) $request->input('poster_data', ''),
+            ];
+        }
+        if ($slots === []) {
             return Response::redirect("/admin/gallery/{$albumId}/beheer?error=" . urlencode('Geen bestand geselecteerd.'));
         }
 
+        $ok = 0;
+        $errors = [];
+        foreach ($slots as $slot) {
+            $err = $this->storeOne($albumId, $slot['file'], $slot['title'], $slot['desc'], $slot['poster']);
+            if ($err === null) {
+                $ok++;
+            } else {
+                $errors[] = (string) ($slot['file']['name'] ?? 'bestand') . ': ' . $err;
+            }
+        }
+
+        if ($errors !== []) {
+            $msg = ($ok > 0 ? "{$ok} geüpload, " : '') . count($errors) . ' mislukt — ' . implode(' | ', $errors);
+            return Response::redirect("/admin/gallery/{$albumId}/beheer?error=" . urlencode(mb_substr($msg, 0, 600)));
+        }
+        return Response::redirect("/admin/gallery/{$albumId}/beheer?ok=" . ($ok > 1 ? 'geupload_n&n=' . $ok : 'geupload'));
+    }
+
+    /** Is dit een echt gekozen bestand (geen lege file-input)? */
+    private function hasUpload(mixed $f): bool
+    {
+        return is_array($f) && (int) ($f['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE && (string) ($f['name'] ?? '') !== '';
+    }
+
+    /** Verwerk één bestand. Geeft null bij succes, anders de foutmelding. */
+    private function storeOne(int $albumId, array $file, string $title, string $description, string $posterData): ?string
+    {
         try {
             $relative = $this->uploads->store($file, self::STORAGE_SUBDIR);
         } catch (UploadException $e) {
-            return Response::redirect("/admin/gallery/{$albumId}/beheer?error=" . urlencode($e->getMessage()));
+            return $e->getMessage();
         }
 
         $extension = strtolower(pathinfo($relative, PATHINFO_EXTENSION));
@@ -211,7 +259,7 @@ final class GalleryAdminController
         }
 
         if ($mediaType === 'video') {
-            $posterRel = $this->storePoster((string) $request->input('poster_data', ''), $relative);
+            $posterRel = $this->storePoster($posterData, $relative);
             if ($posterRel !== null) {
                 $thumbnailRelative = $posterRel;
             }
@@ -234,8 +282,7 @@ final class GalleryAdminController
         $this->logAction('gallery.item.upload', [
             'item_id' => $itemId, 'album_id' => $albumId, 'media_type' => $mediaType,
         ]);
-
-        return Response::redirect("/admin/gallery/{$albumId}/beheer?ok=geupload");
+        return null;
     }
 
     /** POST /admin/gallery/items/{itemId}/verwijder */

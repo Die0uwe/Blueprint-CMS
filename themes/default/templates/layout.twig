@@ -80,6 +80,7 @@
         {% endfor %}
       </div>
       {% if auth.check() %}
+        <a href="/profiel" class="cf-btn-sm">👤 {{ trans('nav.profile') }}</a>
         <a href="/admin" class="cf-btn-sm">{{ trans('nav.admin') }}</a>
         <a href="/logout" class="cf-btn-sm cf-btn-ghost">{{ trans('nav.logout') }}</a>
       {% else %}

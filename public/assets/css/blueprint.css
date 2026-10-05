@@ -1093,3 +1093,16 @@ body.cf-lightbox-open { overflow: hidden; }
 .cf-page-html.is-fullview .cf-html-frame { height: 100% !important; width: 100% !important; border-radius: 0 !important; }
 .cf-page-html.is-fullview .cf-html-fs-btn { position: fixed; top: .6rem; right: .6rem; z-index: 10000; margin: 0; float: none; background: rgba(15,23,42,.85); color: #fff; }
 html.cf-fullview-lock, html.cf-fullview-lock body { overflow: hidden; }
+
+/* ── Klok-blok ─────────────────────────────────────────────────────────── */
+.cf-clock { text-align: center; }
+.cf-clock-label { font-size: .8rem; color: var(--muted, #8091a7); margin-bottom: .25rem; }
+.cf-clock-time { font-size: 2rem; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: .03em; color: var(--accent); }
+.cf-clock-date { font-size: .85rem; color: var(--text-dim, var(--muted)); text-transform: capitalize; }
+.cf-clock-face { display: block; margin: 0 auto .4rem; }
+.cf-clock-ring { fill: none; stroke: var(--border, #334155); stroke-width: 2; }
+.cf-clock-tick { stroke: var(--muted, #8091a7); stroke-width: 1.5; }
+.cf-clock-hand { stroke: var(--text, #e2e8f0); stroke-linecap: round; stroke-width: 3; }
+.cf-clock-m { stroke-width: 2.2; }
+.cf-clock-s { stroke: var(--accent); stroke-width: 1; }
+.cf-clock-pin { fill: var(--accent); }

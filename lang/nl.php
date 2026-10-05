@@ -34,6 +34,7 @@ return [
         'admin'     => 'Admin',
         'login'     => 'Inloggen',
         'logout'    => 'Uitloggen',
+        'profile'    => 'Profiel',
     ],
 
     'auth' => [

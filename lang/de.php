@@ -33,6 +33,7 @@ return [
         'admin'     => 'Admin',
         'login'     => 'Anmelden',
         'logout'    => 'Abmelden',
+        'profile'    => 'Profil',
     ],
 
     'auth' => [

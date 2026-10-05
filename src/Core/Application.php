@@ -286,6 +286,9 @@ final class Application
         $this->container->make(\CommunityFusion\Core\Block\BlockRegistry::class)->register(
             new \CommunityFusion\Blocks\Types\AdBlock()
         );
+        $this->container->make(\CommunityFusion\Core\Block\BlockRegistry::class)->register(
+            new \CommunityFusion\Blocks\Types\ClockBlock()
+        );
         // S11 (Media-galerij): zelfde registratiepatroon als NewsBlock/StatsBlock
         // hierboven — GalleryRepository is zelf auto-wireable (Connection +
         // CacheManager), dus container->make() lost 'm reflection-based op.

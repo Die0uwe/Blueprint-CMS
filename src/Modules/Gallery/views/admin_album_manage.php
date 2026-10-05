@@ -12,7 +12,7 @@
 use CommunityFusion\Core\Security\CsrfProtection;
 
 $activeNav   = 'gallery';
-$flashLabels = ['bijgewerkt' => 'Album bijgewerkt.', 'geupload' => "Bestand geüpload.", 'verwijderd' => 'Item verwijderd.'];
+$flashLabels = ['bijgewerkt' => 'Album bijgewerkt.', 'geupload' => "Bestand geüpload.", 'geupload_n' => ((int) ($_GET['n'] ?? 0)) . ' bestanden geüpload.', 'verwijderd' => 'Item verwijderd.'];
 ?>
 <!DOCTYPE html>
 <html lang="<?= htmlspecialchars(\CommunityFusion\Core\I18n\Trans::locale(), ENT_QUOTES) ?>">
@@ -83,48 +83,80 @@ $flashLabels = ['bijgewerkt' => 'Album bijgewerkt.', 'geupload' => "Bestand geü
       </div>
 
       <div class="cf-card">
-        <h2 style="margin-top:0;">Foto/video uploaden</h2>
-        <div class="form-wrap">
-          <form method="post" action="/admin/gallery/<?= (int) $album['id'] ?>/upload" enctype="multipart/form-data">
+        <h2 style="margin-top:0;">Foto's/video's uploaden</h2>
+        <div class="form-wrap" style="max-width:none;">
+          <form method="post" action="/admin/gallery/<?= (int) $album['id'] ?>/upload" enctype="multipart/form-data" id="gal-form">
             <?= CsrfProtection::field() ?>
 
             <div class="cf-form-group">
-              <label class="cf-label">Bestand <span style="color:var(--text-dim);font-weight:400;">— jpg, png, gif, webp, mp4 of webm (max. 25MB)</span></label>
-              <input type="file" name="file" id="gal-file" class="cf-input" required accept=".jpg,.jpeg,.png,.gif,.webp,.mp4,.webm">
-              <small style="color:var(--text-dim);">Serverlimiet: upload_max_filesize <?= htmlspecialchars((string) ini_get('upload_max_filesize')) ?>, post_max_size <?= htmlspecialchars((string) ini_get('post_max_size')) ?> — grotere video's worden door de server geweigerd.</small>
-              <input type="hidden" name="poster_data" id="gal-poster">
-              <img id="gal-poster-preview" alt="" style="display:none;max-width:240px;margin-top:.5rem;border-radius:8px;border:1px solid var(--border);">
+              <label class="cf-label" for="gal-multi">Snel meerdere bestanden kiezen <span style="color:var(--text-dim);font-weight:400;">— verdeelt ze over de rijen hieronder (max. 20 per keer)</span></label>
+              <input type="file" id="gal-multi" class="cf-input" multiple accept=".jpg,.jpeg,.png,.gif,.webp,.mp4,.webm">
+              <small style="color:var(--text-dim);">jpg, png, gif, webp, mp4, webm (max. 25MB per bestand). Serverlimiet: upload_max_filesize <?= htmlspecialchars((string) ini_get('upload_max_filesize')) ?>, post_max_size <?= htmlspecialchars((string) ini_get('post_max_size')) ?> — dat geldt voor alle bestanden samen.</small>
             </div>
 
-            <div class="cf-form-group">
-              <label class="cf-label">Titel <span style="color:var(--text-dim);font-weight:400;">— optioneel</span></label>
-              <input type="text" name="title" class="cf-input" maxlength="255">
+            <div id="gal-rows"></div>
+            <div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-top:.75rem;">
+              <button type="button" class="cf-btn-ghost" id="gal-more">+ 5 rijen</button>
+              <button type="submit" class="cf-btn" id="gal-submit">Uploaden</button>
             </div>
-
-            <div class="cf-form-group">
-              <label class="cf-label">Omschrijving <span style="color:var(--text-dim);font-weight:400;">— optioneel</span></label>
-              <textarea name="description" class="cf-input" rows="2"></textarea>
-            </div>
-
-            <button type="submit" class="cf-btn">Uploaden</button>
           </form>
+          <style>
+            .gal-row{display:grid;grid-template-columns:minmax(180px,1.2fr) minmax(140px,1fr) minmax(160px,1.4fr);gap:.6rem;align-items:start;padding:.6rem 0;border-bottom:1px solid var(--border)}
+            .gal-row img.gal-prev{display:none;max-width:120px;margin-top:.35rem;border-radius:6px;border:1px solid var(--border)}
+            @media(max-width:760px){.gal-row{grid-template-columns:1fr}}
+          </style>
           <script>
           (function(){
-            // Poster voor video: neem een frame in de browser (geen ffmpeg op de server nodig).
-            var f=document.getElementById('gal-file'), p=document.getElementById('gal-poster'), pv=document.getElementById('gal-poster-preview'), url=null;
-            f.addEventListener('change',function(){
-              p.value=''; pv.style.display='none'; if(url){URL.revokeObjectURL(url);url=null;}
-              var file=f.files[0]; if(!file || !/^video\//.test(file.type)) return;
-              var v=document.createElement('video'); v.muted=true; v.playsInline=true; v.preload='metadata'; url=URL.createObjectURL(file); v.src=url;
+            var MAX=<?= (int) \CommunityFusion\Modules\Gallery\GalleryAdminController::MAX_BATCH ?>, rows=document.getElementById('gal-rows'), n=0;
+            function addRows(k){
+              for(var i=0;i<k && n<MAX;i++,n++){
+                var d=document.createElement('div'); d.className='gal-row'; d.dataset.i=n;
+                d.innerHTML='<div><input type="file" name="file_'+n+'" class="cf-input gal-file" accept=".jpg,.jpeg,.png,.gif,.webp,.mp4,.webm"><input type="hidden" name="poster_data_'+n+'" class="gal-poster"><img class="gal-prev" alt=""></div>'
+                  +'<input type="text" name="title_'+n+'" class="cf-input gal-title" maxlength="255" placeholder="Titel (optioneel)">'
+                  +'<input type="text" name="description_'+n+'" class="cf-input" maxlength="500" placeholder="Omschrijving (optioneel)">';
+                rows.appendChild(d); bind(d);
+              }
+              document.getElementById('gal-more').style.display = n>=MAX ? 'none' : '';
+            }
+            function poster(row,file){
+              var p=row.querySelector('.gal-poster'), pv=row.querySelector('.gal-prev'); p.value=''; pv.style.display='none';
+              if(!file) return;
+              if(/^image\//.test(file.type)){ pv.src=URL.createObjectURL(file); pv.style.display='block'; return; }
+              if(!/^video\//.test(file.type)) return;
+              var v=document.createElement('video'); v.muted=true; v.playsInline=true; v.preload='metadata'; var url=URL.createObjectURL(file); v.src=url;
               v.addEventListener('loadedmetadata',function(){ v.currentTime=Math.min(1,(v.duration||2)*0.1); });
               v.addEventListener('seeked',function(){
                 try{
                   var w=Math.min(640,v.videoWidth||640), h=Math.round(w*(v.videoHeight||360)/(v.videoWidth||640));
                   var c=document.createElement('canvas'); c.width=w; c.height=h; c.getContext('2d').drawImage(v,0,0,w,h);
                   p.value=c.toDataURL('image/jpeg',0.8); pv.src=p.value; pv.style.display='block';
-                }catch(e){}
+                }catch(e){} URL.revokeObjectURL(url);
               },{once:true});
+            }
+            function bind(row){
+              var f=row.querySelector('.gal-file');
+              f.addEventListener('change',function(){
+                var file=f.files[0], t=row.querySelector('.gal-title');
+                if(file && !t.value) t.value=file.name.replace(/\.[^.]+$/,'').replace(/[_-]+/g,' ');
+                poster(row,file);
+              });
+            }
+            document.getElementById('gal-more').addEventListener('click',function(){ addRows(5); });
+            // Meerdere bestanden in één keer: verdeel over de rijen (rijen worden zo nodig bijgemaakt)
+            document.getElementById('gal-multi').addEventListener('change',function(e){
+              var list=[].slice.call(e.target.files).slice(0,MAX);
+              while(n<list.length) addRows(5);
+              var inputs=rows.querySelectorAll('.gal-file');
+              list.forEach(function(file,i){
+                try{ var dt=new DataTransfer(); dt.items.add(file); inputs[i].files=dt.files; inputs[i].dispatchEvent(new Event('change')); }catch(err){}
+              });
             });
+            document.getElementById('gal-form').addEventListener('submit',function(ev){
+              var any=[].some.call(rows.querySelectorAll('.gal-file'),function(f){return f.files.length;});
+              if(!any){ ev.preventDefault(); alert('Kies minstens één bestand.'); return; }
+              var b=document.getElementById('gal-submit'); setTimeout(function(){b.disabled=true;b.textContent='Bezig met uploaden…';},0);
+            });
+            addRows(5);
           })();
           </script>
         </div>

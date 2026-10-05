@@ -34,6 +34,7 @@ return [
         'admin'     => 'Admin',
         'login'     => 'Log in',
         'logout'    => 'Log out',
+        'profile'    => 'Profile',
     ],
 
     'auth' => [

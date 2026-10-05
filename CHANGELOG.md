@@ -63,6 +63,12 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 - **Snel plaatsen** is een inklapbare knop (standaard dicht, opent vanzelf bij een fout of wachtstatus) in plaats van een grote kaart.
 
 _Geen databasemigratie nodig._
+## [1.32.0] — 2026-10-06 — Klok-blok, galerij-batchupload, profiel-link
+
+### Toegevoegd
+- **Klok-blok** (`clock`): digitaal, analoog, beide of alleen datum; 18 tijdzones of die van de bezoeker; 12/24 uur; seconden en datum optioneel; datumnotatie lang/kort/numeriek; eigen label; grootte analoge klok. Loopt in de browser (`cf-clock.js`), werkt met een serverwaarde ook zonder JavaScript.
+- **Galerij: meerdere bestanden tegelijk** (max. 20): 5 rijen met eigen titel en omschrijving per bestand, "+ 5 rijen", en één knop om meerdere bestanden in één keer te kiezen (titel wordt uit de bestandsnaam voorgesteld, voorbeeld per rij, video-poster per rij). Fouten per bestand; de rest wordt wel opgeslagen.
+- **Profiel-knop** in de menubalk voor ingelogde gebruikers (`/profiel`).
 
 ## [1.31.0] — 2026-10-06 — Accounts samenvoegen, weergave-sliders, API-placeholders, blok-editors
 
