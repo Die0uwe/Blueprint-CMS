@@ -18,7 +18,16 @@ $action    = $isEdit ? '/admin/pages/' . (int) $item['id'] . '/bewerk' : '/admin
 <title><?= $isEdit ? 'Pagina bewerken' : 'Nieuwe pagina' ?> — Blueprint CMS Admin</title>
 <link rel="stylesheet" href="/assets/css/blueprint.css">
 <?php include __DIR__ . '/../../Shared/views/admin_styles.php'; ?>
-<style>.form-wrap { max-width: 720px; }</style>
+<style>
+.form-wrap { max-width: 720px; }
+.pv-bar { display:flex; gap:.5rem; flex-wrap:wrap; margin:.6rem 0; }
+.pv-box { margin-top:.5rem; }
+.pv-box iframe { display:block; width:100%; height:520px; border:1px solid var(--border); border-radius:8px; background:#fff; resize:vertical; }
+.pv-box.is-full { position:fixed; inset:0; z-index:9999; margin:0; background:var(--bg,#0f172a); }
+.pv-box.is-full iframe { height:100%; border:0; border-radius:0; resize:none; }
+.pv-box .pv-close { display:none; }
+.pv-box.is-full .pv-close { display:block; position:fixed; top:.6rem; right:.6rem; z-index:10000; }
+</style>
 </head>
 <body>
 <div class="admin-wrap">
@@ -68,6 +77,14 @@ $action    = $isEdit ? '/admin/pages/' . (int) $item['id'] . '/bewerk' : '/admin
               afgeschermd in een kader op de pagina te staan, zodat hij de rest van de site niet verstoort.
             </p>
             <textarea id="content" name="content" class="cf-textarea" data-editor="<?= $isHtmlPage ? 'code' : 'richtext' ?>" required style="min-height:280px;"><?= htmlspecialchars((string) ($item['content'] ?? '')) ?></textarea>
+            <div class="pv-bar">
+              <button type="button" class="cf-btn-ghost" id="pv-btn">👁 Voorbeeld</button>
+              <button type="button" class="cf-btn-ghost" id="pv-full">⛶ Voorbeeld volledig scherm</button>
+            </div>
+            <div class="pv-box" id="pv-box" hidden>
+              <button type="button" class="cf-btn-ghost pv-close" id="pv-close">✕ Sluiten (Esc)</button>
+              <iframe id="pv-frame" sandbox="allow-scripts allow-forms allow-popups" title="Voorbeeld van de pagina"></iframe>
+            </div>
           </div>
 
 
@@ -132,6 +149,27 @@ $action    = $isEdit ? '/admin/pages/' . (int) $item['id'] . '/bewerk' : '/admin
       hint.style.display = '';
     }
   });
+})();
+</script>
+<script>
+// Voorbeeld: toont de code zoals de bezoeker hem ziet (HTML-pagina: ruw en afgeschermd, anders met site-stijl).
+(function () {
+  var ta = document.getElementById('content'), sel = document.getElementById('template'),
+      box = document.getElementById('pv-box'), fr = document.getElementById('pv-frame');
+  if (!ta || !box) return;
+  function render() {
+    if (window.tinymce) window.tinymce.triggerSave();
+    var html = ta.value;
+    fr.srcdoc = sel.value === 'html'
+      ? html + '\n<base target="_blank">'
+      : '<!doctype html><meta charset="utf-8"><base target="_blank"><link rel="stylesheet" href="/assets/css/blueprint.css"><body style="padding:1rem">' + html;
+    box.hidden = false;
+  }
+  function full(on) { box.classList.toggle('is-full', on); document.documentElement.style.overflow = on ? 'hidden' : ''; }
+  document.getElementById('pv-btn').addEventListener('click', render);
+  document.getElementById('pv-full').addEventListener('click', function () { render(); full(true); });
+  document.getElementById('pv-close').addEventListener('click', function () { full(false); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && box.classList.contains('is-full')) full(false); });
 })();
 </script>
 </body>
