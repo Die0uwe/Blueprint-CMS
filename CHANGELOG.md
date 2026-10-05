@@ -20,6 +20,9 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ## [Unreleased]
 
+### Fixed
+- Pagina's/nieuws: nieuwe pagina met dezelfde titel als een eerder verwijderde gaf een 500-fout (unieke slug botste met soft-verwijderde rij); slug-controle kijkt nu naar alle rijen.
+
 ### Opgelost (ronde 4)
 - **Blokbeheer, zijbalken**: de knoppen (✏️ 👁️ 🗑️) van blokken in de zijbalk-zones staken buiten hun zone en werden door de Content-zone bedekt, waardoor bewerken daar niet werkte. Zones hebben nu verhoudingen 1,2 : 2 : 1,2 (`minmax(0,…)`), de knoppen breken binnen het blok af en op smalle schermen staan de zones onder elkaar.
 - **Thema-instellingen**: zijbalkbreedte tot 500 px (was 360), ook voor de aparte linker/rechter-slider.

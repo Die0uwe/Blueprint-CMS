@@ -111,7 +111,7 @@ final class NewsRepository
 
     public function slugExists(string $slug, ?int $exceptId = null): bool
     {
-        $sql  = "SELECT id FROM cf_news WHERE slug = ? AND deleted_at IS NULL";
+        $sql  = "SELECT id FROM cf_news WHERE slug = ?"; // ook soft-verwijderde rijen: uq_slug geldt voor alle rijen
         $bind = [$slug];
         if ($exceptId !== null) {
             $sql   .= " AND id != ?";
