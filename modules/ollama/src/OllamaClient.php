@@ -36,6 +36,9 @@ final class OllamaClient
         private readonly string       $openWebUiKey = '',
         private readonly int          $numCtx  = 0,
         private readonly string       $keepAlive = '',
+        private readonly string       $fallbackUrl   = '',
+        private readonly string       $fallbackKey   = '',
+        private readonly string       $fallbackModel = 'deepseek-chat',
     ) {}
 
     // ─── GENERATE (enkelvoudige prompt) ───────────────────────────────────
@@ -52,7 +55,7 @@ final class OllamaClient
         ?string $model        = null,
         array   $options      = [],
     ): string {
-        if ($this->usesOpenWebUi()) {
+        if ($this->usesOpenWebUi() || $this->hasFallback()) {
             return $this->chat([['role' => 'user', 'content' => $prompt]], $systemPrompt, $model, $options);
         }
 
@@ -98,10 +101,34 @@ final class OllamaClient
         if ($systemPrompt !== '') {
             array_unshift($messages, ['role' => 'system', 'content' => $systemPrompt]);
         }
-        if ($this->usesOpenWebUi()) {
-            return $this->chatViaOpenWebUI($messages, '', $model, $options);
+        try {
+            $reply = $this->usesOpenWebUi()
+                ? $this->chatViaOpenWebUI($messages, '', $model, $options)
+                : $this->chatDirect($messages, $model, $options);
+            if ($reply !== '' || !$this->hasFallback()) {
+                return $reply;
+            }
+        } catch (\RuntimeException $e) {
+            if (!$this->hasFallback()) {
+                throw $e;
+            }
+            error_log('[ollama] hoofd-AI mislukt, reserve-AI wordt gebruikt: ' . $e->getMessage());
         }
-        return $this->chatDirect($messages, $model, $options);
+        return $this->chatFallback($messages, $options);
+    }
+
+    /** Is er een reserve-AI (OpenAI-compatibel, bv. DeepSeek in de cloud) ingesteld? */
+    public function hasFallback(): bool
+    {
+        return $this->fallbackUrl !== '' && $this->fallbackKey !== '';
+    }
+
+    private function chatFallback(array $messages, array $options = []): string
+    {
+        $base = rtrim($this->fallbackUrl, '/');
+        // DeepSeek/OpenAI: <base>/chat/completions (een base die al op /v1 eindigt werkt ook)
+        return $this->openAiChat($base . '/chat/completions', ['Authorization: Bearer ' . $this->fallbackKey],
+            $messages, $this->fallbackModel !== '' ? $this->fallbackModel : 'deepseek-chat', $options, 'Reserve-AI');
     }
 
     private function chatDirect(array $messages, ?string $model, array $options = []): string
@@ -236,6 +263,24 @@ final class OllamaClient
         return $res;
     }
 
+    /**
+     * Test de reserve-AI (DeepSeek in de cloud) met één heel korte vraag.
+     *
+     * @return array{ok:bool,label:string,hint:string}
+     */
+    public function diagnoseFallback(): array
+    {
+        if (!$this->hasFallback()) {
+            return ['ok' => true, 'label' => 'Reserve-AI: niet ingesteld (uit)', 'hint' => ''];
+        }
+        try {
+            $reply = $this->chatFallback([['role' => 'user', 'content' => 'Zeg hallo.']], ['num_predict' => 20]);
+            return ['ok' => $reply !== '', 'label' => 'Reserve-AI (' . $this->fallbackModel . ') antwoordt', 'hint' => $reply === '' ? 'Leeg antwoord.' : ''];
+        } catch (\Throwable $e) {
+            return ['ok' => false, 'label' => 'Reserve-AI (' . $this->fallbackModel . ')', 'hint' => $e->getMessage()];
+        }
+    }
+
     /** Uitleg bij een mislukte verbinding (in gewone taal). */
     public static function hintForStatus(int $status, string $error = '', bool $webUi = false): string
     {
@@ -244,7 +289,7 @@ final class OllamaClient
             $status === 0 && stripos($error, 'timed out') !== false => 'Geen antwoord op tijd. Staat de AI-server (of de tunnel) aan?',
             $status === 0 => 'Niet bereikbaar. Het adres klopt niet, of de server/tunnel staat uit. Je webhost kan "localhost" van jouw pc niet bereiken: gebruik een openbaar https-adres (Cloudflare Tunnel).',
             $status === 401 || $status === 403 => $webUi
-                ? 'Geweigerd (' . $status . '). Controleer de Open WebUI API-sleutel, of een Cloudflare-regel die verkeer van je webhost blokkeert (Bot Fight Mode / Access).'
+                ? 'Geweigerd (' . $status . '). Controleer de API-sleutel, of een Cloudflare-regel die verkeer van je webhost blokkeert (Bot Fight Mode / Access).'
                 : 'Geweigerd (' . $status . '). Een proxy of Cloudflare-regel blokkeert de aanroep.',
             $status === 404 => 'Niet gevonden (404). Controleer het adres: Ollama = http://host:11434, Open WebUI = het hoofdadres zonder /api.',
             $status === 502, $status === 503 || ($status >= 520 && $status <= 523) => 'De tunnel of Docker staat uit (' . $status . ').',
@@ -277,11 +322,27 @@ final class OllamaClient
             array_unshift($messages, ['role' => 'system', 'content' => $systemPrompt]);
         }
 
-        $payload = [
-            'model'    => $model ?? $this->model,
-            'messages' => $messages,
-            'stream'   => false,
-        ];
+        try {
+            return $this->openAiChat(rtrim($this->openWebUiUrl, '/') . '/api/chat/completions', $this->webUiHeaders(),
+                $messages, $model ?? $this->model, $options, 'Open WebUI');
+        } catch (\RuntimeException $e) {
+            // Open WebUI faalt: rechtstreeks naar Ollama proberen als die echt bereikbaar is.
+            if ($this->host !== '' && $this->isDirectReachable()) {
+                return $this->chatDirect($messages, $model, $options);
+            }
+            throw $e;
+        }
+    }
+
+    /**
+     * OpenAI-compatibele chat (Open WebUI, DeepSeek, …) zonder streaming.
+     *
+     * @param list<string>         $headers
+     * @param array<string, mixed> $options
+     */
+    private function openAiChat(string $url, array $headers, array $messages, string $model, array $options, string $label): string
+    {
+        $payload = ['model' => $model, 'messages' => $messages, 'stream' => false];
         foreach (['temperature', 'top_p'] as $k) {
             if (isset($options[$k])) {
                 $payload[$k] = $options[$k];
@@ -291,15 +352,14 @@ final class OllamaClient
             $payload['max_tokens'] = (int) $options['num_predict'];
         }
 
-        $url = rtrim($this->openWebUiUrl, '/') . '/api/chat/completions';
-        $ch  = curl_init($url);
+        $ch = curl_init($url);
         curl_setopt_array($ch, [
             CURLOPT_POST           => true,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT        => $this->timeout,
             CURLOPT_CONNECTTIMEOUT => 8,
             CURLOPT_POSTFIELDS     => json_encode($payload, JSON_UNESCAPED_UNICODE),
-            CURLOPT_HTTPHEADER     => array_merge(['Content-Type: application/json'], $this->webUiHeaders()),
+            CURLOPT_HTTPHEADER     => array_merge(['Content-Type: application/json'], $headers),
         ]);
         $body   = curl_exec($ch);
         $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -307,13 +367,10 @@ final class OllamaClient
         curl_close($ch);
 
         if ($status !== 200 || !is_string($body)) {
-            if ($this->host !== '' && $this->isDirectReachable()) {
-                return $this->chatDirect($messages, $model, $options);
-            }
-            throw new \RuntimeException('Open WebUI: ' . self::hintForStatus($status, $error, true));
+            throw new \RuntimeException($label . ': ' . self::hintForStatus($status, $error, true));
         }
-
         $data = json_decode($body, true);
+        // DeepSeek-reasoner levert het denkwerk apart ('reasoning_content'); we gebruiken alleen 'content'.
         return ThinkFilter::strip((string) ($data['choices'][0]['message']['content'] ?? ''));
     }
 
@@ -453,10 +510,20 @@ PROMPT;
         }
 
         if ($status !== 200) {
-            throw new \RuntimeException("Ollama API fout HTTP {$status}: " . substr($body, 0, 300));
+            // Alleen het veld "error" van Ollama zelf (bv. "model not found"); nooit de ruwe body van een willekeurig adres.
+            $msg = '';
+            $j   = json_decode((string) $body, true);
+            if (is_array($j) && isset($j['error']) && is_string($j['error'])) {
+                $msg = ': ' . mb_substr($j['error'], 0, 150);
+            }
+            throw new \RuntimeException("Ollama API fout HTTP {$status}{$msg}");
         }
 
-        return json_decode($body, true, flags: JSON_THROW_ON_ERROR);
+        try {
+            return json_decode($body, true, flags: JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            throw new \RuntimeException('Ollama gaf geen geldig antwoord (geen JSON).');
+        }
     }
 
     private function get(string $path): array

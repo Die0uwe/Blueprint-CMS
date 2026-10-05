@@ -15,7 +15,8 @@ final class ThinkFilterTest extends TestCase
     {
         $this->assertSame('Hallo!', ThinkFilter::strip("<think>\nIk denk na…\n</think>\n\nHallo!"));
         $this->assertSame('Geen denkwerk', ThinkFilter::strip('Geen denkwerk'));
-        $this->assertSame('A B', ThinkFilter::strip('A <THINK>x</THINK>B'));
+        $this->assertSame('B', ThinkFilter::strip('<THINK>x</THINK>B'));
+        $this->assertSame('B', ThinkFilter::strip("  <think>x</think>\n<think>y</think> B"));
     }
 
     #[Test]
@@ -24,6 +25,7 @@ final class ThinkFilterTest extends TestCase
         $this->assertSame('Antwoord', ThinkFilter::strip("redeneren zonder open tag</think>Antwoord"));
         $this->assertSame('', ThinkFilter::strip('<think>nooit afgesloten'));
         $this->assertSame('1 < 2', ThinkFilter::strip('1 < 2'));
+        $this->assertSame('Gebruik <think> om na te denken.', ThinkFilter::strip('Gebruik <think> om na te denken.'), 'midden in een antwoord blijft staan');
     }
 
     #[Test]

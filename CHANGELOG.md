@@ -63,6 +63,24 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 - **Snel plaatsen** is een inklapbare knop (standaard dicht, opent vanzelf bij een fout of wachtstatus) in plaats van een grote kaart.
 
 _Geen databasemigratie nodig._
+## [1.34.0] — 2026-10-06
+
+### Added
+- **DeepSeek via Ollama/Open WebUI**: het "denkwerk" van redeneermodellen (`<think>…</think>`, DeepSeek-R1/Qwen3) wordt uit antwoorden gehaald, ook tijdens streamen (`Core\Ai\ThinkFilter`, ook in AI Studio's Ollama-provider).
+- Ollama-beheer: modellijst met DeepSeek-suggesties, verbindingstest in gewone taal (adres, sleutel, modellen, testvraag), `num_ctx` en "model geladen houden".
+- **Reserve-AI**: optioneel DeepSeek in de cloud (OpenAI-compatibel, https, sleutel versleuteld) als je eigen AI uitvalt.
+- Chat-blok **AI Chatbox**: meerdere per pagina, welkomstbericht, snelle-vraag-knoppen, gesprek wissen; geen netwerkaanroep meer bij elke paginaweergave.
+- Thema-presets Ultrawide (21:9), Super-ultrawide (32:9/4K), Schermvullend en Ruim (Full HD); documentatie `docs/AI-DEEPSEEK.md`.
+- Migraties: Ollama-module/permissie zorgen (`20261006_02`), oude thema-standaard naar de nieuwe (`20261006_03`).
+
+### Fixed
+- Ollama-chat negeerde de Open WebUI-URL (de chatbox sprak altijd direct met `localhost`, onbereikbaar vanaf gewone webhosting).
+- Open WebUI-sleutel werd in het formulier getoond maar nooit opgeslagen; staat nu versleuteld en wordt nooit teruggegeven.
+- Publieke chat-eindpunt lekte host/upstream-foutdetails naar bezoekers en gaf een 500 op een niet-JSON-antwoord.
+
+### Changed
+- Thema-standaard breder: 1600 px (was 1280), zijbalk 280 px. Bestaande sites die nog op de oude standaard staan schuiven mee; een bewuste keuze blijft staan.
+
 ## [1.33.0] — 2026-10-06
 
 ### Added

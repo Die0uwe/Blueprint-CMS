@@ -44,13 +44,16 @@ final class OllamaConfig
     public static function client(array $cfg, ?CacheManager $cache = null): OllamaClient
     {
         return new OllamaClient(
-            host:         $cfg['host']           ?? 'http://localhost:11434',
-            model:        $cfg['default_model']  ?? 'llama3.2',
+            host:         ($cfg['host'] ?? '') !== '' ? $cfg['host'] : 'http://localhost:11434',
+            model:        ($cfg['default_model'] ?? '') !== '' ? $cfg['default_model'] : 'llama3.2',
             timeout:      max(5, min(300, (int) ($cfg['timeout'] ?? 30))),
             cache:        $cache,
             openWebUiUrl: $cfg['open_webui_url'] ?? '',
             openWebUiKey: $cfg['open_webui_key'] ?? '',
             numCtx:       max(0, min(131072, (int) ($cfg['num_ctx'] ?? 0))),
+            fallbackUrl:  preg_match('#^https://[^\s<>"\']+$#i', (string) ($cfg['fallback_url'] ?? '')) === 1 ? rtrim((string) $cfg['fallback_url'], '/') : '',
+            fallbackKey:  $cfg['fallback_key'] ?? '',
+            fallbackModel: preg_match('/^[A-Za-z0-9._:\/-]{1,100}$/', (string) ($cfg['fallback_model'] ?? '')) === 1 ? (string) $cfg['fallback_model'] : 'deepseek-chat',
             keepAlive:    preg_match('/^(-1|\d+[smh]?)$/', (string) ($cfg['keep_alive'] ?? '')) === 1 ? (string) $cfg['keep_alive'] : '',
         );
     }

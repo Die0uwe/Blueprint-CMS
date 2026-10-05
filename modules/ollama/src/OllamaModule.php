@@ -27,6 +27,7 @@ final class OllamaModule implements ModuleInterface
 
         $cfg    = OllamaConfig::load($db);
         $client = OllamaConfig::client($cfg, $cache);
+        unset($cfg['open_webui_key']);   // blokken hebben de sleutel niet nodig (en mogen hem niet kunnen lekken)
 
         // Registreer blocks
         $registry->register(new OllamaChatBlock($client, $cfg));

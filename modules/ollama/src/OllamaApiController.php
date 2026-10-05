@@ -50,10 +50,15 @@ final class OllamaApiController
 
         try {
             $reply = $this->client->communityChat($clean, $this->cfg['guild_name'] ?? '', 'World of Warcraft', $this->cfg['system_prompt'] ?? '');
-            return Response::json(['reply' => $reply, 'ok' => true]);
-        } catch (\RuntimeException $e) {
-            return Response::json(['error' => 'AI niet beschikbaar: ' . $e->getMessage()], 503);
+        } catch (\Throwable $e) {
+            // Details (host, upstream-fout) alleen in het serverlog en de admin-test, nooit naar een bezoeker.
+            error_log('[ollama] chat mislukt: ' . $e->getMessage());
+            return Response::json(['error' => 'De AI is tijdelijk niet beschikbaar.'], 503);
         }
+        if (trim($reply) === '') {
+            return Response::json(['error' => 'Het model gaf geen antwoord. Probeer het nog eens.'], 502);
+        }
+        return Response::json(['reply' => $reply, 'ok' => true]);
     }
 
     /**
@@ -72,7 +77,8 @@ final class OllamaApiController
         try {
             $summary = $this->client->summarizeNews($content, $title);
             return Response::json(['summary' => $summary, 'ok' => true]);
-        } catch (\RuntimeException $e) {
+        } catch (\Throwable $e) {
+            error_log('[ollama] samenvatting mislukt: ' . $e->getMessage());
             return Response::json(['error' => 'Samenvatting mislukt.'], 503);
         }
     }

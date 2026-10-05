@@ -96,7 +96,7 @@
               <p style="font-size:.75rem;color:var(--muted);margin-top:.3rem;">
                 Model moet geïnstalleerd zijn via <code>ollama pull llama3.2</code>.
                 <strong>DeepSeek:</strong> <code>ollama pull deepseek-r1:8b</code> en vul <code>deepseek-r1:8b</code> hier in
-                (7B/8B past op 8 GB videogeheugen, 14B op 12–16 GB, 32B op 24 GB). Het "denkwerk" van DeepSeek-R1 wordt automatisch uit het antwoord gehaald.
+                (ongeveer 1 GB videogeheugen voor 1.5b, 5 GB voor 7b/8b, 9 GB voor 14b, 20 GB voor 32b; past het niet, dan rekent Ollama deels op de processor en wordt het traag). Het "denkwerk" van DeepSeek-R1 wordt automatisch uit het antwoord gehaald.
               </p>
             </div>
 
@@ -139,9 +139,46 @@
                   <label class="cf-label">Open WebUI API Key</label>
                   <input class="cf-input" type="password" name="open_webui_key" autocomplete="new-password"
                          placeholder="<?= !empty($keySet) ? '●●●● (ingesteld — leeg laten = ongewijzigd)' : 'sk-...' ?>">
+                  <?php
+                    $wu = (string) ($settings['open_webui_url'] ?? '');
+                    if ($wu !== '' && stripos($wu, 'http://') === 0 && preg_match('#^http://(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)#i', $wu) !== 1): ?>
+                    <p style="font-size:.75rem;color:var(--gold);margin-top:.3rem;">⚠️ Dit adres is niet versleuteld (http). De sleutel reist dan leesbaar over het internet — gebruik https (bv. via Cloudflare Tunnel).</p>
+                  <?php endif; ?>
                   <?php if (!empty($keySet)): ?>
                     <label style="font-size:.75rem;color:var(--muted);display:flex;gap:.4rem;align-items:center;margin-top:.3rem;">
                       <input type="checkbox" name="clear_open_webui_key" value="1" style="width:auto;"> Sleutel wissen
+                    </label>
+                  <?php endif; ?>
+                </div>
+              </div>
+            </div>
+
+            <div style="border-top:1px solid var(--border);padding-top:1rem;margin-top:1rem;">
+              <p style="font-size:.82rem;font-weight:700;color:var(--muted);margin-bottom:.4rem;">
+                ☁️ Reserve-AI: DeepSeek in de cloud (optioneel)
+              </p>
+              <p style="font-size:.75rem;color:var(--muted);margin-bottom:.8rem;">
+                Valt jouw eigen AI uit (pc uit, tunnel weg), dan beantwoordt DeepSeek de vraag toch. Leeg laten = uit.
+                <strong>Let op:</strong> dan gaan de vragen van bezoekers naar de cloud-dienst van DeepSeek en betaal je per gebruik (api-key op platform.deepseek.com).
+              </p>
+              <div style="display:grid;grid-template-columns:2fr 1fr 2fr;gap:1rem;">
+                <div class="cf-form-group">
+                  <label class="cf-label">API-adres (https)</label>
+                  <input class="cf-input" type="url" name="fallback_url" placeholder="https://api.deepseek.com"
+                         value="<?= htmlspecialchars($settings['fallback_url'] ?? '',ENT_QUOTES) ?>">
+                </div>
+                <div class="cf-form-group">
+                  <label class="cf-label">Model</label>
+                  <input class="cf-input" type="text" name="fallback_model" placeholder="deepseek-chat"
+                         value="<?= htmlspecialchars($settings['fallback_model'] ?? '',ENT_QUOTES) ?>">
+                </div>
+                <div class="cf-form-group">
+                  <label class="cf-label">API-sleutel</label>
+                  <input class="cf-input" type="password" name="fallback_key" autocomplete="new-password"
+                         placeholder="<?= !empty($fbKeySet) ? '●●●● (ingesteld — leeg laten = ongewijzigd)' : 'sk-...' ?>">
+                  <?php if (!empty($fbKeySet)): ?>
+                    <label style="font-size:.75rem;color:var(--muted);display:flex;gap:.4rem;align-items:center;margin-top:.3rem;">
+                      <input type="checkbox" name="clear_fallback_key" value="1" style="width:auto;"> Sleutel wissen
                     </label>
                   <?php endif; ?>
                 </div>

@@ -7,7 +7,8 @@ namespace CommunityFusion\Core\Ai;
 
 /**
  * Haalt het "denkwerk" van redeneermodellen (DeepSeek-R1, Qwen3, QwQ, …) uit een
- * antwoord: alles tussen <think> en </think>. Werkt ook op een stroom (streaming):
+ * antwoord: het blok <think> … </think> aan het begin van het antwoord. Een model dat
+ * midden in een gewoon antwoord over "<think>" praat, houdt zijn tekst. Werkt ook op een stroom (streaming):
  * een tag mag over twee stukjes verdeeld zijn.
  *
  *   $f = new ThinkFilter();
@@ -23,6 +24,7 @@ final class ThinkFilter
 
     private bool   $in       = false;
     private bool   $trimLead = false;
+    private bool   $atStart  = true;   // een <think>-blok telt alleen aan het BEGIN van het antwoord
     private string $buf      = '';
 
     public function feed(string $chunk): string
@@ -38,25 +40,33 @@ final class ThinkFilter
                 }
                 $this->buf      = substr($this->buf, $p + strlen(self::CLOSE));
                 $this->in       = false;
+                $this->atStart  = true;
                 $this->trimLead = true;
                 continue;
             }
-            if ($this->trimLead) {
-                $this->buf = ltrim($this->buf);
-                if ($this->buf !== '') {
-                    $this->trimLead = false;
-                }
-            }
-            $p = stripos($this->buf, self::OPEN);
-            if ($p === false) {
-                $keep = strlen($this->partialTail($this->buf, self::OPEN));
-                $out .= substr($this->buf, 0, strlen($this->buf) - $keep);
-                $this->buf = $keep > 0 ? substr($this->buf, -$keep) : '';
+            if (!$this->atStart) {
+                $out .= $this->buf;
+                $this->buf = '';
                 return $out;
             }
-            $out .= substr($this->buf, 0, $p);
-            $this->buf = substr($this->buf, $p + strlen(self::OPEN));
-            $this->in  = true;
+            // Begin van het antwoord: is dit een denkblok, gewone tekst, of nog onduidelijk?
+            $t = ltrim($this->buf);
+            if ($t === '') {
+                return $out;
+            }
+            if (stripos($t, self::OPEN) === 0) {
+                $this->buf = substr($t, strlen(self::OPEN));
+                $this->in  = true;
+                continue;
+            }
+            if (strlen($t) < strlen(self::OPEN) && strncasecmp(self::OPEN, $t, strlen($t)) === 0) {
+                return $out;           // kan nog "<think>" worden: even vasthouden
+            }
+            $this->atStart = false;    // gewone tekst; een latere "<think>" is dan gewoon tekst
+            if ($this->trimLead) {
+                $this->buf      = $t;
+                $this->trimLead = false;
+            }
         }
     }
 
@@ -64,8 +74,9 @@ final class ThinkFilter
     public function flush(): string
     {
         $rest = $this->in ? '' : $this->buf;
-        $this->buf = '';
-        $this->in  = false;
+        $this->buf     = '';
+        $this->in      = false;
+        $this->atStart = true;
         return $rest;
     }
 

@@ -76,6 +76,24 @@
             "label": "Model geladen houden (bv. 24h)",
             "type": "string",
             "default": ""
+        },
+        {
+            "key": "fallback_url",
+            "label": "Reserve-AI adres (https)",
+            "type": "string",
+            "default": ""
+        },
+        {
+            "key": "fallback_model",
+            "label": "Reserve-AI model",
+            "type": "string",
+            "default": "deepseek-chat"
+        },
+        {
+            "key": "fallback_key",
+            "label": "Reserve-AI API-sleutel",
+            "type": "encrypted",
+            "default": ""
         }
     ]
 }

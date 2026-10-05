@@ -225,6 +225,10 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 
 ---
 
+## 🆕 Nieuw in v1.34.0
+
+- DeepSeek via Ollama/Open WebUI (denk-tags eruit, verbindingstest, optionele cloud-reserve), blok **AI Chatbox**, breder thema met ultrawide-presets. Zie `docs/AI-DEEPSEEK.md`.
+
 ## 🆕 Nieuw in v1.33.0
 
 - Blok **Referral / Partner-links** (Kling, Suno, …), grotere klok met grootte-slider, bredere profielpagina.
