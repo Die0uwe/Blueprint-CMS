@@ -21,6 +21,7 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 ## [Unreleased]
 
 ### Fixed
+- Blok-voorbeeld (admin): HTML-blokken bleven wit omdat de voorbeeld-iframe geen scripts toestond en de geneste HTML-iframe die beperking erft; voorbeeld-iframe staat nu `allow-scripts` toe (nog steeds zonder same-origin).
 - Pagina's/nieuws: nieuwe pagina met dezelfde titel als een eerder verwijderde gaf een 500-fout (unieke slug botste met soft-verwijderde rij); slug-controle kijkt nu naar alle rijen.
 
 ### Opgelost (ronde 4)

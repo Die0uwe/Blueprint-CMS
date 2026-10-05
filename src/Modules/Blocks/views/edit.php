@@ -90,7 +90,7 @@ $h = static fn(mixed $v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'U
         <section class="blk-preview" id="blk-preview" hidden>
           <h3 style="margin:0 0 .5rem;">Voorbeeld <small style="color:var(--muted);font-weight:400;">(niet opgeslagen; scripts worden niet uitgevoerd)</small></h3>
           <p id="blk-preview-err" style="color:var(--error-text);" hidden></p>
-          <iframe id="blk-preview-frame" sandbox="" title="Voorbeeld van het blok"></iframe>
+          <iframe id="blk-preview-frame" sandbox="allow-scripts allow-popups allow-forms" title="Voorbeeld van het blok"></iframe>
         </section>
 
         <div class="danger-zone">
