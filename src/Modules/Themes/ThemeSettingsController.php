@@ -71,11 +71,13 @@ final class ThemeSettingsController
             'layout_width'  => $request->input('layout_width'),
             'layout_fluid'  => $request->input('layout_fluid'),
             'sidebar_width' => $request->input('sidebar_width'),
+            'sidebar_left'  => $request->input('sidebar_left'),
+            'sidebar_right' => $request->input('sidebar_right'),
         ]);
         $preset = (string) $request->input('layout_preset', 'aangepast');
         $clean  = ThemeSettings::applyPreset($clean, $preset);
 
-        foreach (['layout_mode', 'layout_preset', 'layout_width', 'layout_fluid', 'sidebar_width'] as $k) {
+        foreach (['layout_mode', 'layout_preset', 'layout_width', 'layout_fluid', 'sidebar_width', 'sidebar_left', 'sidebar_right'] as $k) {
             $this->settings->set(ThemeSettings::GROUP, $k, (string) $clean[$k]);
         }
         $this->log('themes.layout', ['preset' => $clean['layout_preset'], 'mode' => $clean['layout_mode']]);

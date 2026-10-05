@@ -70,7 +70,7 @@ $flashLabels = ['aangemaakt' => 'aangemaakt', 'bijgewerkt' => 'bijgewerkt', 'ver
                         <form method="post" action="/admin/gallery/<?= (int) $a['id'] ?>/verwijder" style="display:inline;"
                               onsubmit="return this.dataset.confirmed==='1' || (this.dataset.confirmed='1', document.getElementById('confirm-<?= (int) $a['id'] ?>').style.display='inline', false);">
                           <?= CsrfProtection::field() ?>
-                          <button type="submit" class="cf-btn-sm" style="color:#f87171;border-color:rgba(248,113,113,.4);">🗑️ Verwijder</button>
+                          <button type="submit" class="cf-btn-sm cf-btn-danger">🗑️ Verwijder</button>
                           <span id="confirm-<?= (int) $a['id'] ?>" style="display:none;color:var(--text-dim);font-size:.75rem;">Klik nogmaals om te bevestigen</span>
                         </form>
                       <?php else: ?>

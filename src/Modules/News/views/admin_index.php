@@ -75,7 +75,7 @@ $badgeFor  = static function (string $status): string {
                       <form method="post" action="/admin/news/<?= (int) $row['id'] ?>/verwijder"
                             onsubmit="return confirm('Dit artikel verwijderen?');" style="display:inline;">
                         <?= CsrfProtection::field() ?>
-                        <button type="submit" class="cf-btn-sm" style="background:rgba(239,68,68,.15);color:#fca5a5;">🗑️</button>
+                        <button type="submit" class="cf-btn-sm cf-btn-danger">🗑️</button>
                       </form>
                     </div>
                   </td>

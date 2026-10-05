@@ -20,6 +20,15 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ## [Unreleased]
 
+### Toegevoegd (ronde 2)
+- **Blokbeheer**: ▲/▼-pijltjes bij elk blok om de volgorde binnen een zone te wijzigen (bovenste/onderste knop is uitgegrijsd).
+- **Thema-instellingen**: aparte breedte-sliders voor de linker- en rechterzijbalk, inhoudsbreedte tot 3840 px (ultrawide/4K), en extra kleurvelden voor tekst, links, vlakken en randen (live voorbeeld).
+- Discord-kamerkaart toont ook het aantal online leden op de server, zodat zichtbaar is of Discord je überhaupt meldt.
+
+### Opgelost (ronde 2)
+- **Wit-op-wit in uitklaplijsten** (bijv. de Zone-keuze): opties krijgen nu de kleuren van het thema.
+- **Verwijderknoppen** waren rode tekst op een paarse knop (onleesbaar): nieuwe `cf-btn-danger` in alle beheerschermen; `Annuleren`-knop heeft weer vorm. Alle 8 thema's (licht én donker) visueel gecontroleerd.
+
 ### Opgelost
 - **HTML-blok op de voorpagina**: de `content`-zone werd op de homepage nooit getoond; blokken daarin zijn nu zichtbaar.
 - **Grote HTML (complete pagina's)** verdween of botste met de site-CSS. Een volledig document (`<!doctype>`, `<html>`, `<body>`) wordt nu automatisch in een afgeschermde `iframe` (sandbox, zonder `allow-same-origin`) getoond met automatische hoogte.

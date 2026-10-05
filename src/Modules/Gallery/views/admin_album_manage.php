@@ -149,7 +149,7 @@ $flashLabels = ['bijgewerkt' => 'Album bijgewerkt.', 'geupload' => "Bestand geü
                 <form method="post" action="/admin/gallery/items/<?= (int) $item['id'] ?>/verwijder"
                       onsubmit="return confirm('Dit item definitief verwijderen?');">
                   <?= CsrfProtection::field() ?>
-                  <button type="submit" class="cf-btn-sm" style="color:#f87171;border-color:rgba(248,113,113,.4);">🗑️ Verwijder</button>
+                  <button type="submit" class="cf-btn-sm cf-btn-danger">🗑️ Verwijder</button>
                 </form>
               </div>
             <?php endforeach; ?>

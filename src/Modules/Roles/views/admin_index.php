@@ -85,7 +85,7 @@ $flashLabels = ['aangemaakt' => 'aangemaakt', 'bijgewerkt' => 'bijgewerkt', 'ver
                     <?php if (!$isProtected && (int) $r['user_count'] === 0): ?>
                       <form method="post" action="/admin/roles/<?= (int) $r['id'] ?>/verwijder" style="display:inline;">
                         <?= CsrfProtection::field() ?>
-                        <button type="submit" class="cf-btn-sm" style="color:#f87171;border-color:rgba(248,113,113,.4);">🗑️ Verwijder</button>
+                        <button type="submit" class="cf-btn-sm cf-btn-danger">🗑️ Verwijder</button>
                       </form>
                     <?php elseif (!$isProtected): ?>
                       <span class="cf-btn-sm" style="opacity:.5;cursor:not-allowed;" title="Nog gebruikers gekoppeld">🗑️ Verwijder</span>

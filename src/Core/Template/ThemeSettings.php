@@ -34,6 +34,10 @@ final class ThemeSettings
         'color_secondary'  => ['var' => '--accent2', 'rgb' => '--accent2-rgb', 'label' => 'Secundair'],
         'color_background' => ['var' => '--bg',      'rgb' => null,            'label' => 'Achtergrond'],
         'color_accent'     => ['var' => '--gold',    'rgb' => '--gold-rgb',    'label' => 'Accent'],
+        'color_text'       => ['var' => '--text',    'rgb' => null,            'label' => 'Tekst'],
+        'color_link'       => ['var' => '--link',    'rgb' => null,            'label' => 'Links'],
+        'color_surface'    => ['var' => '--surface', 'rgb' => '--surface-rgb', 'label' => 'Vlakken (kaarten, zijbalken)'],
+        'color_border'     => ['var' => '--border',  'rgb' => null,            'label' => 'Randen'],
     ];
 
     private const MEDIA_PATH = '#^/media/theme/[A-Za-z0-9_.-]+$#';
@@ -47,6 +51,8 @@ final class ThemeSettings
             'layout_width'     => 1280,
             'layout_fluid'     => 90,
             'sidebar_width'    => 260,
+            'sidebar_left'     => 0,   // 0 = gelijk aan sidebar_width
+            'sidebar_right'    => 0,
             'logo'             => '',
             'logo_show_name'   => '0',
             'banner'           => '',
@@ -55,6 +61,10 @@ final class ThemeSettings
             'color_secondary'  => '',
             'color_background' => '',
             'color_accent'     => '',
+            'color_text'       => '',
+            'color_link'       => '',
+            'color_surface'    => '',
+            'color_border'     => '',
         ];
     }
 
@@ -76,9 +86,15 @@ final class ThemeSettings
         $preset = (string) ($raw['layout_preset'] ?? '');
         $d['layout_preset'] = ($preset === 'aangepast' || isset(self::PRESETS[$preset])) ? $preset : 'standaard';
 
-        $d['layout_width']  = self::intIn($raw['layout_width']  ?? null, 900, 2400, (int) $d['layout_width']);
+        // Tot 3840 px: ook voor ultrawide- en 4K-monitoren.
+        $d['layout_width']  = self::intIn($raw['layout_width']  ?? null, 900, 3840, (int) $d['layout_width']);
         $d['layout_fluid']  = self::intIn($raw['layout_fluid']  ?? null, 50, 100, (int) $d['layout_fluid']);
         $d['sidebar_width'] = self::intIn($raw['sidebar_width'] ?? null, 180, 360, (int) $d['sidebar_width']);
+        // Aparte breedte per zijbalk; 0 (of alles onder 180) = "zelfde als de gewone zijbalkbreedte".
+        foreach (['sidebar_left', 'sidebar_right'] as $k) {
+            $v = isset($raw[$k]) && is_numeric($raw[$k]) ? (int) $raw[$k] : 0;
+            $d[$k] = $v < 180 ? 0 : min(480, $v);
+        }
         $d['banner_height'] = self::intIn($raw['banner_height'] ?? null, 80, 600, (int) $d['banner_height']);
 
         foreach (['logo', 'banner'] as $k) {
@@ -110,6 +126,8 @@ final class ThemeSettings
         $settings['layout_mode']   = $p['mode'];
         $settings['layout_width']  = $p['width'];
         $settings['sidebar_width'] = $p['sidebar'];
+        $settings['sidebar_left']  = 0;
+        $settings['sidebar_right'] = 0;
         return $settings;
     }
 
@@ -128,8 +146,11 @@ final class ThemeSettings
             default => $s['layout_width'] . 'px',
         };
         $out = sprintf(
-            ':root{--cf-max-w:%s;--cf-sidebar-w:%dpx;--cf-banner-h:%dpx;}',
-            $maxW, $s['sidebar_width'], $s['banner_height']
+            ':root{--cf-max-w:%s;--cf-sidebar-w:%dpx;--cf-sidebar-l-w:%dpx;--cf-sidebar-r-w:%dpx;--cf-banner-h:%dpx;}',
+            $maxW, $s['sidebar_width'],
+            $s['sidebar_left']  > 0 ? $s['sidebar_left']  : $s['sidebar_width'],
+            $s['sidebar_right'] > 0 ? $s['sidebar_right'] : $s['sidebar_width'],
+            $s['banner_height']
         );
 
         $vars = '';

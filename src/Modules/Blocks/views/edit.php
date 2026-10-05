@@ -89,7 +89,7 @@ $h = static fn(mixed $v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'U
 
         <section class="blk-preview" id="blk-preview" hidden>
           <h3 style="margin:0 0 .5rem;">Voorbeeld <small style="color:var(--muted);font-weight:400;">(niet opgeslagen; scripts worden niet uitgevoerd)</small></h3>
-          <p id="blk-preview-err" style="color:var(--error);" hidden></p>
+          <p id="blk-preview-err" style="color:var(--error-text);" hidden></p>
           <iframe id="blk-preview-frame" sandbox="" title="Voorbeeld van het blok"></iframe>
         </section>
 
@@ -97,7 +97,7 @@ $h = static fn(mixed $v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'U
           <form method="post" action="/admin/blocks/<?= (int) $block['id'] ?>/delete"
                 onsubmit="return confirm('Dit blok verwijderen?');">
             <?= CsrfProtection::field() ?>
-            <button type="submit" class="cf-btn-sm" style="color:var(--error);">🗑️ Blok verwijderen</button>
+            <button type="submit" class="cf-btn-sm cf-btn-danger">🗑️ Blok verwijderen</button>
           </form>
         </div>
       </div>

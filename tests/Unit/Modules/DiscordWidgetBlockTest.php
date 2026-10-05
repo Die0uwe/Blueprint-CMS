@@ -97,6 +97,12 @@ final class DiscordWidgetBlockTest extends TestCase
     }
 
     #[Test]
+    public function theCardShowsHowManyAreOnlineOnTheServer(): void
+    {
+        $this->assertStringContainsString('2 in de kamer · 4 online ·', $this->block()->render(['channel_id' => self::GENERAL]));
+    }
+
+    #[Test]
     public function anEmptyRoomSaysSo(): void
     {
         $html = $this->block()->render(['channel_id' => self::EMPTY]);

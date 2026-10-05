@@ -89,7 +89,7 @@ $flashLabels = ['aangemaakt' => 'aangemaakt', 'bijgewerkt' => 'bijgewerkt', 'ver
                       <form method="post" action="/admin/news/categories/<?= (int) $cat['id'] ?>/verwijder" style="display:inline;"
                             onsubmit="<?php if ((int) $cat['article_count'] > 0): ?>return confirm('Deze categorie bevat nog <?= (int) $cat['article_count'] ?> artikel(en). Verwijderen ontkoppelt ze (categorieloos) maar verwijdert ze niet. Doorgaan?');<?php else: ?>return this.dataset.confirmed==='1' || (this.dataset.confirmed='1', document.getElementById('confirm-<?= (int) $cat['id'] ?>').style.display='inline', false);<?php endif; ?>">
                         <?= \CommunityFusion\Core\Security\CsrfProtection::field() ?>
-                        <button type="submit" class="cf-btn-sm" style="color:#f87171;border-color:rgba(248,113,113,.4);">🗑️ Verwijder</button>
+                        <button type="submit" class="cf-btn-sm cf-btn-danger">🗑️ Verwijder</button>
                         <?php if ((int) $cat['article_count'] === 0): ?>
                           <span id="confirm-<?= (int) $cat['id'] ?>" style="display:none;color:var(--text-dim);font-size:.75rem;">Klik nogmaals om te bevestigen</span>
                         <?php endif; ?>

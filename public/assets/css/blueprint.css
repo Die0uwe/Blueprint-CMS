@@ -85,7 +85,7 @@ img { max-width: 100%; }
   margin: 2rem auto;
   padding: 0 1.5rem;
   display: grid;
-  grid-template-columns: var(--cf-sidebar-w, 260px) 1fr var(--cf-sidebar-w, 260px);
+  grid-template-columns: var(--cf-sidebar-l-w, var(--cf-sidebar-w, 260px)) minmax(0, 1fr) var(--cf-sidebar-r-w, var(--cf-sidebar-w, 260px));
   gap: 1.5rem;
   align-items: start;
 }
@@ -93,10 +93,10 @@ img { max-width: 100%; }
   grid-template-columns: 1fr;
 }
 .cf-layout:has(#cf-sidebar-left):not(:has(#cf-sidebar-right)) {
-  grid-template-columns: var(--cf-sidebar-w, 260px) 1fr;
+  grid-template-columns: var(--cf-sidebar-l-w, var(--cf-sidebar-w, 260px)) minmax(0, 1fr);
 }
 .cf-layout:not(:has(#cf-sidebar-left)):has(#cf-sidebar-right) {
-  grid-template-columns: 1fr var(--cf-sidebar-w, 260px);
+  grid-template-columns: minmax(0, 1fr) var(--cf-sidebar-r-w, var(--cf-sidebar-w, 260px));
 }
 
 /* ── Boxed-layout, logo-afbeelding, headerbanner (thema-instellingen) ──── */
@@ -268,12 +268,22 @@ body.cf-layout-full .cf-container, body.cf-layout-full .cf-layout { padding-inli
   color: var(--on-accent);
 }
 .cf-btn-ghost {
+  display: inline-flex; align-items: center; padding: .55rem 1.2rem;
+  border-radius: 6px; font-weight: 600; font-size: .875rem; text-decoration: none; cursor: pointer;
   background: transparent;
   border: 1px solid var(--border);
   color: var(--text-dim);
   box-shadow: none;
 }
 .cf-btn-ghost:hover { background: rgba(var(--fg-rgb),.05); color: var(--text); }
+.cf-btn-danger,
+.cf-btn-danger:hover {
+  background: rgba(var(--error-rgb),.12);
+  color: var(--error-text);
+  border: 1px solid rgba(var(--error-rgb),.5);
+  box-shadow: none;
+}
+.cf-btn-danger:hover { background: rgba(var(--error-rgb),.22); }
 
 /* ── Cards ──────────────────────────────────────────────────────────────── */
 .cf-card {
@@ -349,6 +359,15 @@ body.cf-layout-full .cf-container, body.cf-layout-full .cf-layout { padding-inli
   box-shadow: 0 0 0 3px rgba(var(--accent-rgb),.2);
 }
 .cf-textarea { min-height: 120px; resize: vertical; }
+/* Uitklaplijst van een <select>: het besturingssysteem tekent die zelf (vaak wit);
+   zonder eigen kleuren staat er lichte tekst op een witte achtergrond. */
+select, select.cf-select { color-scheme: inherit; }
+select option, select optgroup {
+  background-color: var(--surface2, var(--bg2));
+  color: var(--text);
+}
+select option:checked { background-color: var(--accent); color: var(--on-accent); }
+select option:disabled { color: var(--muted); }
 
 /* ── Badges & Tags ──────────────────────────────────────────────────────── */
 .cf-badge {

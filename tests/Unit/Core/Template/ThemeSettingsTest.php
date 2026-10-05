@@ -24,7 +24,7 @@ final class ThemeSettingsTest extends TestCase
     public function widthsAreClampedAndGarbageFallsBack(): void
     {
         $s = ThemeSettings::load(['layout_width' => '99999', 'sidebar_width' => '5', 'banner_height' => 'abc']);
-        $this->assertSame(2400, $s['layout_width']);
+        $this->assertSame(3840, $s['layout_width']);
         $this->assertSame(180, $s['sidebar_width']);
         $this->assertSame(220, $s['banner_height']);
     }
@@ -128,5 +128,43 @@ final class ThemeSettingsTest extends TestCase
             $this->assertTrue($p['width'] >= 900 && $p['width'] <= 1800, $id);
             $this->assertTrue($p['sidebar'] >= 180 && $p['sidebar'] <= 360, $id);
         }
+    }
+
+    #[Test]
+    public function eachSidebarCanHaveItsOwnWidthAndZeroMeansSameAsTheGeneralOne(): void
+    {
+        $css = ThemeSettings::css(['sidebar_width' => 260]);
+        $this->assertStringContainsString('--cf-sidebar-l-w:260px', $css);
+        $this->assertStringContainsString('--cf-sidebar-r-w:260px', $css);
+
+        $css = ThemeSettings::css(['sidebar_width' => 260, 'sidebar_left' => '320', 'sidebar_right' => '9999']);
+        $this->assertStringContainsString('--cf-sidebar-l-w:320px', $css);
+        $this->assertStringContainsString('--cf-sidebar-r-w:480px', $css, 'begrensd op 480');
+
+        // Een slider die op de laagste stand (170) staat betekent "zelfde als de gewone breedte".
+        $s = ThemeSettings::load(['sidebar_left' => '170', 'sidebar_right' => 'abc']);
+        $this->assertSame(0, $s['sidebar_left']);
+        $this->assertSame(0, $s['sidebar_right']);
+    }
+
+    #[Test]
+    public function aPresetResetsTheSeparateSidebarWidths(): void
+    {
+        $s = ThemeSettings::applyPreset(ThemeSettings::load(['sidebar_left' => 400, 'sidebar_right' => 300]), 'ruim');
+        $this->assertSame(0, $s['sidebar_left']);
+        $this->assertSame(0, $s['sidebar_right']);
+    }
+
+    #[Test]
+    public function textLinkSurfaceAndBorderColorsCanBeOverridden(): void
+    {
+        $css = ThemeSettings::css([
+            'color_text' => '#111111', 'color_link' => '#0000ff', 'color_surface' => '#ffffff', 'color_border' => '#cccccc',
+        ]);
+        $this->assertStringContainsString('--text:#111111;', $css);
+        $this->assertStringContainsString('--link:#0000ff;', $css);
+        $this->assertStringContainsString('--surface:#ffffff;--surface-rgb:255,255,255;', $css);
+        $this->assertStringContainsString('--border:#cccccc;', $css);
+        $this->assertSame('', ThemeSettings::load(['color_text' => 'url(x)'])['color_text']);
     }
 }

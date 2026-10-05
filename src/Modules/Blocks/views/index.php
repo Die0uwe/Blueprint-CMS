@@ -176,6 +176,8 @@ use CommunityFusion\Core\Security\CsrfProtection;
   }
   .block-btn:hover { border-color: var(--accent2); color: var(--accent2); }
   .block-btn.delete:hover { border-color: var(--error); color: var(--error); }
+  .block-btn:disabled { opacity: .3; cursor: default; pointer-events: none; }
+  .block-btn:focus-visible { outline: 2px solid var(--accent2); outline-offset: 1px; }
   .block-vis { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
   .block-vis.on  { background: var(--success); }
   .block-vis.off { background: var(--muted); }
@@ -314,6 +316,8 @@ use CommunityFusion\Core\Security\CsrfProtection;
                       <div class="block-type"><?= htmlspecialchars($block['type_slug']) ?></div>
                     </div>
                     <div class="block-actions">
+                      <button type="button" class="block-btn block-up" title="Omhoog" aria-label="Omhoog" onclick="stepBlock(<?= (int) $block['id'] ?>, -1)">▲</button>
+                      <button type="button" class="block-btn block-down" title="Omlaag" aria-label="Omlaag" onclick="stepBlock(<?= (int) $block['id'] ?>, 1)">▼</button>
                       <a class="block-btn" href="/admin/blocks/<?= (int) $block['id'] ?>/edit" title="Bewerken" style="text-decoration:none;">✏️</a>
                       <button class="block-btn" onclick="toggleVisible(<?= $block['id'] ?>, <?= $isVisible ? 0 : 1 ?>)">
                         <?= $isVisible ? '👁️' : '🚫' ?>
@@ -464,6 +468,31 @@ async function toggleVisible(id, vis) {
   if (d.success) { showToast('👁️ Zichtbaarheid bijgewerkt'); setTimeout(() => location.reload(), 500); }
   else showToast(d.error || 'Fout', 'error');
 }
+
+// Omhoog/omlaag met de pijltjes: wissel met de buur in dezelfde zone en sla de volgorde op.
+async function stepBlock(id, dir) {
+  const el = document.querySelector(`.placed-block[data-block-id="${id}"]`);
+  if (!el) return;
+  const zone = el.closest('.zone-drop');
+  const list = [...zone.querySelectorAll('.placed-block')];
+  const i = list.indexOf(el), j = i + dir;
+  if (j < 0 || j >= list.length) return;
+  [list[i], list[j]] = [list[j], list[i]];
+  const positions = {};
+  list.forEach((b, n) => { positions[parseInt(b.dataset.blockId)] = n; });
+  const d = await api('POST', '/api/v1/blocks/positions', { zone: zone.dataset.zone, positions });
+  if (d.success) { showToast('✅ Volgorde opgeslagen'); setTimeout(() => location.reload(), 350); }
+  else showToast(d.error || 'Fout', 'error');
+}
+
+// Bovenste blok: ▲ uit; onderste blok: ▼ uit.
+document.querySelectorAll('.zone-drop').forEach(zone => {
+  const list = zone.querySelectorAll('.placed-block');
+  list.forEach((b, n) => {
+    if (n === 0) b.querySelector('.block-up')?.setAttribute('disabled', '');
+    if (n === list.length - 1) b.querySelector('.block-down')?.setAttribute('disabled', '');
+  });
+});
 
 // Sortable binnen een zone (her-ordening op positie)
 document.querySelectorAll('.zone-drop').forEach(zone => {

@@ -9,7 +9,8 @@ use CommunityFusion\Core\Security\CsrfProtection;
 $activeNav = 'themes';
 $e = static fn($v): string => htmlspecialchars((string) $v, ENT_QUOTES);
 $flashText = ['opgeslagen' => 'Instellingen opgeslagen.', 'hersteld' => 'Kleuren hersteld naar de themakleuren.'][$flash ?? ''] ?? null;
-$themeColorVarFallback = ['color_primary' => '#a855f7', 'color_secondary' => '#38bdf8', 'color_background' => '#0f0f1a', 'color_accent' => '#ccaa00'];
+$themeColorVarFallback = ['color_primary' => '#a855f7', 'color_secondary' => '#38bdf8', 'color_background' => '#0f0f1a', 'color_accent' => '#ccaa00',
+    'color_text' => '#e2e8f0', 'color_link' => '#a855f7', 'color_surface' => '#111827', 'color_border' => '#1e2940'];
 ?>
 <!DOCTYPE html>
 <html lang="<?= $e(\CommunityFusion\Core\I18n\Trans::locale()) ?>">
@@ -80,11 +81,15 @@ $themeColorVarFallback = ['color_primary' => '#a855f7', 'color_secondary' => '#3
 
         <div class="ts-row" style="margin-top:1rem;flex-direction:column;align-items:stretch;gap:1rem;">
           <label id="row-width">Inhoudsbreedte (Wide/Boxed): <output id="out-width"><?= (int) $s['layout_width'] ?></output> px
-            <input type="range" name="layout_width" id="layout_width" min="900" max="2400" step="10" value="<?= (int) $s['layout_width'] ?>" style="width:100%"></label>
+            <input type="range" name="layout_width" id="layout_width" min="900" max="3840" step="10" value="<?= (int) $s['layout_width'] ?>" style="width:100%"></label>
           <label id="row-fluid">Breedte (Fluid): <output id="out-fluid"><?= (int) $s['layout_fluid'] ?></output> % van het scherm
             <input type="range" name="layout_fluid" id="layout_fluid" min="50" max="100" step="1" value="<?= (int) $s['layout_fluid'] ?>" style="width:100%"></label>
-          <label>Zijbalkbreedte: <output id="out-sidebar"><?= (int) $s['sidebar_width'] ?></output> px
+          <label>Zijbalkbreedte (beide zijden): <output id="out-sidebar"><?= (int) $s['sidebar_width'] ?></output> px
             <input type="range" name="sidebar_width" id="sidebar_width" min="180" max="360" step="10" value="<?= (int) $s['sidebar_width'] ?>" style="width:100%"></label>
+          <label>Linker zijbalk: <output id="out-left"><?= (int) $s['sidebar_left'] > 0 ? (int) $s['sidebar_left'] . ' px' : 'zelfde als hierboven' ?></output>
+            <input type="range" name="sidebar_left" id="sidebar_left" min="170" max="480" step="10" value="<?= (int) $s['sidebar_left'] > 0 ? (int) $s['sidebar_left'] : 170 ?>" style="width:100%"></label>
+          <label>Rechter zijbalk: <output id="out-right"><?= (int) $s['sidebar_right'] > 0 ? (int) $s['sidebar_right'] . ' px' : 'zelfde als hierboven' ?></output>
+            <input type="range" name="sidebar_right" id="sidebar_right" min="170" max="480" step="10" value="<?= (int) $s['sidebar_right'] > 0 ? (int) $s['sidebar_right'] : 170 ?>" style="width:100%"></label>
         </div>
         <div id="ts-preview" aria-hidden="true" style="margin:1rem 0;border:1px dashed var(--border);border-radius:8px;padding:.5rem;background:var(--bg2,transparent);">
           <div id="ts-preview-bar" style="height:28px;margin:0 auto;border-radius:6px;background:var(--accent);opacity:.65;"></div>
@@ -120,6 +125,8 @@ $themeColorVarFallback = ['color_primary' => '#a855f7', 'color_secondary' => '#3
           $('out-width').textContent=$('layout_width').value;
           $('out-fluid').textContent=$('layout_fluid').value;
           $('out-sidebar').textContent=$('sidebar_width').value;
+          $('out-left').textContent=(+$('sidebar_left').value<180)?'zelfde als hierboven':$('sidebar_left').value+' px';
+          $('out-right').textContent=(+$('sidebar_right').value<180)?'zelfde als hierboven':$('sidebar_right').value+' px';
           $('row-width').style.display=(m==='wide'||m==='boxed')?'':'none';
           $('row-fluid').style.display=(m==='fluid')?'':'none';
           var pct=m==='full'?100:(m==='fluid'?+$('layout_fluid').value:Math.min(100,+$('layout_width').value/1920*100));
@@ -129,9 +136,10 @@ $themeColorVarFallback = ['color_primary' => '#a855f7', 'color_secondary' => '#3
         f.addEventListener('change',function(e){
           var r=e.target; if(r.name!=='layout_preset'||!r.dataset.mode) return;
           document.querySelector('input[name=layout_mode][value='+r.dataset.mode+']').checked=true;
-          $('layout_width').value=r.dataset.width; $('sidebar_width').value=r.dataset.sidebar; sync();
+          $('layout_width').value=r.dataset.width; $('sidebar_width').value=r.dataset.sidebar;
+          $('sidebar_left').value=170; $('sidebar_right').value=170; sync();
         });
-        ['layout_width','layout_fluid','sidebar_width'].forEach(function(id){
+        ['layout_width','layout_fluid','sidebar_width','sidebar_left','sidebar_right'].forEach(function(id){
           $(id).addEventListener('input',function(){ custom(); sync(); });
         });
         document.querySelectorAll('input[name=layout_mode]').forEach(function(r){

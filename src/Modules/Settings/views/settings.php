@@ -62,7 +62,7 @@ $notifyEmail  = $contact['notify_email'] ?? '';
           <?= CsrfProtection::field() ?>
 
           <div class="cf-form-group">
-            <label class="cf-label">Sitenaam <span style="color:#f87171">*</span></label>
+            <label class="cf-label">Sitenaam <span style="color:var(--error-text)">*</span></label>
             <input type="text" name="site_name" class="cf-input" required maxlength="200"
                    value="<?= htmlspecialchars($siteName) ?>">
             <p class="cf-field-help">Verschijnt in de titelbalk van elke pagina en in het header-logo.</p>

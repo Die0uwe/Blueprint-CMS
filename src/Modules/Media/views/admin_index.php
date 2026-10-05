@@ -44,7 +44,7 @@ $renderTable = function (array $files, string $area) use ($fmtSize) {
                   <?= CsrfProtection::field() ?>
                   <input type="hidden" name="area" value="<?= htmlspecialchars($area) ?>">
                   <input type="hidden" name="path" value="<?= htmlspecialchars($f['path']) ?>">
-                  <button type="submit" class="cf-btn-sm" style="color:#f87171;border-color:rgba(248,113,113,.4);">🗑️ Verwijder</button>
+                  <button type="submit" class="cf-btn-sm cf-btn-danger">🗑️ Verwijder</button>
                 </form>
               <?php else: ?>
                 <span class="cf-btn-sm" style="opacity:.5;cursor:not-allowed;" title="Nog in gebruik">🗑️ Verwijder</span>

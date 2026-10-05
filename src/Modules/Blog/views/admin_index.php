@@ -57,7 +57,7 @@ $flashText = ['gepubliceerd' => 'gepubliceerd', 'verborgen' => 'verborgen', 'ver
                       <form method="post" action="/admin/blog/<?= (int) $row['id'] ?>/verwijder"
                             onsubmit="return confirm('Verwijderen?');" style="display:inline;">
                         <?= CsrfProtection::field() ?>
-                        <button type="submit" class="cf-btn-sm" style="background:rgba(239,68,68,.15);color:#fca5a5;">🗑️</button>
+                        <button type="submit" class="cf-btn-sm cf-btn-danger">🗑️</button>
                       </form>
                     </div>
                   </td>

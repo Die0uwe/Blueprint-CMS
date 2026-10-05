@@ -16,8 +16,8 @@ $flashText = $flashLabels[$flash ?? ''] ?? null;
 $btn = static fn(string $url, string $label, string $extra = '', string $style = ''): string =>
     '<form method="post" action="' . $url . '" style="display:inline;"' . $extra . '>'
     . CsrfProtection::field()
-    . '<button type="submit" class="cf-btn-sm"' . ($style !== '' ? ' style="' . $style . '"' : '') . '>' . $label . '</button></form>';
-$danger = 'background:rgba(239,68,68,.15);color:#fca5a5;';
+    . '<button type="submit" class="cf-btn-sm' . ($style !== '' ? ' ' . $style : '') . '">' . $label . '</button></form>';
+$danger = 'cf-btn-danger';
 ?>
 <!DOCTYPE html>
 <html lang="<?= $e(\CommunityFusion\Core\I18n\Trans::locale()) ?>">

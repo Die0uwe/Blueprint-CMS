@@ -120,6 +120,9 @@ final class DiscordWidgetBlock extends AbstractBlock
         $count     = count($inRoom);
         $roomName  = htmlspecialchars((string) ($room['name'] ?? 'Kamer'), ENT_QUOTES, 'UTF-8');
         $guildName = htmlspecialchars((string) ($data['name'] ?? 'Discord Server'), ENT_QUOTES, 'UTF-8');
+        // Totaal online volgens Discord: laat zien of de widget de bezoeker überhaupt ziet.
+        $online    = isset($data['presence_count']) && is_numeric($data['presence_count']) ? (int) $data['presence_count'] : null;
+        $onlineTxt = $online !== null ? " · {$online} online" : '';
 
         $membersHtml = '';
         foreach (array_slice($inRoom, 0, 25) as $member) {
@@ -149,7 +152,7 @@ final class DiscordWidgetBlock extends AbstractBlock
                 <span class="cf-discord-logo">🔊</span>
                 <div>
                     <div class="cf-discord-guild">{$roomName}</div>
-                    <div class="cf-discord-count"><span class="cf-discord-dot"></span> {$count} in de kamer · {$guildName}</div>
+                    <div class="cf-discord-count"><span class="cf-discord-dot"></span> {$count} in de kamer{$onlineTxt} · {$guildName}</div>
                 </div>
             </div>
             <div class="cf-discord-members">{$membersHtml}</div>
