@@ -51,8 +51,18 @@ $action    = $isEdit ? '/admin/pages/' . (int) $item['id'] . '/bewerk' : '/admin
           </div>
 
           <div class="cf-form-group">
+            <label class="cf-label" for="template">Template <span style="font-weight:400;text-transform:none;color:var(--text-dim);">(kies dit eerst: bij “HTML-pagina” gaat de tekstverwerker uit)</span></label>
+            <select id="template" name="template" class="cf-select">
+              <?php $currentTemplate = $item['template'] ?? (($_GET['template'] ?? '') === 'html' ? 'html' : 'default'); ?>
+              <option value="default" <?= $currentTemplate === 'default' ? 'selected' : '' ?>>Standaard</option>
+              <option value="full"    <?= $currentTemplate === 'full' ? 'selected' : '' ?>>Volledige breedte</option>
+              <option value="html"    <?= $currentTemplate === 'html' ? 'selected' : '' ?>>HTML-pagina (eigen code, afgeschermd)</option>
+            </select>
+          </div>
+
+          <div class="cf-form-group">
             <label class="cf-label" for="content">Inhoud (HTML toegestaan)</label>
-            <?php $isHtmlPage = ($item['template'] ?? 'default') === 'html'; ?>
+            <?php $isHtmlPage = ($item['template'] ?? ($_GET['template'] ?? 'default')) === 'html'; ?>
             <p id="html-hint" class="cf-hint" style="color:var(--text-dim);font-size:.85rem;margin:.2rem 0 .5rem;<?= $isHtmlPage ? '' : 'display:none;' ?>">
               HTML-pagina: plak hier een complete pagina (met &lt;html&gt;, &lt;style&gt;, &lt;script&gt;). Die wordt niet opgeschoond en komt
               afgeschermd in een kader op de pagina te staan, zodat hij de rest van de site niet verstoort.
@@ -60,15 +70,6 @@ $action    = $isEdit ? '/admin/pages/' . (int) $item['id'] . '/bewerk' : '/admin
             <textarea id="content" name="content" class="cf-textarea" data-editor="<?= $isHtmlPage ? 'code' : 'richtext' ?>" required style="min-height:280px;"><?= htmlspecialchars((string) ($item['content'] ?? '')) ?></textarea>
           </div>
 
-          <div class="cf-form-group">
-            <label class="cf-label" for="template">Template</label>
-            <select id="template" name="template" class="cf-select">
-              <?php $currentTemplate = $item['template'] ?? 'default'; ?>
-              <option value="default" <?= $currentTemplate === 'default' ? 'selected' : '' ?>>Standaard</option>
-              <option value="full"    <?= $currentTemplate === 'full' ? 'selected' : '' ?>>Volledige breedte</option>
-              <option value="html"    <?= $currentTemplate === 'html' ? 'selected' : '' ?>>HTML-pagina (eigen code, afgeschermd)</option>
-            </select>
-          </div>
 
           <div class="cf-form-group">
             <label class="cf-label" for="menu_position">Positie in menu (leeg = niet in menu tonen)</label>
@@ -105,15 +106,27 @@ $action    = $isEdit ? '/admin/pages/' . (int) $item['id'] . '/bewerk' : '/admin
 </div>
 <?= \CommunityFusion\Core\Template\EditorAssets::tags() ?>
 <script>
-// Template "HTML-pagina": de tekstverwerker haalt <style>/<script> weg, dus bij die keuze gaat hij uit.
+// Template "HTML-pagina": de tekstverwerker haalt <style>/<script> weg (en herschrijft de rest), dus bij die
+// keuze gaat hij uit. De oorspronkelijke tekst wordt bewaard vóórdat de editor hem kan aanpassen.
 (function () {
-  var sel = document.getElementById('template'), hint = document.getElementById('html-hint');
-  if (!sel) return;
+  var sel = document.getElementById('template'), hint = document.getElementById('html-hint'),
+      ta = document.getElementById('content');
+  if (!sel || !ta) return;
+  var orig = ta.value;                       // draait vóór cf-editor.js (DOMContentLoaded)
   sel.addEventListener('change', function () {
     var on = sel.value === 'html';
     hint.style.display = on ? '' : 'none';
     var ed = window.tinymce && window.tinymce.get('content');
-    if (on && ed) { ed.save(); ed.remove(); document.getElementById('content').style.display = ''; }
+    if (on && ed) {
+      var changed = ed.isDirty();
+      ed.remove();                           // verwijdert de editor; textarea blijft over
+      ta.style.display = '';
+      ta.value = changed ? ed.getContent() : orig;
+      if (changed) {
+        hint.textContent = 'De tekstverwerker had je tekst al opgeschoond: plak je originele HTML hier opnieuw.';
+        ta.value = '';
+      }
+    }
     if (!on && !ed && window.tinymce) {
       hint.textContent = 'Sla de pagina op en open hem opnieuw om de tekstverwerker weer te gebruiken.';
       hint.style.display = '';

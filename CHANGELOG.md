@@ -22,6 +22,7 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ### Toegevoegd (ronde 3)
 - **HTML-pagina's**: bij Admin → Pagina's kies je Template "HTML-pagina (eigen code, afgeschermd)". Een complete pagina met `<style>` en `<script>` blijft ongewijzigd bewaard en wordt afgeschermd in een iframe getoond (voorheen haalde de opschoner `<style>`/`<script>` weg en brak de tekstverwerker de code). Alleen voor gebruikers met `pages.manage`. Geen migratie: gebruikt de bestaande kolom `template`.
+- Paginaformulier: Template staat nu boven de inhoud; bij "HTML-pagina" gaat de tekstverwerker (TinyMCE) uit vóór er iets geplakt wordt, want TinyMCE schrijft HTML al bij het laden/plakken om. `/admin/pages/create?template=html` opent direct als HTML-pagina. Een al opgeschoonde pagina moet opnieuw met de originele HTML worden gevuld.
 - `HtmlBlock::frame()` is nu publiek en wordt door HTML-pagina's hergebruikt.
 
 ### Toegevoegd (ronde 2)
