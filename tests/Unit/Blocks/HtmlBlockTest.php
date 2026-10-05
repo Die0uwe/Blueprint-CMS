@@ -122,4 +122,21 @@ HTML;
         $this->assertStringNotContainsString('<script>alert', $html);
         $this->assertStringContainsString('addEventListener("message"', HtmlBlock::frame(self::DOCUMENT));
     }
+
+    #[Test]
+    public function themeStyleAddsAThemeReceiverAndSenderOnlyWhenRequested(): void
+    {
+        $own = HtmlBlock::frame(self::DOCUMENT);
+        $this->assertStringNotContainsString('cfTheme', $own);
+
+        $themed = HtmlBlock::frame(self::DOCUMENT, 0, true);
+        $this->assertStringContainsString('cfTheme', $themed);
+        $this->assertStringContainsString('!important', $themed);
+        $this->assertStringNotContainsString('allow-same-origin', $themed);
+
+        $block = new HtmlBlock();
+        $this->assertSame('own', $block->getConfigSchema()['style']['default']);
+        $out = $block->render(['content' => self::DOCUMENT, 'mode' => 'iframe', 'style' => 'theme']);
+        $this->assertStringContainsString('cfTheme', $out);
+    }
 }

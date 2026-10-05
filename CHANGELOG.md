@@ -21,6 +21,7 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 ## [Unreleased]
 
 ### Added
+- Eigen CSS overschrijven: nieuwe template "HTML-pagina in thema-stijl" en blok-optie "Stijl: theme" leggen achtergrond, tekstkleur, links, kaarten, invoervelden en lettertype van het actieve thema over de eigen CSS van de HTML heen (volgt ook themawissel en donkere modus).
 - Pagina-editor: knoppen "Voorbeeld" en "Voorbeeld volledig scherm" tonen de code direct (HTML-pagina's ruw in afgeschermd kader, andere templates met site-stijl).
 - HTML-pagina's: knop "Volledig scherm" (Esc sluit; `#volledig` in de URL opent direct volledig) — de pagina vult het hele venster zonder menu en zijbalken.
 

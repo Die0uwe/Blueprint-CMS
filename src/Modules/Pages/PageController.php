@@ -23,8 +23,9 @@ final class PageController
     private const STATUSES = ['draft', 'published'];
 
     /** themes/default/templates/pages/*.twig — uitgebreid als een thema meer varianten meelevert. */
-    /** 'html' = eigen volledige HTML (niet gesanitized, afgeschermd in een iframe) — alleen voor pages.manage. */
-    private const TEMPLATES = ['default', 'full', 'html'];
+    /** 'html' = eigen volledige HTML (niet gesanitized, afgeschermd in een iframe) — alleen voor pages.manage.
+     *  'html-theme' = hetzelfde, maar de site-kleuren/-lettertype worden over de eigen CSS heen gelegd. */
+    private const TEMPLATES = ['default', 'full', 'html', 'html-theme'];
 
     public function __construct(
         private readonly PageRepository  $pages,
@@ -70,11 +71,12 @@ final class PageController
         if (!in_array($template, self::TEMPLATES, true)) {
             $template = 'default';
         }
-        $html = $this->theme->render("pages/{$template}.twig", [
+        $isRawHtml = in_array($template, ['html', 'html-theme'], true);
+        $html = $this->theme->render('pages/' . ($isRawHtml ? 'html' : $template) . '.twig', [
             'page_title' => $page['title'],
             'page'       => $page,
             // Alleen gebruikt door pages/html.twig: de eigen HTML, afgeschermd van de site.
-            'page_frame' => $template === 'html' ? \CommunityFusion\Blocks\Types\HtmlBlock::frame((string) $page['content']) : '',
+            'page_frame' => $isRawHtml ? \CommunityFusion\Blocks\Types\HtmlBlock::frame((string) $page['content'], 0, $template === 'html-theme') : '',
         ]);
 
         return Response::html($html);
@@ -180,7 +182,7 @@ final class PageController
         $template  = (string) $request->input('template', 'default');
         // HTML-pagina: de code van een beheerder blijft ongewijzigd (scripts, <style>, <html>…);
         // de pagina toont het later in een sandboxed iframe. Alle andere templates: gesanitized.
-        $content  = $template === 'html'
+        $content  = in_array($template, ['html', 'html-theme'], true)
             ? trim((string) $request->input('content', ''))
             : ContentSanitizer::cleanForStorage((string) $request->input('content', ''));
         $metaTitle = trim((string) $request->input('meta_title', ''));

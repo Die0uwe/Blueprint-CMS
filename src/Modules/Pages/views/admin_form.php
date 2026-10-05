@@ -62,16 +62,17 @@ $action    = $isEdit ? '/admin/pages/' . (int) $item['id'] . '/bewerk' : '/admin
           <div class="cf-form-group">
             <label class="cf-label" for="template">Template <span style="font-weight:400;text-transform:none;color:var(--text-dim);">(kies dit eerst: bij “HTML-pagina” gaat de tekstverwerker uit)</span></label>
             <select id="template" name="template" class="cf-select">
-              <?php $currentTemplate = $item['template'] ?? (($_GET['template'] ?? '') === 'html' ? 'html' : 'default'); ?>
+              <?php $currentTemplate = $item['template'] ?? (in_array($_GET['template'] ?? '', ['html', 'html-theme'], true) ? $_GET['template'] : 'default'); ?>
               <option value="default" <?= $currentTemplate === 'default' ? 'selected' : '' ?>>Standaard</option>
               <option value="full"    <?= $currentTemplate === 'full' ? 'selected' : '' ?>>Volledige breedte</option>
               <option value="html"    <?= $currentTemplate === 'html' ? 'selected' : '' ?>>HTML-pagina (eigen code, afgeschermd)</option>
+              <option value="html-theme" <?= $currentTemplate === 'html-theme' ? 'selected' : '' ?>>HTML-pagina in thema-stijl (eigen CSS overschreven)</option>
             </select>
           </div>
 
           <div class="cf-form-group">
             <label class="cf-label" for="content">Inhoud (HTML toegestaan)</label>
-            <?php $isHtmlPage = ($item['template'] ?? ($_GET['template'] ?? 'default')) === 'html'; ?>
+            <?php $isHtmlPage = in_array($item['template'] ?? ($_GET['template'] ?? 'default'), ['html', 'html-theme'], true); ?>
             <p id="html-hint" class="cf-hint" style="color:var(--text-dim);font-size:.85rem;margin:.2rem 0 .5rem;<?= $isHtmlPage ? '' : 'display:none;' ?>">
               HTML-pagina: plak hier een complete pagina (met &lt;html&gt;, &lt;style&gt;, &lt;script&gt;). Die wordt niet opgeschoond en komt
               afgeschermd in een kader op de pagina te staan, zodat hij de rest van de site niet verstoort.
@@ -131,7 +132,7 @@ $action    = $isEdit ? '/admin/pages/' . (int) $item['id'] . '/bewerk' : '/admin
   if (!sel || !ta) return;
   var orig = ta.value;                       // draait vóór cf-editor.js (DOMContentLoaded)
   sel.addEventListener('change', function () {
-    var on = sel.value === 'html';
+    var on = sel.value === 'html' || sel.value === 'html-theme';
     hint.style.display = on ? '' : 'none';
     var ed = window.tinymce && window.tinymce.get('content');
     if (on && ed) {
@@ -160,7 +161,7 @@ $action    = $isEdit ? '/admin/pages/' . (int) $item['id'] . '/bewerk' : '/admin
   function render() {
     if (window.tinymce) window.tinymce.triggerSave();
     var html = ta.value;
-    fr.srcdoc = sel.value === 'html'
+    fr.srcdoc = (sel.value === 'html' || sel.value === 'html-theme')
       ? html + '\n<base target="_blank">'
       : '<!doctype html><meta charset="utf-8"><base target="_blank"><link rel="stylesheet" href="/assets/css/blueprint.css"><body style="padding:1rem">' + html;
     box.hidden = false;
