@@ -73,6 +73,38 @@
 
       <hr style="margin:1.5rem 0;border-color:var(--border);">
 
+      <h3 id="emails" style="margin-bottom:.5rem;">{{ trans('account.emails_title') }}</h3>
+      <p style="color:var(--muted);font-size:.8rem;margin:0 0 .75rem;">{{ trans('account.emails_hint') }}</p>
+      {% if email_status %}<div class="cf-alert cf-alert-success">{{ trans('account.st_' ~ email_status) }}</div>{% endif %}
+      {% if email_error %}<div class="cf-alert cf-alert-error">{{ trans('account.er_' ~ email_error) }}</div>{% endif %}
+      {% for e in emails %}
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;flex-wrap:wrap;padding:.5rem 0;border-bottom:1px solid var(--border);">
+          <span>{{ e.email }}
+            {% if e.is_primary %}<span class="cf-badge">{{ trans('account.primary') }}</span>{% endif %}
+            <small style="color:var(--muted);">{{ e.verified_at ? trans('account.verified') : trans('account.pending') }}</small>
+          </span>
+          <span style="display:flex;gap:.35rem;">
+            {% if not e.is_primary and e.verified_at %}
+              <form method="POST" action="/profiel/email/hoofd" style="margin:0;">{{ csrf_field()|raw }}<input type="hidden" name="id" value="{{ e.id }}"><button type="submit" class="cf-btn" style="padding:.25rem .75rem;font-size:.8rem;">{{ trans('account.make_primary') }}</button></form>
+            {% endif %}
+            {% if not e.is_primary %}
+              <form method="POST" action="/profiel/email/verwijder" style="margin:0;">{{ csrf_field()|raw }}<input type="hidden" name="id" value="{{ e.id }}"><button type="submit" class="cf-btn cf-btn-danger" style="padding:.25rem .75rem;font-size:.8rem;">{{ trans('account.remove') }}</button></form>
+            {% endif %}
+          </span>
+        </div>
+      {% endfor %}
+      {% if emails|length < 3 %}
+        <form method="POST" action="/profiel/email" style="margin-top:.75rem;">
+          {{ csrf_field()|raw }}
+          <label class="cf-label" for="new-email">{{ trans('account.add_label') }}</label>
+          <div style="display:flex;gap:.5rem;"><input id="new-email" class="cf-input" type="email" name="email" maxlength="255" required><button type="submit" class="cf-btn">{{ trans('account.add_submit') }}</button></div>
+        </form>
+      {% else %}
+        <p style="color:var(--muted);font-size:.8rem;">{{ trans('account.limit_reached') }}</p>
+      {% endif %}
+
+      <hr style="margin:1.5rem 0;border-color:var(--border);">
+
       <h3 style="margin-bottom:.75rem;">{{ trans('profile.linked_accounts') }}</h3>
       {% if connections|length == 0 %}
         <p style="color:var(--muted);font-size:.9rem;">{{ trans('profile.no_linked_accounts') }}</p>
@@ -96,6 +128,8 @@
           {% endif %}
         {% endfor %}
       </div>
+
+      <p style="margin-top:1.25rem;"><a href="/profiel/samenvoegen">{{ trans('account.merge_open') }}</a></p>
 
     </div>
   </div>

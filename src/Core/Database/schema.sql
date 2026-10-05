@@ -92,6 +92,23 @@ CREATE TABLE `cf_user_oauth` (
     CONSTRAINT `fk_oauth_user` FOREIGN KEY (`user_id`) REFERENCES `cf_users`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- EXTRA E-MAILADRESSEN (max. 3 per account, één hoofdadres)
+CREATE TABLE `cf_user_emails` (
+    `id`               INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `user_id`          INT UNSIGNED NOT NULL,
+    `email`            VARCHAR(255) NOT NULL,
+    `is_primary`       TINYINT(1) NOT NULL DEFAULT 0,
+    `verified_at`      DATETIME NULL,
+    `token_hash`       CHAR(64) NULL,
+    `token_expires_at` DATETIME NULL,
+    `created_at`       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uq_user_email` (`email`),
+    KEY `idx_ue_user` (`user_id`),
+    KEY `idx_ue_token` (`token_hash`),
+    CONSTRAINT `fk_ue_user` FOREIGN KEY (`user_id`) REFERENCES `cf_users`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- MODULES
 CREATE TABLE `cf_modules` (
     `id`           SMALLINT UNSIGNED NOT NULL AUTO_INCREMENT,

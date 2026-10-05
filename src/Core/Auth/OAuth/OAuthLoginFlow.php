@@ -41,13 +41,19 @@ use CommunityFusion\Core\Security\SafeRedirect;
  *
  * Foutcodes (altijd uit deze vaste lijst, nooit vrije tekst in de URL):
  *   cancelled, state, failed, disabled, not_configured, not_enabled,
- *   already_linked, other_linked, last_method
+ *   already_linked, other_linked, last_method, merge_unknown, merge_same
+ *
+ * Derde intentie `merge` (?intent=merge op /auth/{provider}): bewijst dat het
+ * provider-account bij een ánder account van dezelfde persoon hoort. Er wordt
+ * niets gekoppeld of samengevoegd; alleen een kortlevend bewijs in de sessie
+ * gezet (zie AccountService) waarna /profiel/samenvoegen om bevestiging vraagt.
  */
 final class OAuthLoginFlow
 {
     public const ERRORS = [
         'cancelled', 'state', 'failed', 'disabled', 'not_configured',
         'not_enabled', 'already_linked', 'other_linked', 'last_method',
+        'merge_unknown', 'merge_same',
     ];
 
     public function __construct(
@@ -64,7 +70,12 @@ final class OAuthLoginFlow
      */
     public function begin(string $provider, string $intent, OAuthClient $client, Request $request): Response
     {
-        if ($intent === 'link' || $this->auth->check()) {
+        if ($request->query('intent', '') === 'merge') {
+            if (!$this->auth->check()) {
+                return Response::redirect('/login?redirect=' . rawurlencode('/profiel/samenvoegen'));
+            }
+            $intent = 'merge';
+        } elseif ($intent === 'link' || $this->auth->check()) {
             // Al ingelogd: "inloggen met X" is dan gewoon koppelen.
             $intent = 'link';
             if (!$this->auth->check()) {
@@ -106,7 +117,7 @@ final class OAuthLoginFlow
         $intent   = (string) $_SESSION['oauth_intent_' . $provider];
         $redirect = SafeRedirect::target($_SESSION['oauth_redirect_' . $provider] ?? '/');
         unset($_SESSION['oauth_intent_' . $provider], $_SESSION['oauth_redirect_' . $provider]);
-        $intent = $intent === 'login' ? 'login' : 'link';
+        $intent = in_array($intent, ['login', 'merge'], true) ? $intent : 'link';
 
         $code = (string) $request->query('code', '');
         if ((string) $request->query('error', '') !== '' || $code === '') {
@@ -115,7 +126,7 @@ final class OAuthLoginFlow
 
         // Koppelen kan alleen met een geldige sessie. Is die intussen verlopen,
         // dan terug naar de loginpagina in plaats van een koppeling zonder eigenaar.
-        if ($intent === 'link' && !$this->auth->check()) {
+        if ($intent !== 'login' && !$this->auth->check()) {
             return Response::redirect('/login');
         }
 
@@ -140,6 +151,23 @@ final class OAuthLoginFlow
         }
         if ($providerId === '') {
             return $this->fail($provider, $intent, 'failed');
+        }
+
+        if ($intent === 'merge') {
+            $me    = (int) $this->auth->id();
+            $owner = $this->db->fetchOne(
+                "SELECT user_id FROM cf_user_oauth WHERE provider = ? AND provider_user_id = ?",
+                [$provider, $providerId]
+            );
+            if ($owner === null) {
+                return $this->fail($provider, $intent, 'merge_unknown');
+            }
+            if ((int) $owner['user_id'] === $me) {
+                return $this->fail($provider, $intent, 'merge_same');
+            }
+            $_SESSION['merge_proof'] = ['keep' => $me, 'drop' => (int) $owner['user_id'], 'at' => time()];
+            $this->audit->log('auth.merge_proof', $me, null, ['provider' => $provider]);
+            return Response::redirect('/profiel/samenvoegen');
         }
 
         try {
@@ -273,7 +301,7 @@ final class OAuthLoginFlow
     {
         $code = in_array($code, self::ERRORS, true) ? $code : 'failed';
         // Wie ingelogd is (koppelen), ziet de melding op het profiel; anders op de loginpagina.
-        $base = $this->auth->check() ? '/profiel' : '/login';
+        $base = $intent === 'merge' ? '/profiel/samenvoegen' : ($this->auth->check() ? '/profiel' : '/login');
         return Response::redirect($base . '?oauth_error=' . $code . '&provider=' . rawurlencode($provider));
     }
 }

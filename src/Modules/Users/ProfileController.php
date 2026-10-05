@@ -43,6 +43,7 @@ final class ProfileController
         private readonly UploadManager   $uploads,
         private readonly ForumRepository $forum,
         private readonly OAuthProviders  $oauth,
+        private readonly AccountService  $accounts,
     ) {}
 
     public function show(Request $request): Response
@@ -74,6 +75,9 @@ final class ProfileController
             'oauth_providers' => $this->profileProviders($connections, $request),
             'oauth_error'     => in_array((string) $request->query('oauth_error', ''), OAuthLoginFlow::ERRORS, true)
                 ? (string) $request->query('oauth_error') : null,
+            'emails'       => $this->accounts->emails((int) $this->auth->id()),
+            'email_status' => in_array((string) $request->query('email', ''), ['added', 'verified', 'primary', 'removed'], true) ? (string) $request->query('email') : null,
+            'email_error'  => in_array((string) $request->query('email_error', ''), ['invalid', 'limit', 'taken', 'token', 'unverified'], true) ? (string) $request->query('email_error') : null,
             'oauth_error_provider' => OAuthProviders::CATALOG[(string) $request->query('provider', '')]['label'] ?? '',
         ]);
 

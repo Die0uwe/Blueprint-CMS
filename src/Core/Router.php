@@ -187,6 +187,17 @@ final class Router
         $this->post('/profiel/avatar',  'CommunityFusion\Modules\Users\ProfileController@updateAvatar',  $auth);
         $this->post('/profiel/taal',    'CommunityFusion\Modules\Users\ProfileController@updateLanguage', $auth);
         $this->post('/profiel/bio',     'CommunityFusion\Modules\Users\ProfileController@updateBio',      $auth);
+        // Extra e-mailadressen (max. 3, hoofdadres kiezen) + accounts samenvoegen (v1.31.0)
+        $acc = 'CommunityFusion\Modules\Users\AccountController@';
+        $this->post('/profiel/email',                   $acc . 'addEmail',     $auth);
+        $this->post('/profiel/email/hoofd',             $acc . 'primaryEmail', $auth);
+        $this->post('/profiel/email/verwijder',         $acc . 'removeEmail',  $auth);
+        $this->get('/profiel/email/bevestig/{token:[a-f0-9]+}', $acc . 'verifyEmail');
+        $this->get('/profiel/samenvoegen',              $acc . 'mergeForm',    $auth);
+        $this->get('/profiel/samenvoegen/klaar',        $acc . 'mergeDone',    $auth);
+        $this->post('/profiel/samenvoegen/bewijs',      $acc . 'mergeProof',   $auth);
+        $this->post('/profiel/samenvoegen/bevestig',    $acc . 'mergeConfirm', $auth);
+        $this->post('/profiel/samenvoegen/annuleer',    $acc . 'mergeCancel',  $auth);
         // v1.27.0 — publiek ledenprofiel, zelfde username-patroon als de bestaande
         // /blog/{username}-routes hierboven verderop in dit bestand.
         $this->get('/leden/{username:[a-zA-Z0-9_.-]+}', 'CommunityFusion\Modules\Users\ProfileController@publicShow');

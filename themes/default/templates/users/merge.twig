@@ -1,0 +1,70 @@
+{% extends 'layout.twig' %}
+{% block content %}
+<div style="max-width:640px;margin:3rem auto;">
+  <div class="cf-card">
+    <div class="cf-card-header">🔗 {{ trans('account.merge_title') }}</div>
+    <div class="cf-card-body">
+
+      {% if error %}
+        {% if error in ['merge_unknown', 'merge_same', 'cancelled', 'state', 'failed'] %}
+          <div class="cf-alert cf-alert-error">{{ trans('auth.oauth.error.' ~ error, {provider: ''}) }}</div>
+        {% else %}
+          <div class="cf-alert cf-alert-error">{{ trans('account.me_' ~ error) }}</div>
+        {% endif %}
+      {% endif %}
+
+      {% if done %}
+        <div class="cf-alert cf-alert-success">{{ trans('account.merge_done', {dropped: done.dropped, kept: done.kept}) }}</div>
+        <p style="color:var(--muted);">{{ trans('account.merge_done_detail', {providers: done.providers, roles: done.roles, emails: done.emails, content: done.content}) }}</p>
+        <a class="cf-btn" href="/profiel">{{ trans('account.merge_back') }}</a>
+
+      {% elseif preview %}
+        <p>{{ trans('account.merge_preview', {other: preview.username, email: preview.email}) }}</p>
+        <table style="width:100%;font-size:.9rem;margin:.75rem 0;">
+          <tr><th style="text-align:left;vertical-align:top;padding-right:1rem;">{{ trans('account.merge_moves') }}</th>
+            <td>{{ trans('account.merge_moves_detail', {providers: preview.providers|length, roles: preview.roles|length, emails: preview.emails|length, content: preview.content}) }}
+              {% if preview.providers %}<br><small style="color:var(--muted);">{{ preview.providers|join(', ') }}</small>{% endif %}</td></tr>
+        </table>
+        <p style="color:var(--muted);font-size:.85rem;">{{ trans('account.merge_vanishes', {other: preview.username}) }}</p>
+        <div class="cf-alert cf-alert-error">{{ trans('account.merge_warning') }}</div>
+        <form method="POST" action="/profiel/samenvoegen/bevestig">
+          {{ csrf_field()|raw }}
+          <label class="cf-label" for="confirm">{{ trans('account.merge_confirm_label') }}</label>
+          <input id="confirm" class="cf-input" type="text" name="confirm" autocomplete="off" required>
+          <div style="display:flex;gap:.5rem;margin-top:.75rem;">
+            <button type="submit" class="cf-btn cf-btn-danger">{{ trans('account.merge_confirm_submit') }}</button>
+          </div>
+        </form>
+        <form method="POST" action="/profiel/samenvoegen/annuleer" style="margin-top:.5rem;">{{ csrf_field()|raw }}<button type="submit" class="cf-btn">{{ trans('account.merge_cancel') }}</button></form>
+
+      {% else %}
+        <p>{{ trans('account.merge_keep', {name: user.display_name ?: user.username}) }}</p>
+        <p style="color:var(--muted);">{{ trans('account.merge_intro') }}</p>
+
+        {% if providers %}
+          <h3>{{ trans('account.merge_via_provider') }}</h3>
+          <p style="color:var(--muted);font-size:.8rem;">{{ trans('account.merge_provider_hint') }}</p>
+          <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1.25rem;">
+            {% for p in providers %}
+              <a href="/auth/{{ p.slug }}?intent=merge" class="cf-btn" style="background:{{ p.color }};color:{{ p.text }};">{{ p.label }}</a>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <h3>{{ trans('account.merge_via_password') }}</h3>
+        <form method="POST" action="/profiel/samenvoegen/bewijs" autocomplete="off">
+          {{ csrf_field()|raw }}
+          <div class="cf-form-group"><label class="cf-label" for="ident">{{ trans('account.merge_ident') }}</label>
+            <input id="ident" class="cf-input" type="text" name="ident" autocomplete="off" required></div>
+          <div class="cf-form-group"><label class="cf-label" for="pw">{{ trans('account.merge_password') }}</label>
+            <input id="pw" class="cf-input" type="password" name="password" autocomplete="new-password" required></div>
+          <button type="submit" class="cf-btn">{{ trans('account.merge_check') }}</button>
+        </form>
+        <p style="color:var(--muted);font-size:.8rem;">{{ trans('account.merge_pw_hint') }}</p>
+        <p><a href="/profiel">← {{ trans('account.merge_back') }}</a></p>
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+{% endblock %}
