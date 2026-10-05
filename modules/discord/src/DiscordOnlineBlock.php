@@ -45,16 +45,8 @@ final class DiscordOnlineBlock extends AbstractBlock
             return '<p style="color:var(--muted);font-size:.85rem;">⚠️ Discord Server ID niet ingesteld.</p>';
         }
 
-        // Cache de widget data
-        $data = $this->cache->remember("discord.widget.{$serverId}", 60, function() use ($serverId) {
-            $url  = "https://discord.com/api/guilds/{$serverId}/widget.json";
-            $ch   = curl_init($url);
-            curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 4]);
-            $body = curl_exec($ch);
-            $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
-            return $code === 200 ? json_decode($body, true) : null;
-        });
+        // Widget-data (1 minuut gecachet, gedeeld met het Discord Widget-blok)
+        $data = DiscordWidgetApi::fetch($this->cache, (string) $serverId);
 
         if (empty($data)) {
             return '<p style="color:var(--muted);font-size:.85rem;">🔌 Discord widget niet beschikbaar. Zorg dat de widget ingeschakeld is in de server-instellingen.</p>';

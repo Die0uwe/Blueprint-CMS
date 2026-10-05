@@ -393,11 +393,23 @@ final class Application
             }
 
             $registry = $this->container->make(\CommunityFusion\Core\Block\BlockRegistry::class);
+            $loggedIn = $auth->check();
             $zoneNames = ['header', 'topmenu', 'sidebar_left', 'content', 'sidebar_right', 'footer'];
             $zones = [];
             foreach ($zoneNames as $zoneName) {
                 $blocks = $registry->getZoneBlocks($zoneName);
-                $zones[$zoneName] = array_values(array_filter($blocks, function (array $block) use ($userRoleIds): bool {
+                $zones[$zoneName] = array_values(array_filter($blocks, function (array $block) use ($userRoleIds, $registry, $loggedIn): bool {
+                    // Bloktype-eigen zichtbaarheid (bv. het login-blok alleen voor gasten).
+                    // Hier i.p.v. in render(): render_block() in Twig krijgt geen
+                    // gebruikerscontext mee, en zo blijft er ook geen lege wrapper staan.
+                    $type = $registry->find((string) ($block['type_slug'] ?? ''));
+                    if ($type instanceof \CommunityFusion\Blocks\AbstractBlock) {
+                        $cfg = json_decode((string) ($block['config'] ?? '{}'), true);
+                        if (!$type->isVisibleFor(is_array($cfg) ? $cfg : [], $loggedIn)) {
+                            return false;
+                        }
+                    }
+
                     $allowed = json_decode($block['visibility_roles'] ?? 'null', true);
                     if (!is_array($allowed) || $allowed === []) {
                         return true; // geen restrictie ingesteld = voor iedereen

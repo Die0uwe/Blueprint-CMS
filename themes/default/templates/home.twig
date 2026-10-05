@@ -6,9 +6,21 @@
   <p style="color:var(--text-dim);margin-top:.5rem;">Jouw community, jouw regels.</p>
 </div>
 
+{# Blokken die in de zone "Content" zijn geplaatst (Admin → Blokken). Deze zone werd
+   nergens gerenderd, waardoor o.a. een HTML-blok daar nooit zichtbaar was. #}
+{% if zones.content is defined and zones.content %}
+<div id="cf-content-blocks" class="cf-content-blocks">
+  {% for block in zones.content %}
+    {{ render_block(block)|raw }}
+  {% endfor %}
+</div>
+{% endif %}
+
 {% if quick_post and quick_post.types %}
-<section class="cf-quickpost" id="cf-quickpost">
-  <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:.75rem;">✍️ Snel plaatsen</h2>
+{# Standaard dicht: alleen een knop. Bij een foutmelding (te snel, leeg, …) staat het formulier open. #}
+<details class="cf-quickpost" id="cf-quickpost"{% if quick_post.status in ['wacht', 'leeg', 'bord', 'fout'] %} open{% endif %}>
+  <summary class="cf-btn cf-quickpost-toggle">✍️ Snel plaatsen</summary>
+  <div class="cf-quickpost-panel">
   <div aria-live="polite">{% if quick_post.status == 'wacht' %}<p class="cf-alert cf-alert-warning" role="status">Even geduld — je kunt pas over een paar seconden opnieuw plaatsen.</p>{% elseif quick_post.status == 'leeg' %}<p class="cf-alert cf-alert-error" role="alert">Titel en inhoud zijn verplicht.</p>{% elseif quick_post.status == 'bord' %}<p class="cf-alert cf-alert-error" role="alert">Kies een geldig forumbord.</p>{% elseif quick_post.status == 'fout' %}<p class="cf-alert cf-alert-error" role="alert">Plaatsen mislukt.</p>{% endif %}</div>
   <form method="post" action="/quick-post" class="cf-quickpost-form">
     {{ csrf_field()|raw }}
@@ -33,7 +45,8 @@
     <button type="submit" class="cf-btn">Plaatsen</button>
   </form>
   <script>(function(){var t=document.getElementById('cf-qp-type'),b=document.getElementById('cf-qp-board');if(!t||!b)return;function s(){b.style.display=t.value==='forum'?'':'none';}t.addEventListener('change',s);s();})();</script>
-</section>
+  </div>
+</details>
 {% endif %}
 
 {% if latest_news %}

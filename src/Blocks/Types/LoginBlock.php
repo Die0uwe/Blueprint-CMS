@@ -16,6 +16,12 @@ final class LoginBlock extends AbstractBlock
     public function getName(): string { return 'Login Blok'; }
     public function getConfigSchema(): array { return []; }
 
+    /**
+     * Alleen voor uitgelogde bezoekers: eenmaal ingelogd verdwijnt het hele blok
+     * (de header toont dan al Admin + Uitloggen).
+     */
+    public function isVisibleFor(array $config, bool $loggedIn): bool { return !$loggedIn; }
+
     public function render(array $config, array $context = []): string
     {
         $user = $context['user'] ?? null;

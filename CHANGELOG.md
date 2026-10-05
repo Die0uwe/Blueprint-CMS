@@ -20,6 +20,23 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ## [Unreleased]
 
+### Opgelost
+- **HTML-blok op de voorpagina**: de `content`-zone werd op de homepage nooit getoond; blokken daarin zijn nu zichtbaar.
+- **Grote HTML (complete pagina's)** verdween of botste met de site-CSS. Een volledig document (`<!doctype>`, `<html>`, `<body>`) wordt nu automatisch in een afgeschermde `iframe` (sandbox, zonder `allow-same-origin`) getoond met automatische hoogte.
+- **Login-blok** is verborgen zodra je bent ingelogd en alleen zichtbaar voor bezoekers die uitgelogd zijn.
+- Discord-widget gaf notices bij een blok zonder opgeslagen configuratie.
+
+### Toegevoegd
+- HTML-blok: opties `mode` (auto / inline / iframe) en `height` (0 = automatisch). Bestaande blokken blijven werken (standaard `auto`).
+- `AbstractBlock::isVisibleFor()`: bloktypes bepalen zelf of ze voor ingelogde/uitgelogde bezoekers zichtbaar zijn.
+- Discord-widget: optie `channel_id` (toon één spraakkamer met wie erin zit) en `invite_url` (Join-knop); `DiscordWidgetApi` deelt widget.json (60 s cache) met het Online-blok.
+- Tests voor HtmlBlock, blokzichtbaarheid en de Discord-widget.
+
+### Gewijzigd
+- **Snel plaatsen** is een inklapbare knop (standaard dicht, opent vanzelf bij een fout of wachtstatus) in plaats van een grote kaart.
+
+_Geen databasemigratie nodig._
+
 ## [1.31.0] — 2026-10-06 — Accounts samenvoegen, weergave-sliders, API-placeholders, blok-editors
 
 ### Toegevoegd

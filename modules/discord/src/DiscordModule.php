@@ -29,7 +29,7 @@ final class DiscordModule implements ModuleInterface
         $registry  = $app->make(BlockRegistry::class);
 
         // Registreer block types
-        $registry->register(new DiscordWidgetBlock($this->getConfig()));
+        $registry->register(new DiscordWidgetBlock($this->getConfig(), $cache));
         $registry->register(new DiscordOnlineBlock($db, $cache, $this->getConfig()));
 
         // Hook: synchroniseer Discord rollen bij login
