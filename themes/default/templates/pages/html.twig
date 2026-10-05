@@ -1,0 +1,9 @@
+{% extends 'layout.twig' %}
+{% block title %}{{ page.title }}{% endblock %}
+{% block meta_desc %}{{ page.meta_desc|default('') }}{% endblock %}
+{% block content %}
+{# Eigen HTML-pagina: staat afgeschermd in een iframe (zie HtmlBlock::frame). #}
+<div class="cf-page-content cf-page-full cf-page-html">
+  {{ page_frame|raw }}
+</div>
+{% endblock %}

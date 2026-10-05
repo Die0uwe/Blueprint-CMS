@@ -111,4 +111,15 @@ HTML;
         $this->assertSame(0, $schema['height']['default']);
         $this->assertSame(['auto', 'inline', 'iframe'], $schema['mode']['options']);
     }
+
+    #[Test]
+    public function theFrameHelperIsUsableOutsideTheBlockForHtmlPages(): void
+    {
+        $html = HtmlBlock::frame(self::DOCUMENT, 900);
+        $this->assertStringStartsWith('<iframe', $html);
+        $this->assertStringContainsString('height:900px', $html);
+        $this->assertStringNotContainsString('allow-same-origin', $html);
+        $this->assertStringNotContainsString('<script>alert', $html);
+        $this->assertStringContainsString('addEventListener("message"', HtmlBlock::frame(self::DOCUMENT));
+    }
 }

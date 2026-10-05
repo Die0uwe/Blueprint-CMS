@@ -70,7 +70,7 @@ final class HtmlBlock extends AbstractBlock
         }
 
         $height = max(0, min(4000, (int) ($config['height'] ?? 0)));
-        return $this->renderFrame($content, $height);
+        return self::frame($content, $height);
     }
 
     /** Volledig HTML-document (doctype of <html>/<head>/<body>-tag) i.p.v. een los stukje markup. */
@@ -79,7 +79,11 @@ final class HtmlBlock extends AbstractBlock
         return preg_match('/<(?:!doctype|html|head|body)\b/i', $html) === 1;
     }
 
-    private function renderFrame(string $content, int $height): string
+    /**
+     * Afgeschermd iframe (srcdoc, sandbox zonder allow-same-origin). Ook gebruikt door
+     * HTML-pagina's (Pages, template 'html').
+     */
+    public static function frame(string $content, int $height = 0): string
     {
         $id   = bin2hex(random_bytes(4));
         $auto = $height === 0;

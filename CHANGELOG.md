@@ -20,6 +20,10 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 
 ## [Unreleased]
 
+### Toegevoegd (ronde 3)
+- **HTML-pagina's**: bij Admin → Pagina's kies je Template "HTML-pagina (eigen code, afgeschermd)". Een complete pagina met `<style>` en `<script>` blijft ongewijzigd bewaard en wordt afgeschermd in een iframe getoond (voorheen haalde de opschoner `<style>`/`<script>` weg en brak de tekstverwerker de code). Alleen voor gebruikers met `pages.manage`. Geen migratie: gebruikt de bestaande kolom `template`.
+- `HtmlBlock::frame()` is nu publiek en wordt door HTML-pagina's hergebruikt.
+
 ### Toegevoegd (ronde 2)
 - **Blokbeheer**: ▲/▼-pijltjes bij elk blok om de volgorde binnen een zone te wijzigen (bovenste/onderste knop is uitgegrijsd).
 - **Thema-instellingen**: aparte breedte-sliders voor de linker- en rechterzijbalk, inhoudsbreedte tot 3840 px (ultrawide/4K), en extra kleurvelden voor tekst, links, vlakken en randen (live voorbeeld).
