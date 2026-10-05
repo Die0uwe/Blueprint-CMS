@@ -97,7 +97,7 @@ final class ThemeSettingsControllerTest extends TestCase
         $s = $this->s();
         $this->assertSame('aangepast', $s['layout_preset']);
         $this->assertSame(1000, $s['layout_width']);
-        $this->assertSame(360, $s['sidebar_width']);
+        $this->assertSame(500, $s['sidebar_width']);
     }
 
     #[Test]
@@ -180,7 +180,7 @@ final class ThemeSettingsControllerTest extends TestCase
             $this->assertStringContainsString('Thema-instellingen', $html);
             $this->assertGreaterThanOrEqual(5, substr_count($html, 'ts-tab'));
             if ($tab === 3) {
-                $this->assertSame(4, substr_count($html, 'type="color"'));
+                $this->assertSame(8, substr_count($html, 'type="color"'));
             }
             if ($tab === 4) {
                 $this->assertStringContainsString('action="/admin/themes/instellingen/layout"', $html);
