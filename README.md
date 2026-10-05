@@ -225,6 +225,10 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 
 ---
 
+## 🆕 Nieuw in v1.33.0
+
+- Blok **Referral / Partner-links** (Kling, Suno, …), grotere klok met grootte-slider, bredere profielpagina.
+
 ## 🆕 Nieuw in v1.32.0
 
 - **Klok-blok** (digitaal/analoog/beide/datum, tijdzones, 12/24u).

@@ -33,7 +33,8 @@ final class ClockBlock extends AbstractBlock
             'show_date'    => ['type' => 'boolean', 'label' => 'Datum tonen', 'default' => true],
             'date_style'   => ['type' => 'select', 'label' => 'Datumnotatie (long / short / numeric)', 'options' => ['long', 'short', 'numeric'], 'default' => 'long'],
             'label'        => ['type' => 'string', 'label' => 'Label (bv. "Server tijd")', 'default' => ''],
-            'size'         => ['type' => 'integer', 'label' => 'Grootte analoge klok (px, 80–300)', 'default' => 160, 'min' => 80, 'max' => 300],
+            'size'         => ['type' => 'range', 'label' => 'Grootte (schaalt analoge klok én cijfers)', 'default' => 220, 'min' => 100, 'max' => 500, 'step' => 10, 'unit' => ' px'],
+            'numerals'     => ['type' => 'boolean', 'label' => 'Cijfers 1–12 op de wijzerplaat', 'default' => true],
         ];
     }
 
@@ -45,7 +46,8 @@ final class ClockBlock extends AbstractBlock
         $sec   = !empty($config['show_seconds']);
         $date  = !empty($config['show_date']) || $style === 'date';
         $ds    = in_array($config['date_style'] ?? '', ['long', 'short', 'numeric'], true) ? $config['date_style'] : 'long';
-        $size  = max(80, min(300, (int) ($config['size'] ?? 160)));
+        $size  = max(100, min(500, (int) ($config['size'] ?? 220)));
+        $nums  = !array_key_exists('numerals', $config) || !empty($config['numerals']);
         $label = htmlspecialchars((string) ($config['label'] ?? ''), ENT_QUOTES);
 
         // Beginwaarde (server): alleen voor een vaste tijdzone
@@ -62,20 +64,30 @@ final class ClockBlock extends AbstractBlock
             $style, htmlspecialchars($tz, ENT_QUOTES), $h12 ? 1 : 0, $sec ? 1 : 0, $date ? 1 : 0, $ds
         );
 
-        $html = '<div class="cf-clock cf-clock--' . $style . '" ' . $attrs . '>';
+        $html = '<div class="cf-clock cf-clock--' . $style . '" ' . $attrs . ' style="--clk:' . $size . 'px">';
         if ($label !== '') {
             $html .= '<div class="cf-clock-label">' . $label . '</div>';
         }
         if ($style === 'analog' || $style === 'both') {
             $html .= '<svg class="cf-clock-face" viewBox="-50 -50 100 100" width="' . $size . '" height="' . $size . '" role="img" aria-label="Analoge klok">'
                 . '<circle r="48" class="cf-clock-ring"/>';
-            for ($i = 0; $i < 12; $i++) {
-                $html .= '<line x1="0" y1="-42" x2="0" y2="' . ($i % 3 === 0 ? '-36' : '-39') . '" class="cf-clock-tick" transform="rotate(' . ($i * 30) . ')"/>';
+            for ($i = 0; $i < 60; $i++) {
+                if ($i % 5 === 0) { continue; }
+                $html .= '<line x1="0" y1="-44" x2="0" y2="-42" class="cf-clock-tick cf-clock-tick-min" transform="rotate(' . ($i * 6) . ')"/>';
             }
-            $html .= '<line class="cf-clock-hand cf-clock-h" x1="0" y1="4" x2="0" y2="-24"/>'
-                . '<line class="cf-clock-hand cf-clock-m" x1="0" y1="6" x2="0" y2="-34"/>'
-                . ($sec ? '<line class="cf-clock-hand cf-clock-s" x1="0" y1="8" x2="0" y2="-38"/>' : '')
-                . '<circle r="2.2" class="cf-clock-pin"/></svg>';
+            for ($i = 0; $i < 12; $i++) {
+                $html .= '<line x1="0" y1="-44" x2="0" y2="' . ($i % 3 === 0 ? '-37' : '-39.5') . '" class="cf-clock-tick" transform="rotate(' . ($i * 30) . ')"/>';
+            }
+            if ($nums) {
+                for ($i = 1; $i <= 12; $i++) {
+                    $a = deg2rad($i * 30);
+                    $html .= sprintf('<text class="cf-clock-num" x="%.2f" y="%.2f" text-anchor="middle" dominant-baseline="central">%d</text>', 32 * sin($a), -32 * cos($a), $i);
+                }
+            }
+            $html .= '<line class="cf-clock-hand cf-clock-h" x1="0" y1="5" x2="0" y2="-20"/>'
+                . '<line class="cf-clock-hand cf-clock-m" x1="0" y1="7" x2="0" y2="-27"/>'
+                . ($sec ? '<line class="cf-clock-hand cf-clock-s" x1="0" y1="10" x2="0" y2="-38"/>' : '')
+                . '<circle r="2.6" class="cf-clock-pin"/></svg>';
         }
         if ($style === 'digital' || $style === 'both') {
             $html .= '<div class="cf-clock-time" aria-live="off">' . htmlspecialchars($initTime) . '</div>';

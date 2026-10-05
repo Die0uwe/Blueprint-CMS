@@ -8,7 +8,7 @@
 //   $schema (array)  — BlockInterface::getConfigSchema()
 //   $values (array)  — huidige waarden (leeg bij nieuw blok → 'default' uit schema)
 //
-// Ondersteunde veldtypes: string, integer, number, boolean, select, textarea,
+// Ondersteunde veldtypes: string, integer, number, range (slider), boolean, select, textarea,
 // code, richtext. 'textarea', 'code' en 'richtext' krijgen een data-editor-
 // attribuut zodat de gedeelde editor (Golf 2) zich er automatisch aan kan hangen.
 $h = static fn(mixed $v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
@@ -49,6 +49,14 @@ foreach ($schema as $key => $field):
           <option value="<?= $h($opt) ?>" <?= (string) $opt === (string) $value ? 'selected' : '' ?>><?= $h($opt) ?></option>
         <?php endforeach; ?>
       </select>
+
+    <?php elseif ($type === 'range'): ?>
+      <div style="display:flex;align-items:center;gap:.75rem;">
+        <input type="range" id="<?= $h($id) ?>" name="<?= $h($name) ?>" value="<?= $h($value) ?>"
+               min="<?= $h($field['min'] ?? 0) ?>" max="<?= $h($field['max'] ?? 100) ?>" step="<?= $h($field['step'] ?? 1) ?>"
+               style="flex:1;" oninput="this.nextElementSibling.textContent=this.value+'<?= $h($field['unit'] ?? '') ?>'">
+        <output style="min-width:4.5rem;text-align:right;font-variant-numeric:tabular-nums;"><?= $h($value) ?><?= $h($field['unit'] ?? '') ?></output>
+      </div>
 
     <?php elseif ($type === 'integer' || $type === 'number'): ?>
       <input type="number" id="<?= $h($id) ?>" name="<?= $h($name) ?>" class="cf-input"

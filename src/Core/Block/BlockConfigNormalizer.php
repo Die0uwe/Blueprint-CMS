@@ -56,6 +56,7 @@ final class BlockConfigNormalizer
                     break;
 
                 case 'integer':
+                case 'range':
                     if (!$has || $raw === '' || $raw === null) {
                         if (array_key_exists('default', $field)) {
                             $out[$key] = (int) $field['default'];
@@ -63,6 +64,8 @@ final class BlockConfigNormalizer
                         break;
                     }
                     $out[$key] = (int) $raw;
+                    if (isset($field['min'])) { $out[$key] = max((int) $field['min'], $out[$key]); }
+                    if (isset($field['max'])) { $out[$key] = min((int) $field['max'], $out[$key]); }
                     break;
 
                 case 'number':

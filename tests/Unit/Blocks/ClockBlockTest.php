@@ -28,7 +28,9 @@ final class ClockBlockTest extends TestCase
         $this->assertStringContainsString('cf-clock-h', $h);
         $this->assertStringNotContainsString('cf-clock-s"', $h);
         $this->assertStringNotContainsString('cf-clock-time', $h);
-        $this->assertStringContainsString('width="300"', $h, 'grootte wordt begrensd');
+        $this->assertStringContainsString('width="500"', $h, 'grootte wordt begrensd op 500');
+        $this->assertStringContainsString('--clk:500px', $h);
+        $this->assertStringContainsString('cf-clock-num', $h, 'cijfers standaard aan');
     }
 
     #[Test]

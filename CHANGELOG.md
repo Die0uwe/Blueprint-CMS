@@ -63,6 +63,16 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 - **Snel plaatsen** is een inklapbare knop (standaard dicht, opent vanzelf bij een fout of wachtstatus) in plaats van een grote kaart.
 
 _Geen databasemigratie nodig._
+## [1.33.0] — 2026-10-06
+
+### Added
+- Blok "Referral / Partner-links": één regel per link (`Naam | URL | Omschrijving | Badge`), weergave lijst/knoppen/kaarten, `rel="sponsored nofollow noopener"`, affiliate-melding (uit te zetten of aan te passen). Alleen http(s)-links.
+- Blok-formulier: nieuw veldtype `range` (slider met live waarde).
+
+### Changed
+- Klok-blok: veel groter en duidelijker (cijfers 1–12, minuutstreepjes, dunnere wijzers, gloeiende digitale tijd), grootte-slider 100–500 px die analoge klok én cijfers schaalt (de cijfers passen zich aan de breedte van het blok aan).
+- Profielpagina en samenvoeg-pagina breder (tot 960 / 820 px).
+
 ## [1.32.0] — 2026-10-06 — Klok-blok, galerij-batchupload, profiel-link
 
 ### Toegevoegd

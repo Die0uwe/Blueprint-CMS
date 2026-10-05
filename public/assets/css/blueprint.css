@@ -1095,14 +1095,34 @@ body.cf-lightbox-open { overflow: hidden; }
 html.cf-fullview-lock, html.cf-fullview-lock body { overflow: hidden; }
 
 /* ── Klok-blok ─────────────────────────────────────────────────────────── */
-.cf-clock { text-align: center; }
-.cf-clock-label { font-size: .8rem; color: var(--muted, #8091a7); margin-bottom: .25rem; }
-.cf-clock-time { font-size: 2rem; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: .03em; color: var(--accent); }
-.cf-clock-date { font-size: .85rem; color: var(--text-dim, var(--muted)); text-transform: capitalize; }
-.cf-clock-face { display: block; margin: 0 auto .4rem; }
-.cf-clock-ring { fill: none; stroke: var(--border, #334155); stroke-width: 2; }
-.cf-clock-tick { stroke: var(--muted, #8091a7); stroke-width: 1.5; }
-.cf-clock-hand { stroke: var(--text, #e2e8f0); stroke-linecap: round; stroke-width: 3; }
-.cf-clock-m { stroke-width: 2.2; }
-.cf-clock-s { stroke: var(--accent); stroke-width: 1; }
+.cf-clock { text-align: center; container-type: inline-size; --clk: 220px; }
+.cf-clock-label { font-size: 1rem; font-weight: 600; color: var(--muted, #8091a7); margin-bottom: .35rem; }
+/* Cijfers: groot, maar nooit breder dan het blok zelf (18cqw ≈ 8 tekens "12:34:56") */
+.cf-clock-time { font-size: min(calc(var(--clk) * .34), 18cqw); line-height: 1.1; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: .02em; color: var(--accent); text-shadow: 0 0 18px color-mix(in srgb, var(--accent) 35%, transparent); }
+.cf-clock-date { font-size: min(calc(var(--clk) * .1), 6.5cqw); font-weight: 500; color: var(--text, #e2e8f0); text-transform: capitalize; margin-top: .25rem; }
+.cf-clock--both .cf-clock-time { margin-top: .2rem; }
+.cf-clock-face { display: block; margin: 0 auto .4rem; max-width: 100%; height: auto; }
+.cf-clock-ring { fill: var(--card-bg, rgba(255,255,255,.03)); stroke: var(--accent); stroke-width: 1.6; }
+.cf-clock-tick { stroke: var(--text, #e2e8f0); stroke-width: 1.4; }
+.cf-clock-tick-min { stroke: var(--muted, #8091a7); stroke-width: .6; }
+.cf-clock-num { fill: var(--text, #e2e8f0); font-size: 8px; font-weight: 700; font-family: inherit; }
+.cf-clock-hand { stroke: var(--text, #e2e8f0); stroke-linecap: round; stroke-width: 2.4; }
+.cf-clock-m { stroke-width: 1.7; }
+.cf-clock-s { stroke: var(--accent); stroke-width: .8; }
 .cf-clock-pin { fill: var(--accent); }
+
+/* Referral / partner-links */
+.cf-ref-heading { font-weight: 700; margin-bottom: .6rem; }
+.cf-ref-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
+.cf-ref-link { display: flex; flex-wrap: wrap; align-items: center; gap: .15rem .6rem; text-decoration: none; color: var(--text, inherit); }
+.cf-ref-name { font-weight: 700; color: var(--accent); }
+.cf-ref-badge { font-size: .72rem; font-weight: 700; padding: .1rem .5rem; border-radius: 999px; background: var(--accent); color: var(--bg, #0b1220); }
+.cf-ref-note { flex-basis: 100%; font-size: .85rem; color: var(--muted, #8091a7); }
+.cf-ref--cards .cf-ref-link { padding: .7rem .9rem; border: 1px solid var(--border, #334155); border-radius: 10px; background: var(--card-bg, rgba(255,255,255,.03)); transition: transform .12s, border-color .12s; }
+.cf-ref--cards .cf-ref-link:hover { transform: translateY(-2px); border-color: var(--accent); }
+.cf-ref--buttons .cf-ref-link { justify-content: center; padding: .65rem 1rem; border-radius: 8px; background: var(--accent); }
+.cf-ref--buttons .cf-ref-name { color: var(--bg, #0b1220); }
+.cf-ref--buttons .cf-ref-badge { background: var(--bg, #0b1220); color: var(--accent); }
+.cf-ref--buttons .cf-ref-note { display: none; }
+.cf-ref--list .cf-ref-list { gap: .35rem; }
+.cf-ref-disclosure { margin-top: .7rem; font-size: .72rem; color: var(--muted, #8091a7); }
