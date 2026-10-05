@@ -89,11 +89,11 @@ final class ThemeSettings
         // Tot 3840 px: ook voor ultrawide- en 4K-monitoren.
         $d['layout_width']  = self::intIn($raw['layout_width']  ?? null, 900, 3840, (int) $d['layout_width']);
         $d['layout_fluid']  = self::intIn($raw['layout_fluid']  ?? null, 50, 100, (int) $d['layout_fluid']);
-        $d['sidebar_width'] = self::intIn($raw['sidebar_width'] ?? null, 180, 360, (int) $d['sidebar_width']);
+        $d['sidebar_width'] = self::intIn($raw['sidebar_width'] ?? null, 180, 500, (int) $d['sidebar_width']);
         // Aparte breedte per zijbalk; 0 (of alles onder 180) = "zelfde als de gewone zijbalkbreedte".
         foreach (['sidebar_left', 'sidebar_right'] as $k) {
             $v = isset($raw[$k]) && is_numeric($raw[$k]) ? (int) $raw[$k] : 0;
-            $d[$k] = $v < 180 ? 0 : min(480, $v);
+            $d[$k] = $v < 180 ? 0 : min(500, $v);
         }
         $d['banner_height'] = self::intIn($raw['banner_height'] ?? null, 80, 600, (int) $d['banner_height']);
 

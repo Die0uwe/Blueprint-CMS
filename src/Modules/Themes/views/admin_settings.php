@@ -85,11 +85,11 @@ $themeColorVarFallback = ['color_primary' => '#a855f7', 'color_secondary' => '#3
           <label id="row-fluid">Breedte (Fluid): <output id="out-fluid"><?= (int) $s['layout_fluid'] ?></output> % van het scherm
             <input type="range" name="layout_fluid" id="layout_fluid" min="50" max="100" step="1" value="<?= (int) $s['layout_fluid'] ?>" style="width:100%"></label>
           <label>Zijbalkbreedte (beide zijden): <output id="out-sidebar"><?= (int) $s['sidebar_width'] ?></output> px
-            <input type="range" name="sidebar_width" id="sidebar_width" min="180" max="360" step="10" value="<?= (int) $s['sidebar_width'] ?>" style="width:100%"></label>
+            <input type="range" name="sidebar_width" id="sidebar_width" min="180" max="500" step="10" value="<?= (int) $s['sidebar_width'] ?>" style="width:100%"></label>
           <label>Linker zijbalk: <output id="out-left"><?= (int) $s['sidebar_left'] > 0 ? (int) $s['sidebar_left'] . ' px' : 'zelfde als hierboven' ?></output>
-            <input type="range" name="sidebar_left" id="sidebar_left" min="170" max="480" step="10" value="<?= (int) $s['sidebar_left'] > 0 ? (int) $s['sidebar_left'] : 170 ?>" style="width:100%"></label>
+            <input type="range" name="sidebar_left" id="sidebar_left" min="170" max="500" step="10" value="<?= (int) $s['sidebar_left'] > 0 ? (int) $s['sidebar_left'] : 170 ?>" style="width:100%"></label>
           <label>Rechter zijbalk: <output id="out-right"><?= (int) $s['sidebar_right'] > 0 ? (int) $s['sidebar_right'] . ' px' : 'zelfde als hierboven' ?></output>
-            <input type="range" name="sidebar_right" id="sidebar_right" min="170" max="480" step="10" value="<?= (int) $s['sidebar_right'] > 0 ? (int) $s['sidebar_right'] : 170 ?>" style="width:100%"></label>
+            <input type="range" name="sidebar_right" id="sidebar_right" min="170" max="500" step="10" value="<?= (int) $s['sidebar_right'] > 0 ? (int) $s['sidebar_right'] : 170 ?>" style="width:100%"></label>
         </div>
         <div id="ts-preview" aria-hidden="true" style="margin:1rem 0;border:1px dashed var(--border);border-radius:8px;padding:.5rem;background:var(--bg2,transparent);">
           <div id="ts-preview-bar" style="height:28px;margin:0 auto;border-radius:6px;background:var(--accent);opacity:.65;"></div>

@@ -115,10 +115,19 @@ use CommunityFusion\Core\Security\CsrfProtection;
       "topmenu topmenu topmenu"
       "sidebar_left content sidebar_right"
       "footer footer footer";
-    grid-template-columns: 180px 1fr 180px;
+    /* 1 : 2 : 1 en minmax(0,…): niets valt meer over een buurzone heen; de knoppen in een blok breken zo nodig af. */
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 2fr) minmax(0, 1.2fr);
     grid-template-rows: auto auto 1fr auto;
     gap: .75rem;
     min-height: 500px;
+  }
+
+  @media (max-width: 1000px) {
+    .preview-body {
+      grid-template-areas: "header" "topmenu" "sidebar_left" "content" "sidebar_right" "footer";
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: none;
+    }
   }
 
   /* Zone droptargets */
@@ -129,6 +138,7 @@ use CommunityFusion\Core\Security\CsrfProtection;
     padding: .5rem;
     transition: border-color .2s, background .2s;
     position: relative;
+    min-width: 0;
   }
   .zone-drop[data-zone="header"]        { grid-area: header; }
   .zone-drop[data-zone="topmenu"]       { grid-area: topmenu; }
@@ -156,8 +166,10 @@ use CommunityFusion\Core\Security\CsrfProtection;
     padding: .5rem .7rem;
     margin-bottom: .4rem;
     display: flex;
+    flex-wrap: wrap;          /* in een smalle zijkolom vallen de knoppen onder de naam */
     align-items: center;
-    gap: .6rem;
+    gap: .4rem .6rem;
+    min-width: 0;
     font-size: .82rem;
     cursor: grab;
     transition: border-color .15s, box-shadow .15s;
@@ -168,7 +180,8 @@ use CommunityFusion\Core\Security\CsrfProtection;
   .placed-block .block-drag-handle { color: var(--muted); cursor: grab; font-size: .9rem; }
   .placed-block .block-name { flex: 1; font-weight: 600; }
   .placed-block .block-type { color: var(--muted); font-size: .72rem; }
-  .placed-block .block-actions { display:flex; gap:.3rem; }
+  .placed-block > div:not(.block-actions):not(.block-vis) { flex: 1 1 5rem; min-width: 0; overflow-wrap: anywhere; }
+  .placed-block .block-actions { display:flex; flex-wrap: wrap; gap:.3rem; flex: 0 1 auto; max-width: 100%; margin-left: auto; }
   .block-btn {
     padding: .2rem .5rem; border-radius: 4px; font-size: .7rem;
     border: 1px solid var(--border); background: transparent;

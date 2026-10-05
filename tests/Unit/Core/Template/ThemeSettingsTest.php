@@ -26,6 +26,7 @@ final class ThemeSettingsTest extends TestCase
         $s = ThemeSettings::load(['layout_width' => '99999', 'sidebar_width' => '5', 'banner_height' => 'abc']);
         $this->assertSame(3840, $s['layout_width']);
         $this->assertSame(180, $s['sidebar_width']);
+        $this->assertSame(500, ThemeSettings::load(['sidebar_width' => '9999'])['sidebar_width']);
         $this->assertSame(220, $s['banner_height']);
     }
 
@@ -126,7 +127,7 @@ final class ThemeSettingsTest extends TestCase
         foreach (ThemeSettings::PRESETS as $id => $p) {
             $this->assertTrue(in_array($p['mode'], ['wide', 'boxed'], true), $id);
             $this->assertTrue($p['width'] >= 900 && $p['width'] <= 1800, $id);
-            $this->assertTrue($p['sidebar'] >= 180 && $p['sidebar'] <= 360, $id);
+            $this->assertTrue($p['sidebar'] >= 180 && $p['sidebar'] <= 500, $id);
         }
     }
 
@@ -139,7 +140,7 @@ final class ThemeSettingsTest extends TestCase
 
         $css = ThemeSettings::css(['sidebar_width' => 260, 'sidebar_left' => '320', 'sidebar_right' => '9999']);
         $this->assertStringContainsString('--cf-sidebar-l-w:320px', $css);
-        $this->assertStringContainsString('--cf-sidebar-r-w:480px', $css, 'begrensd op 480');
+        $this->assertStringContainsString('--cf-sidebar-r-w:500px', $css, 'begrensd op 500');
 
         // Een slider die op de laagste stand (170) staat betekent "zelfde als de gewone breedte".
         $s = ThemeSettings::load(['sidebar_left' => '170', 'sidebar_right' => 'abc']);
