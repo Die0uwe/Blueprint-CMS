@@ -631,6 +631,16 @@ INSERT IGNORE INTO `cf_role_permissions` (`role_id`, `permission_id`)
 SELECT r.id, p.id FROM `cf_roles` r, `cf_permissions` p
 WHERE r.name = 'admin' AND p.name IN ('gallery.manage');
 
+-- Back-ups (v1.36.0): backup.manage = maken/downloaden/verwijderen/planning (admin + super_admin);
+-- backup.restore = terugzetten (overschrijft de database): alleen super_admin via het '*'-wildcard.
+INSERT IGNORE INTO `cf_permissions` (`name`, `group`, `description`) VALUES
+('backup.manage',  'system', 'Back-ups maken, downloaden, verwijderen en plannen'),
+('backup.restore', 'system', 'Een back-up terugzetten (overschrijft de database)');
+
+INSERT IGNORE INTO `cf_role_permissions` (`role_id`, `permission_id`)
+SELECT r.id, p.id FROM `cf_roles` r, `cf_permissions` p
+WHERE r.name = 'admin' AND p.name IN ('backup.manage');
+
 -- ============================================================
 -- KRITIEK — v1.25.9, gevonden tijdens de Security-herscan van de totale-
 -- codebase-audit: guild-management/module.json en ollama/module.json

@@ -233,6 +233,23 @@ final class Application
             );
         });
 
+        // Back-ups (v1.36.0) — pure-PDO dump + zip in storage/backups/ (nooit onder public/).
+        $this->container->singleton(\CommunityFusion\Modules\Backup\BackupService::class, function() use ($config) {
+            $db = $this->container->make(Connection::class);
+            return new \CommunityFusion\Modules\Backup\BackupService(
+                new \CommunityFusion\Modules\Backup\DatabaseDumper($db->getPdo(), $db->getPrefix()),
+                CF_ROOT . '/storage/backups',
+                $config['storage']['path'] ?? (CF_ROOT . '/storage/uploads'),
+                defined('CF_VERSION') ? (string) CF_VERSION : '0.0.0',
+            );
+        });
+        $this->container->singleton(\CommunityFusion\Modules\Backup\BackupScheduler::class, function() {
+            return new \CommunityFusion\Modules\Backup\BackupScheduler(
+                $this->container->make(\CommunityFusion\Modules\Backup\BackupService::class),
+                CF_ROOT . '/storage/backups',
+            );
+        });
+
         // Mailer — config/config.php['mail'] bestond al sinds Sprint 1 (installer
         // schrijft er 'driver'+'from' in), maar er was geen enkele klasse die
         // hem daadwerkelijk gebruikte. 'driver' => 'smtp' + host/port/etc. is
@@ -453,6 +470,35 @@ final class Application
 
         $this->hooks->doAction('response.before', $response);
         $response->send();
+
+        $this->maybeRunScheduledBackup($request);
+    }
+
+    /**
+     * "Lazy cron": zonder echte cron start de dagelijkse back-up bij het eerste
+     * request na de ingestelde tijd (05:00), NA het versturen van de response
+     * zodat de bezoeker er niets van merkt. isDue() is goedkoop (één JSON-bestand
+     * + scandir) en doet buiten het tijdvenster vrijwel niets. Fouten worden
+     * ingeslikt en in state.json bewaard — een back-up mag nooit een pagina breken.
+     */
+    private function maybeRunScheduledBackup(Request $request): void
+    {
+        if ($request->getMethod() !== 'GET' || str_starts_with($request->getPath(), '/cron/backup/')) {
+            return;
+        }
+        try {
+            $scheduler = $this->container->make(\CommunityFusion\Modules\Backup\BackupScheduler::class);
+            if (!$scheduler->isDue()) {
+                return;
+            }
+            if (function_exists('fastcgi_finish_request')) {
+                fastcgi_finish_request();
+            }
+            ignore_user_abort(true);
+            $scheduler->runIfDue();
+        } catch (\Throwable) {
+            // bewust stil
+        }
     }
 
     /**

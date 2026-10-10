@@ -14,10 +14,13 @@
 /storage/sessions/*
 /storage/queue/*
 /storage/uploads/*
+/storage/backups/*
 /public/uploads/*
 !/storage/cache/.gitkeep
 !/storage/logs/.gitkeep
 !/storage/sessions/.gitkeep
 !/storage/queue/.gitkeep
 !/storage/uploads/.gitkeep
+!/storage/backups/.htaccess
+!/storage/backups/index.html
 !/public/uploads/.gitkeep

@@ -202,6 +202,7 @@ return [
             'modules'            => 'Modules',
             'settings'           => 'Instellingen',
             'logs'               => 'Logs',
+            'backup'             => 'Back-ups',
             'api_status'          => 'API-overzicht',
             'api_settings'        => 'API-instellingen',
             'marketplace'        => 'Marketplace',

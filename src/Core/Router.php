@@ -350,6 +350,19 @@ final class Router
         $this->post('/admin/gallery/ontdubbel',                       'CommunityFusion\Modules\Gallery\GalleryAdminController@dedupe',     $perm('gallery.manage'));
         $this->get('/admin/gallery/export.json',                      'CommunityFusion\Modules\Gallery\GalleryAdminController@exportJson', $perm('gallery.manage'));
 
+        // ── Back-ups (v1.36.0) ──────────────────────────────────────
+        $B = 'CommunityFusion\\Modules\\Backup\\BackupAdminController';
+        $this->get('/admin/backup',                          "{$B}@index",           $perm('backup.manage'));
+        $this->post('/admin/backup/maken',                   "{$B}@create",          $perm('backup.manage'));
+        $this->post('/admin/backup/instellingen',            "{$B}@settings",        $perm('backup.manage'));
+        $this->post('/admin/backup/token',                   "{$B}@regenerateToken", $perm('backup.manage'));
+        $this->post('/admin/backup/verwijder',               "{$B}@delete",          $perm('backup.manage'));
+        $this->get('/admin/backup/download/{name:backup-[0-9-]+-[a-z-]+\.zip}', "{$B}@download", $perm('backup.manage'));
+        $this->post('/admin/backup/herstel',                 "{$B}@restore",         $perm('backup.restore'));
+        $this->post('/admin/backup/herstel-upload',          "{$B}@restoreUpload",   $perm('backup.restore'));
+        // Publiek, beveiligd met geheim token (webcron). Geen CSRF: GET zonder gebruikerscontext.
+        $this->get('/cron/backup/{token:[A-Za-z0-9]+}', "{$B}@cron");
+
         // ── Overige admin-sidebar links (Wave 2) ────────────────────────────
         // /admin/modules dupliceerde in de praktijk /admin/marketplace (module-
         // installatie/-beheer gebeurt daar al) — een redirect voorkomt twee

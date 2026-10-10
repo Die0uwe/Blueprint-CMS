@@ -201,6 +201,7 @@ return [
             'modules'            => 'Module',
             'settings'           => 'Einstellungen',
             'logs'               => 'Protokolle',
+            'backup'             => 'Backups',
             'api_status'          => 'API-Übersicht',
             'api_settings'        => 'API-Einstellungen',
             'marketplace'        => 'Marktplatz',

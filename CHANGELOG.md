@@ -63,6 +63,18 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 - **Snel plaatsen** is een inklapbare knop (standaard dicht, opent vanzelf bij een fout of wachtstatus) in plaats van een grote kaart.
 
 _Geen databasemigratie nodig._
+## [1.36.0] — 2026-10-10
+
+### Added
+- **Back-ups** (`/admin/backup`): database (pure PHP-dump, geen mysqldump/SSH nodig) + optioneel uploads in één zip onder `storage/backups/`.
+- **Automatische back-up dagelijks om 05:00** (tijd instelbaar), laatste 7 dagen bewaard. Triggers: webcron-URL met geheim token (`/cron/backup/{token}`), `php cli/console.php backup:auto`, en een lazy-trigger op het eerste bezoek na 05:00.
+- **Terugzetten per weekdag** (7 tegels voor de afgelopen week) of **via upload** (.zip of .sql), met `HERSTEL`-bevestiging en automatische "vóór herstel"-back-up.
+- Permissies `backup.manage` (admin + super_admin) en `backup.restore` (alleen super_admin); migratie `20261010_02_backup_permissions` + `database/sql/20261010_backup_permissions.sql`.
+- CLI: `backup:create`, `backup:auto`, `backup:list`. Tests: `BackupServiceTest`. Documentatie: `docs/BACKUP.md`.
+
+### Security
+- Restore weigert onvolledige dumps en regels anders dan DROP/CREATE/INSERT; zip-slip- en executable-bescherming bij het terugzetten van uploads; `storage/backups/` krijgt `.htaccess` + `index.html`.
+
 ## [1.35.0] — 2026-10-10
 
 ### Toegevoegd — galerij-taxonomie (docs/GALLERY-TAXONOMIE.md)

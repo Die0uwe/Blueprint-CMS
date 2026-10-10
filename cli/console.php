@@ -13,6 +13,7 @@ declare(strict_types=1);
  *   migrate:status      Toon welke migraties zijn uitgevoerd
  *   module:install      Installeer een module
  *   ai-studio:migrate   Migreer en activeer de AI Studio-module (bestaande installaties)
+ *   backup:create|auto|list   Back-ups (zie docs/BACKUP.md)
  */
 
 define('CF_ROOT',   dirname(__DIR__));
@@ -43,6 +44,9 @@ match (true) {
     $command === 'migrate'         => (new CommunityFusion\Cli\Commands\MigrateCommand())->handle($argv),
     $command === 'migrate:status'  => (new CommunityFusion\Cli\Commands\MigrateCommand())->status($argv),
     $command === 'module:install'  => (new CommunityFusion\Cli\Commands\ModuleInstallCommand())->handle($argv),
+    $command === 'backup:create'   => (new CommunityFusion\Cli\Commands\BackupCommand())->create($argv),
+    $command === 'backup:auto'     => (new CommunityFusion\Cli\Commands\BackupCommand())->auto($argv),
+    $command === 'backup:list'     => (new CommunityFusion\Cli\Commands\BackupCommand())->list($argv),
     $command === 'ai-studio:migrate' => (new CommunityFusion\Cli\Commands\AiStudioMigrateCommand())->handle($argv),
     default => printHelp(),
 };
@@ -61,6 +65,9 @@ Commando's:
   migrate:status                               Toon migratiestatus
   module:install <slug>                        Installeer een module
   ai-studio:migrate                            Migreer + activeer Blueprint AI Studio
+  backup:create [--uploads]                    Maak nu een back-up
+  backup:auto [--force]                        Dagelijkse back-up (zet in cron op 05:00)
+  backup:list                                  Toon back-ups
 
 HELP;
 }
