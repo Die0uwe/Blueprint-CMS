@@ -2,7 +2,7 @@
 // ============================================================================
 // Copyright (C) 2026  DieOuwe — GPL-3.0-or-later
 // ============================================================================
-// $album, $items, $flash, $error beschikbaar vanuit GalleryAdminController::manage()
+// $album, $items, $parents, $hasChildren, $taxonomy, $styles, $mergeTargets, $flash, $error beschikbaar vanuit GalleryAdminController::manage()
 //
 // Combineert album-metadata bewerken + item-upload + item-beheer in één
 // scherm (i.p.v. drie aparte schermen) — een album zonder items is
@@ -12,7 +12,7 @@
 use CommunityFusion\Core\Security\CsrfProtection;
 
 $activeNav   = 'gallery';
-$flashLabels = ['bijgewerkt' => 'Album bijgewerkt.', 'geupload' => "Bestand geüpload.", 'geupload_n' => ((int) ($_GET['n'] ?? 0)) . ' bestanden geüpload.', 'verwijderd' => 'Item verwijderd.'];
+$flashLabels = ['bijgewerkt' => 'Album bijgewerkt.', 'geupload' => "Bestand geüpload.", 'geupload_n' => ((int) ($_GET['n'] ?? 0)) . ' bestanden geüpload.', 'verwijderd' => 'Item verwijderd.', 'item_bijgewerkt' => 'Item bijgewerkt.', 'samengevoegd' => 'Albums samengevoegd: ' . ((int) ($_GET['n'] ?? 0)) . ' item(s) verplaatst naar dit album.'];
 ?>
 <!DOCTYPE html>
 <html lang="<?= htmlspecialchars(\CommunityFusion\Core\I18n\Trans::locale(), ENT_QUOTES) ?>">
@@ -58,6 +58,17 @@ $flashLabels = ['bijgewerkt' => 'Album bijgewerkt.', 'geupload' => "Bestand geü
             </div>
 
             <div class="cf-form-group">
+              <label class="cf-label">Bovenliggend album <span style="color:var(--text-dim);font-weight:400;">— leeg = hoofdcategorie</span></label>
+              <select name="parent_id" class="cf-input" style="max-width:320px;"<?= $hasChildren ? ' disabled title="Dit album heeft zelf subalbums"' : '' ?>>
+                <option value="0">— geen (hoofdcategorie) —</option>
+                <?php foreach ($parents as $p): ?>
+                  <option value="<?= (int) $p['id'] ?>"<?= (int) ($album['parent_id'] ?? 0) === (int) $p['id'] ? ' selected' : '' ?>><?= htmlspecialchars($p['name']) ?></option>
+                <?php endforeach; ?>
+              </select>
+              <?php if ($hasChildren): ?><input type="hidden" name="parent_id" value="0"><?php endif; ?>
+            </div>
+
+            <div class="cf-form-group">
               <label class="cf-label">Slug (URL)</label>
               <input type="text" name="slug" class="cf-input" maxlength="150"
                      value="<?= htmlspecialchars($album['slug']) ?>">
@@ -94,6 +105,30 @@ $flashLabels = ['bijgewerkt' => 'Album bijgewerkt.', 'geupload' => "Bestand geü
               <small style="color:var(--text-dim);">jpg, png, gif, webp, mp4, webm (max. 25MB per bestand). Serverlimiet: upload_max_filesize <?= htmlspecialchars((string) ini_get('upload_max_filesize')) ?>, post_max_size <?= htmlspecialchars((string) ini_get('post_max_size')) ?> — dat geldt voor alle bestanden samen.</small>
             </div>
 
+            <?php if ($taxonomy): ?>
+            <div style="display:grid;grid-template-columns:minmax(160px,1fr) minmax(220px,2fr);gap:.6rem;margin-bottom:.75rem;">
+              <div class="cf-form-group" style="margin:0;">
+                <label class="cf-label" for="gal-style">Stijl <span style="color:var(--text-dim);font-weight:400;">— voor alle bestanden hieronder</span></label>
+                <?php if ($styles): ?>
+                  <select name="style" id="gal-style" class="cf-input">
+                    <option value="">— geen —</option>
+                    <?php foreach ($styles as $slug => $label): ?>
+                      <option value="<?= htmlspecialchars($slug) ?>"><?= htmlspecialchars($label) ?></option>
+                    <?php endforeach; ?>
+                  </select>
+                <?php else: ?>
+                  <input type="text" name="style" id="gal-style" class="cf-input" maxlength="60" placeholder="bijv. pixar">
+                <?php endif; ?>
+              </div>
+              <div class="cf-form-group" style="margin:0;">
+                <label class="cf-label" for="gal-tags">Tags <span style="color:var(--text-dim);font-weight:400;">— komma-gescheiden, max. 12</span></label>
+                <input type="text" name="tags" id="gal-tags" class="cf-input" placeholder="orc, avatar, character, green">
+              </div>
+            </div>
+            <p style="color:var(--text-dim);font-size:.78rem;margin:0 0 .75rem;">
+              Bestandsnaam-conventie: bij een stijl of titel wordt de naam <code>[categorie]_[stijl]_[onderwerp]_[nn].ext</code>, bv. <code>3d_pixar_orc-warrior_01.jpg</code>.
+            </p>
+            <?php endif; ?>
             <div id="gal-rows"></div>
             <div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-top:.75rem;">
               <button type="button" class="cf-btn-ghost" id="gal-more">+ 5 rijen</button>
@@ -162,6 +197,24 @@ $flashLabels = ['bijgewerkt' => 'Album bijgewerkt.', 'geupload' => "Bestand geü
         </div>
       </div>
 
+      <?php if (!empty($mergeTargets)): ?>
+      <div class="cf-card">
+        <h2 style="margin-top:0;">Samenvoegen</h2>
+        <p style="color:var(--text-dim);font-size:.85rem;">Verplaats alle foto's/video's en subalbums van dit album naar een ander album en verwijder dit album. Handig bij dubbele categorieën.</p>
+        <form method="post" action="/admin/gallery/<?= (int) $album['id'] ?>/samenvoegen" style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;"
+              onsubmit="return confirm('Dit album samenvoegen en daarna verwijderen? Dit kan niet ongedaan worden gemaakt.');">
+          <?= CsrfProtection::field() ?>
+          <select name="target_id" class="cf-input" style="max-width:320px;" required>
+            <option value="">— voeg samen in… —</option>
+            <?php foreach ($mergeTargets as $t): ?>
+              <option value="<?= (int) $t['id'] ?>"><?= ((int) ($t['depth'] ?? 0)) === 1 ? '↳ ' : '' ?><?= htmlspecialchars($t['name']) ?> (<?= (int) $t['item_count'] ?>)</option>
+            <?php endforeach; ?>
+          </select>
+          <button type="submit" class="cf-btn-sm cf-btn-danger">🔀 Samenvoegen</button>
+        </form>
+      </div>
+      <?php endif; ?>
+
       <div class="cf-card">
         <h2 style="margin-top:0;">Inhoud (<?= count($items) ?>)</h2>
         <?php if (empty($items)): ?>
@@ -178,6 +231,31 @@ $flashLabels = ['bijgewerkt' => 'Album bijgewerkt.', 'geupload' => "Bestand geü
                 <div class="cf-gallery-item-meta" title="<?= htmlspecialchars($item['title'] ?? $item['original_filename']) ?>">
                   <?= htmlspecialchars($item['title'] ?: $item['original_filename']) ?>
                 </div>
+                <?php if (!empty($item['style'])): ?>
+                  <div style="font-size:.72rem;color:var(--text-dim);">🎨 <?= htmlspecialchars((string) ($styles[$item['style']] ?? $item['style'])) ?></div>
+                <?php endif; ?>
+                <details style="font-size:.8rem;margin:.3rem 0;">
+                  <summary style="cursor:pointer;">✏️ Gegevens</summary>
+                  <form method="post" action="/admin/gallery/items/<?= (int) $item['id'] ?>/bewerk" style="display:grid;gap:.35rem;margin-top:.35rem;">
+                    <?= CsrfProtection::field() ?>
+                    <input type="text" name="title" class="cf-input" maxlength="255" value="<?= htmlspecialchars((string) ($item['title'] ?? '')) ?>" placeholder="Titel">
+                    <textarea name="description" class="cf-input" rows="2" placeholder="Omschrijving"><?= htmlspecialchars((string) ($item['description'] ?? '')) ?></textarea>
+                    <?php if ($taxonomy): ?>
+                      <?php if ($styles): ?>
+                        <select name="style" class="cf-input">
+                          <option value="">— geen stijl —</option>
+                          <?php foreach ($styles as $slug => $label): ?>
+                            <option value="<?= htmlspecialchars($slug) ?>"<?= ($item['style'] ?? '') === $slug ? ' selected' : '' ?>><?= htmlspecialchars($label) ?></option>
+                          <?php endforeach; ?>
+                        </select>
+                      <?php else: ?>
+                        <input type="text" name="style" class="cf-input" maxlength="60" value="<?= htmlspecialchars((string) ($item['style'] ?? '')) ?>" placeholder="Stijl">
+                      <?php endif; ?>
+                      <input type="text" name="tags" class="cf-input" value="<?= htmlspecialchars(implode(', ', \CommunityFusion\Modules\Gallery\GalleryTaxonomy::unpackTags($item['tags'] ?? null))) ?>" placeholder="tags, komma-gescheiden">
+                    <?php endif; ?>
+                    <button type="submit" class="cf-btn-sm">Opslaan</button>
+                  </form>
+                </details>
                 <form method="post" action="/admin/gallery/items/<?= (int) $item['id'] ?>/verwijder"
                       onsubmit="return confirm('Dit item definitief verwijderen?');">
                   <?= CsrfProtection::field() ?>

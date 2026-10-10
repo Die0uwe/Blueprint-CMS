@@ -63,6 +63,26 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 - **Snel plaatsen** is een inklapbare knop (standaard dicht, opent vanzelf bij een fout of wachtstatus) in plaats van een grote kaart.
 
 _Geen databasemigratie nodig._
+## [1.35.0] — 2026-10-10
+
+### Toegevoegd — galerij-taxonomie (docs/GALLERY-TAXONOMIE.md)
+- **Vijf hoofdcategorieën** (3D-Art, Digital-Paintings, Illustrations, Photorealistic, UI-Graphics) als standaard top-level albums; nieuwe installaties krijgen ze via `schema.sql`, bestaande via de migratie of de knop "Standaard hoofdcategorieën aanvullen".
+- **Stijl-tags en vrije tags** per item (`cf_gallery_items.style`, `tags`) met vaste stijllijst per hoofdcategorie, stijlfilter-chips (`?stijl=`, `?tag=`) op de albumpagina en stijl/tags in de lightbox.
+- **Subalbums** (`parent_id`, één niveau diep): bovenliggend album kiezen bij aanmaken/bewerken, subalbums op de albumpagina, ouder telt items van subalbums mee op de index, boomweergave in de admin.
+- **Bestandsnaam-conventie** `[categorie]_[stijl]_[onderwerp]_[nn].ext` voor geüploade bestanden (bij stijl of titel).
+- **Items bewerken** (titel, omschrijving, stijl, tags) zonder opnieuw uploaden.
+- **Duplicaten**: albums met dezelfde (genormaliseerde) naam worden bij aanmaken/hernoemen geweigerd; "Automatisch samenvoegen" in de admin, *Samenvoegen* per album, en `GalleryDeduplicator` in de migratie.
+- `GET /admin/gallery/export.json` — JSON-export in de structuur van het taxonomie-concept.
+- Migratie `20261010_01_gallery_taxonomy` en `database/sql/20261010_gallery_taxonomy.sql` voor phpMyAdmin.
+
+### Gewijzigd
+- Een bezette album-slug krijgt nu een oplopend nummer (`-2`) in plaats van een willekeurig hex-achtervoegsel, en alleen als de naam zelf niet dubbel is.
+- Een album met subalbums kan niet worden verwijderd (de FK zou ze anders stilletjes naar top-level zetten).
+- De galerij blijft werken vóór de migratie: stijl/tags worden dan genegeerd en de admin toont een melding.
+
+### Tests
+- `GalleryTaxonomyTest`: 14 tests (regels, duplicaat-samenvoeging incl. subalbums, tellingen, filters, JSON-export, gedrag zonder migratie).
+
 ## [1.34.0] — 2026-10-06
 
 ### Added

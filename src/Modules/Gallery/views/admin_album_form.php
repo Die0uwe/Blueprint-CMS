@@ -2,7 +2,7 @@
 // ============================================================================
 // Copyright (C) 2026  DieOuwe — GPL-3.0-or-later
 // ============================================================================
-// $album (altijd null hier — enkel voor nieuw album; bewerken gebeurt in
+// $parents (top-level albums), $album (altijd null hier — enkel voor nieuw album; bewerken gebeurt in
 // admin_album_manage.php), $error beschikbaar vanuit GalleryAdminController::createForm()
 
 use CommunityFusion\Core\Security\CsrfProtection;
@@ -42,6 +42,16 @@ $activeNav = 'gallery';
             <label class="cf-label">Naam</label>
             <input type="text" name="name" class="cf-input" required maxlength="200"
                    placeholder="Bijv. Guild-events, Screenshots seizoen 3">
+          </div>
+
+          <div class="cf-form-group">
+            <label class="cf-label">Bovenliggend album <span style="color:var(--text-dim);font-weight:400;">— leeg = hoofdcategorie; kies er een om een subalbum te maken</span></label>
+            <select name="parent_id" class="cf-input" style="max-width:320px;">
+              <option value="0">— geen (hoofdcategorie) —</option>
+              <?php foreach ($parents as $p): ?>
+                <option value="<?= (int) $p['id'] ?>"><?= htmlspecialchars($p['name']) ?></option>
+              <?php endforeach; ?>
+            </select>
           </div>
 
           <div class="cf-form-group">

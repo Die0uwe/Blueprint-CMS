@@ -48,14 +48,35 @@ final class GalleryController
         $perPage = $this->repo->itemsPerPage();
         $page    = $request->page();
         $offset  = ($page - 1) * $perPage;
-        $total   = $this->repo->countPublishedItems((int) $album['id']);
+        $style   = GalleryTaxonomy::slugify((string) $request->query('stijl', ''));
+        $tag     = GalleryTaxonomy::slugify((string) $request->query('tag', ''));
+        $total   = $this->repo->countPublishedItems((int) $album['id'], $style, $tag);
+
+        $parent = $album['parent_id'] !== null ? $this->repo->findAlbumById((int) $album['parent_id']) : null;
+        $labels = GalleryTaxonomy::stylesFor((string) ($parent['slug'] ?? $album['slug']));
+
+        // Filterchips: alleen stijlen die in dit album voorkomen, met het nette label uit de taxonomie.
+        $styles = [];
+        foreach ($this->repo->getStyleCounts((int) $album['id']) as $slug => $count) {
+            $styles[] = ['slug' => $slug, 'label' => $labels[$slug] ?? ucfirst(str_replace('-', ' ', $slug)), 'count' => $count];
+        }
+
+        $items = array_map(static function (array $i): array {
+            $i['tag_list'] = GalleryTaxonomy::unpackTags($i['tags'] ?? null);
+            return $i;
+        }, $this->repo->getPublishedItems((int) $album['id'], $perPage, $offset, $style, $tag));
 
         $html = $this->theme->render('gallery/album.twig', [
-            'page_title' => $album['name'],
-            'album'      => $album,
-            'items'      => $this->repo->getPublishedItems((int) $album['id'], $perPage, $offset),
-            'pagination' => ['current' => $page, 'total' => max(1, (int) ceil($total / $perPage))],
-            'can_manage' => $this->auth->can('gallery.manage'),
+            'page_title'   => $album['name'],
+            'album'        => $album,
+            'parent'       => $parent,
+            'subalbums'    => $this->repo->getSubalbums((int) $album['id']),
+            'items'        => $items,
+            'styles'       => $styles,
+            'active_style' => $style,
+            'active_tag'   => $tag,
+            'pagination'   => ['current' => $page, 'total' => max(1, (int) ceil($total / $perPage))],
+            'can_manage'   => $this->auth->can('gallery.manage'),
         ]);
 
         return Response::html($html);
@@ -63,6 +84,6 @@ final class GalleryController
 }
 
 // ╔══════════════════════════════════════════════════════════════════════╗
-// ║  File: GalleryController.php | Role: Core | Version: 1.0.0          ║
-// ║  Created: 2026-09-29 | Status: New — S11 (Media-galerij)            ║
+// ║  File: GalleryController.php | Role: Core | Version: 1.1.0          ║
+// ║  Created: 2026-09-29 | Status: Updated — Galerij-taxonomie 1.35.0   ║
 // ╚══════════════════════════════════════════════════════════════════════╝

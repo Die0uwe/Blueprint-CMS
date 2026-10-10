@@ -26,7 +26,7 @@
     <div class="cf-gallery-album-info">
       <h3>{{ album.name }}</h3>
       {% if album.description %}<p>{{ album.description }}</p>{% endif %}
-      <span class="cf-gallery-album-count">{{ album.item_count }} item{{ album.item_count == 1 ? '' : 's' }}</span>
+      <span class="cf-gallery-album-count">{{ album.item_count }} item{{ album.item_count == 1 ? '' : 's' }}{% if album.subalbum_count > 0 %} · {{ album.subalbum_count }} subalbum{{ album.subalbum_count == 1 ? '' : 's' }}{% endif %}</span>
     </div>
   </a>
   {% else %}

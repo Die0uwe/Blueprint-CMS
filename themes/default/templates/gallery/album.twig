@@ -1,7 +1,7 @@
 {% extends 'layout.twig' %}
 {% block content %}
 <div class="cf-page-header">
-  <div class="cf-breadcrumb"><a href="/">Home</a> → <a href="/galerij">Galerij</a> → {{ album.name }}</div>
+  <div class="cf-breadcrumb"><a href="/">Home</a> → <a href="/galerij">Galerij</a>{% if parent %} → <a href="/galerij/{{ parent.slug }}">{{ parent.name }}</a>{% endif %} → {{ album.name }}</div>
   <h1>📷 {{ album.name }}</h1>
   {% if album.description %}<p style="color:var(--muted);">{{ album.description }}</p>{% endif %}
 </div>
@@ -10,6 +10,42 @@
 <div style="margin-bottom:1rem;">
   <a href="/admin/gallery/{{ album.id }}/beheer" class="cf-btn">⚙️ Album beheren</a>
 </div>
+{% endif %}
+
+{% if subalbums %}
+<h2 class="cf-gallery-section-title">Subalbums</h2>
+<div class="cf-gallery-albums-grid" style="margin-bottom:1.5rem;">
+  {% for sub in subalbums %}
+  <a href="/galerij/{{ sub.slug }}" class="cf-gallery-album-card">
+    <div class="cf-gallery-album-cover">
+      {% if sub.cover_thumbnail %}
+        <img src="/media/{{ sub.cover_thumbnail }}" alt="{{ sub.name }}" loading="lazy">
+      {% elseif sub.cover_media_type == 'video' %}
+        <div class="cf-gallery-album-cover-placeholder">▶️</div>
+      {% else %}
+        <div class="cf-gallery-album-cover-placeholder">📷</div>
+      {% endif %}
+    </div>
+    <div class="cf-gallery-album-info">
+      <h3>{{ sub.name }}</h3>
+      {% if sub.description %}<p>{{ sub.description }}</p>{% endif %}
+      <span class="cf-gallery-album-count">{{ sub.item_count }} item{{ sub.item_count == 1 ? '' : 's' }}</span>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if styles or active_tag %}
+<nav class="cf-gallery-filter" aria-label="Filter op stijl" style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:1rem;">
+  <a href="/galerij/{{ album.slug }}" class="cf-btn-sm {{ active_style or active_tag ? 'cf-btn-ghost' : '' }}">Alle</a>
+  {% for st in styles %}
+    <a href="/galerij/{{ album.slug }}?stijl={{ st.slug }}" class="cf-btn-sm {{ st.slug == active_style ? '' : 'cf-btn-ghost' }}"{% if st.slug == active_style %} aria-current="true"{% endif %}>{{ st.label }} <small>({{ st.count }})</small></a>
+  {% endfor %}
+  {% if active_tag %}
+    <a href="/galerij/{{ album.slug }}" class="cf-btn-sm">#{{ active_tag }} ✕</a>
+  {% endif %}
+</nav>
 {% endif %}
 
 <div class="cf-gallery-items-grid">
@@ -22,7 +58,9 @@
      data-title="{{ item.title|default(item.original_filename) }}"
      data-author="{{ item.display_name|default(item.username) }}"
      data-date="{{ item.created_at|date('d M Y') }}"
-     data-description="{{ item.description|default('') }}">
+     data-description="{{ item.description|default('') }}"
+     data-style="{{ item.style|default('') }}"
+     data-tags="{{ item.tag_list|join(', ') }}">
     {% if item.thumbnail_path or item.media_type == 'image' %}
       <img src="/media/{{ item.thumbnail_path|default(item.file_path) }}" alt="{{ item.title|default(item.original_filename) }}" loading="lazy">
     {% else %}
@@ -32,14 +70,14 @@
     {% if item.title %}<span class="cf-gallery-item-title">{{ item.title }}</span>{% endif %}
   </a>
   {% else %}
-  <p style="color:var(--muted);">Dit album bevat nog geen foto's of video's.</p>
+  {% if not subalbums %}<p style="color:var(--muted);">{{ active_style or active_tag ? "Geen items met dit filter." : "Dit album bevat nog geen foto's of video's." }}</p>{% endif %}
   {% endfor %}
 </div>
 
 {% if pagination.total > 1 %}
 <nav class="cf-pagination" aria-label="Paginering">
   {% for p in 1..pagination.total %}
-    <a href="/galerij/{{ album.slug }}?page={{ p }}" class="cf-btn-sm {{ p == pagination.current ? '' : 'cf-btn-ghost' }}"{% if p == pagination.current %} aria-current="page"{% endif %}>{{ p }}</a>
+    <a href="/galerij/{{ album.slug }}?page={{ p }}{% if active_style %}&stijl={{ active_style }}{% endif %}{% if active_tag %}&tag={{ active_tag }}{% endif %}" class="cf-btn-sm {{ p == pagination.current ? '' : 'cf-btn-ghost' }}"{% if p == pagination.current %} aria-current="page"{% endif %}>{{ p }}</a>
   {% endfor %}
 </nav>
 {% endif %}
@@ -114,7 +152,9 @@
     titleEl.textContent = item.dataset.title || '';
     descEl.textContent  = item.dataset.description || '';
     descEl.hidden = !item.dataset.description;
-    subEl.textContent = 'door ' + item.dataset.author + ' · ' + item.dataset.date;
+    subEl.textContent = 'door ' + item.dataset.author + ' · ' + item.dataset.date
+      + (item.dataset.style ? ' · ' + item.dataset.style : '')
+      + (item.dataset.tags ? ' · #' + item.dataset.tags.split(', ').join(' #') : '');
     lightbox.setAttribute('aria-label', item.dataset.title || 'Mediaviewer');
     var multi = items.length > 1;
     prevEl.hidden = nextEl.hidden = !multi;

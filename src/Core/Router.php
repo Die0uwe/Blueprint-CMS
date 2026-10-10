@@ -345,6 +345,10 @@ final class Router
         $this->post('/admin/gallery/{id:[0-9]+}/verwijder',           'CommunityFusion\Modules\Gallery\GalleryAdminController@delete',     $perm('gallery.manage'));
         $this->post('/admin/gallery/{id:[0-9]+}/upload',              'CommunityFusion\Modules\Gallery\GalleryAdminController@upload',     $perm('gallery.manage'));
         $this->post('/admin/gallery/items/{itemId:[0-9]+}/verwijder', 'CommunityFusion\Modules\Gallery\GalleryAdminController@deleteItem', $perm('gallery.manage'));
+        $this->post('/admin/gallery/items/{itemId:[0-9]+}/bewerk',    'CommunityFusion\Modules\Gallery\GalleryAdminController@updateItem', $perm('gallery.manage'));
+        $this->post('/admin/gallery/{id:[0-9]+}/samenvoegen',         'CommunityFusion\Modules\Gallery\GalleryAdminController@merge',      $perm('gallery.manage'));
+        $this->post('/admin/gallery/ontdubbel',                       'CommunityFusion\Modules\Gallery\GalleryAdminController@dedupe',     $perm('gallery.manage'));
+        $this->get('/admin/gallery/export.json',                      'CommunityFusion\Modules\Gallery\GalleryAdminController@exportJson', $perm('gallery.manage'));
 
         // ── Overige admin-sidebar links (Wave 2) ────────────────────────────
         // /admin/modules dupliceerde in de praktijk /admin/marketplace (module-

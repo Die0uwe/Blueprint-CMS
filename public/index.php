@@ -7,7 +7,7 @@ declare(strict_types=1);
  * Enige publieke entry point. Alle requests komen hier binnen.
  */
 
-define('CF_VERSION', '1.34.0');
+define('CF_VERSION', '1.35.0');
 define('CF_ROOT',    dirname(__DIR__));
 define('CF_PUBLIC',  __DIR__);
 define('CF_START',   microtime(true));

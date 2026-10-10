@@ -165,7 +165,7 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 | Blog | v1.9.0 | Eén blog per lid (`/blog/{username}/{slug}`), draft/published, `blog.moderate` voor moderatie |
 | Downloads | v1.9.0 | Bestandsbeheer via `UploadManager::forDownloads()` (zip/pdf/rar/7z/gz), `downloads.manage` |
 | Contact | v1.10.0 | Publiek formulier + CSRF + honeypot, admin-inbox, verstuurt meldingsmail via `Mailer` |
-| Gallery | v1.23.0 | Media-galerij — albums (`cf_categories`, `type=gallery`), foto/video-upload met GD-miniaturen, publieke doorbladering + lightbox (beide thema's), sidebar-widget, `gallery.manage`. Hergebruikt `/media/{path}` i.p.v. een eigen serveer-route. |
+| Gallery | v1.35.0 | Media-galerij — albums (`cf_categories`, `type=gallery`), foto/video-upload met GD-miniaturen, publieke doorbladering + lightbox (beide thema's), sidebar-widget, `gallery.manage`. Sinds 1.35.0: 5 hoofdcategorieën, subalbums, stijl-tags/tags, duplicaat-preventie en -samenvoeging, JSON-export — zie [docs/GALLERY-TAXONOMIE.md](docs/GALLERY-TAXONOMIE.md). |
 
 ---
 

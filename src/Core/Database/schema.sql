@@ -595,6 +595,8 @@ CREATE TABLE IF NOT EXISTS `cf_gallery_items` (
     `media_type`         ENUM('image','video') NOT NULL,
     `title`              VARCHAR(255) NULL,
     `description`        TEXT NULL,
+    `style`              VARCHAR(60) NULL COMMENT 'Stijl-tag (slug), bv. pixar — zie GalleryTaxonomy',
+    `tags`               VARCHAR(600) NULL COMMENT 'Vrije tags als ,tag1,tag2, (LIKE ''%,tag,%'')',
     `file_path`          VARCHAR(500) NOT NULL COMMENT 'Relatief pad binnen storage/uploads/gallery/',
     `thumbnail_path`     VARCHAR(500) NULL COMMENT 'Relatief pad, alleen gevuld voor media_type=image',
     `original_filename`  VARCHAR(255) NOT NULL,
@@ -608,9 +610,19 @@ CREATE TABLE IF NOT EXISTS `cf_gallery_items` (
     PRIMARY KEY (`id`),
     KEY `idx_album`     (`album_id`),
     KEY `idx_published` (`is_published`),
+    KEY `idx_gi_style`  (`style`),
     CONSTRAINT `fk_gi_album`  FOREIGN KEY (`album_id`)  REFERENCES `cf_categories`(`id`) ON DELETE CASCADE,
     CONSTRAINT `fk_gi_author` FOREIGN KEY (`author_id`) REFERENCES `cf_users`(`id`)      ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- De 5 hoofdcategorieën uit de galerij-taxonomie (GalleryTaxonomy::MAIN). Subalbums
+-- krijgen een `parent_id` naar een van deze; stijlen zijn tags op items, geen albums.
+INSERT IGNORE INTO `cf_categories` (`type`, `slug`, `name`, `description`, `position`) VALUES
+('gallery', '3d-art',            '3D-Art',            '3D-renders, avatars en isometrische scènes.',        10),
+('gallery', 'digital-paintings', 'Digital-Paintings', 'Concept art, olieverf, aquarel en fantasy art.',     20),
+('gallery', 'illustrations',     'Illustrations',     'Cartoons, vector, line art en comics.',               30),
+('gallery', 'photorealistic',    'Photorealistic',    'Foto-stijl: landschappen, portretten en stadsbeeld.', 40),
+('gallery', 'ui-graphics',       'UI-Graphics',       'Logo''s, banners, iconen en website-elementen.',      50);
 
 INSERT IGNORE INTO `cf_permissions` (`name`, `group`, `description`) VALUES
 ('gallery.manage', 'gallery', 'Albums aanmaken en foto''s/video''s uploaden of verwijderen');
