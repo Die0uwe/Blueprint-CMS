@@ -76,7 +76,14 @@ $dedupeMsg   = ($flash ?? null) === 'ontdubbeld'
         <?php if (empty($albums)): ?>
           <div class="cf-table-empty">Nog geen albums — maak er een aan om te starten.</div>
         <?php else: ?>
-          <table class="cf-table">
+          <?php if (array_filter($albums, fn($x) => (int) ($x['subalbum_count'] ?? 0) > 0)): ?>
+            <div class="gal-bar">
+              <button type="button" class="cf-btn-sm" id="gal-expand">▾ Alles uitklappen</button>
+              <button type="button" class="cf-btn-sm" id="gal-collapse">▸ Alles inklappen</button>
+              <input type="search" id="gal-filter" class="cf-input" placeholder="Zoek album…" style="max-width:220px;">
+            </div>
+          <?php endif; ?>
+          <table class="cf-table" id="gal-table">
             <thead>
               <tr>
                 <th>Positie</th>
@@ -87,11 +94,14 @@ $dedupeMsg   = ($flash ?? null) === 'ontdubbeld'
               </tr>
             </thead>
             <tbody>
-              <?php foreach ($albums as $a): ?>
-                <tr>
+              <?php foreach ($albums as $a): $isChild = (int) ($a['depth'] ?? 0) === 1; $hasKids = (int) ($a['subalbum_count'] ?? 0) > 0; ?>
+                <tr data-album="<?= (int) $a['id'] ?>"<?= $isChild ? ' data-parent="' . (int) ($a['parent_id'] ?? 0) . '"' : '' ?>>
                   <td><?= (int) $a['position'] ?></td>
                   <td>
-                    <?php if ((int) ($a['depth'] ?? 0) === 1): ?><span style="color:var(--text-dim);">↳ </span><?php endif; ?>
+                    <?php if ($hasKids && !$isChild): ?>
+                      <button type="button" class="gal-toggle" data-toggle="<?= (int) $a['id'] ?>" aria-expanded="true" title="Subalbums in-/uitklappen">▾</button>
+                    <?php endif; ?>
+                    <?php if ($isChild): ?><span style="color:var(--text-dim);">↳ </span><?php endif; ?>
                     <strong><?= htmlspecialchars($a['name']) ?></strong>
                     <?php if (in_array($a['slug'], $mainSlugs, true) && (int) ($a['depth'] ?? 0) === 0): ?>
                       <span class="cf-badge" title="Standaard hoofdcategorie">hoofd</span>
@@ -130,5 +140,58 @@ $dedupeMsg   = ($flash ?? null) === 'ontdubbeld'
     </div>
   </div>
 </div>
+<style>
+  .gal-bar { display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; padding:.75rem 1rem 0; }
+  .gal-toggle { background:none; border:1px solid var(--border); color:var(--text); border-radius:6px; width:1.7rem; height:1.7rem; cursor:pointer; margin-right:.35rem; }
+  .gal-toggle:hover { background:rgba(108,61,244,.15); }
+  tr.gal-hidden { display:none; }
+</style>
+<script>
+(function () {
+  var table = document.getElementById('gal-table');
+  if (!table) { return; }
+  var KEY = 'cf_gallery_open';
+  var open = {};
+  try { open = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { open = {}; }
+  var toggles = table.querySelectorAll('[data-toggle]');
+  var q = '';
+
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(open)); } catch (e) {} }
+  function apply() {
+    table.querySelectorAll('tr[data-parent]').forEach(function (tr) {
+      var pid = tr.getAttribute('data-parent');
+      var hit = q === '' || tr.textContent.toLowerCase().indexOf(q) !== -1;
+      var show = (q !== '' ? hit : !!open[pid]);
+      tr.classList.toggle('gal-hidden', !show);
+    });
+    table.querySelectorAll('tr[data-album]:not([data-parent])').forEach(function (tr) {
+      var id = tr.getAttribute('data-album');
+      var kids = table.querySelectorAll('tr[data-parent="' + id + '"]');
+      var self = q === '' || tr.textContent.toLowerCase().indexOf(q) !== -1;
+      var kidHit = false;
+      kids.forEach(function (k) { if (k.textContent.toLowerCase().indexOf(q) !== -1) { kidHit = true; } });
+      tr.classList.toggle('gal-hidden', q !== '' && !self && !kidHit);
+    });
+    toggles.forEach(function (b) {
+      var o = !!open[b.getAttribute('data-toggle')];
+      b.textContent = o ? '▾' : '▸';
+      b.setAttribute('aria-expanded', o ? 'true' : 'false');
+    });
+  }
+  toggles.forEach(function (b) {
+    b.addEventListener('click', function () {
+      var id = b.getAttribute('data-toggle');
+      open[id] = !open[id];
+      save(); apply();
+    });
+  });
+  function all(v) { toggles.forEach(function (b) { open[b.getAttribute('data-toggle')] = v; }); save(); apply(); }
+  var ex = document.getElementById('gal-expand'), co = document.getElementById('gal-collapse'), fi = document.getElementById('gal-filter');
+  if (ex) { ex.addEventListener('click', function () { all(true); }); }
+  if (co) { co.addEventListener('click', function () { all(false); }); }
+  if (fi) { fi.addEventListener('input', function () { q = fi.value.trim().toLowerCase(); apply(); }); }
+  apply();   // standaard ingeklapt (tot je iets uitklapt); zonder JavaScript blijft alles zichtbaar
+})();
+</script>
 </body>
 </html>
