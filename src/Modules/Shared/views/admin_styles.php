@@ -27,6 +27,9 @@
     font-size: .7rem; font-weight: 700; text-transform: uppercase;
     letter-spacing: .1em; color: var(--muted); padding: .8rem .5rem .3rem;
   }
+  .admin-nav-section.nav-collapsible { cursor: pointer; user-select: none; display: flex; justify-content: space-between; align-items: center; }
+  .admin-nav-section.nav-collapsible::after { content: '▾'; font-size: .8rem; }
+  .admin-nav-section.nav-collapsible.is-closed::after { content: '▸'; }
   .admin-nav-link {
     display: flex; align-items: center; gap: .7rem; padding: .55rem .9rem;
     border-radius: 8px; font-size: .875rem; color: var(--text-dim);

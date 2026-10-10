@@ -84,6 +84,42 @@ $navItem = static function (string $key, string $href, string $icon, string $lab
     <a href="/logout" class="admin-nav-link"><span class="nav-icon">👋</span> <?= htmlspecialchars(Trans::get('admin.sidebar.logout')) ?></a>
   </div>
 </aside>
+<script>
+// Zijbalk-secties in-/uitklapbaar; keuze wordt onthouden, de sectie met de actieve pagina blijft open.
+(function () {
+  var nav = document.querySelector('.admin-sidebar .admin-nav');
+  if (!nav) { return; }
+  var KEY = 'cf_admin_nav_closed', closed = {};
+  try { closed = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) {}
+  nav.querySelectorAll('.admin-nav-section').forEach(function (head, i) {
+    var links = [], n = head.nextElementSibling;
+    while (n && !n.classList.contains('admin-nav-section')) {
+      if (n.classList.contains('admin-nav-link')) { links.push(n); }
+      n = n.nextElementSibling;
+    }
+    var hasActive = links.some(function (a) { return a.classList.contains('active'); });
+    var id = 's' + i;
+    head.classList.add('nav-collapsible');
+    head.setAttribute('role', 'button');
+    head.setAttribute('tabindex', '0');
+    function render() {
+      var shut = !!closed[id] && !hasActive;
+      links.forEach(function (a) { a.style.display = shut ? 'none' : ''; });
+      head.classList.toggle('is-closed', shut);
+      head.setAttribute('aria-expanded', shut ? 'false' : 'true');
+    }
+    function toggle() {
+      if (hasActive) { return; }
+      closed[id] = !closed[id];
+      try { localStorage.setItem(KEY, JSON.stringify(closed)); } catch (e) {}
+      render();
+    }
+    head.addEventListener('click', toggle);
+    head.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
+    render();
+  });
+})();
+</script>
 <?php include __DIR__ . '/admin_mobile.php'; ?>
 
 <?php

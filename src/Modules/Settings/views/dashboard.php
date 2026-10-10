@@ -227,6 +227,12 @@ $activeNav = 'dashboard';
         <a href="/admin/logs" class="quick-btn">
           <span class="qb-icon">📋</span> <?= htmlspecialchars(Trans::get('admin.dashboard.action_logs')) ?>
         </a>
+        <a href="/admin/backup" class="quick-btn">
+          <span class="qb-icon">💾</span> <?= htmlspecialchars(Trans::get('admin.sidebar.backup')) ?>
+        </a>
+        <a href="/admin/database" class="quick-btn">
+          <span class="qb-icon">🗄️</span> <?= htmlspecialchars(Trans::get('admin.sidebar.database')) ?>
+        </a>
       </div>
 
       <!-- 2-kolom: Recente activiteit + systeem status -->

@@ -71,6 +71,7 @@ _Geen databasemigratie nodig._
 - **Terugzetten per weekdag** (7 tegels voor de afgelopen week) of **via upload** (.zip of .sql), met `HERSTEL`-bevestiging en automatische "vóór herstel"-back-up.
 - Permissies `backup.manage` (admin + super_admin) en `backup.restore` (alleen super_admin); migratie `20261010_02_backup_permissions` + `database/sql/20261010_backup_permissions.sql`.
 - Galerij-beheer: hoofdcategorieën met subalbums zijn in-/uitklapbaar (standaard ingeklapt, keuze wordt onthouden), met "Alles uit-/inklappen" en zoekveld.
+- Admin-zijbalk: alle secties (Inhoud, Community, Uiterlijk, Systeem) zijn in-/uitklapbaar op elk admin-scherm (keuze onthouden; sectie met de actieve pagina blijft open). Dashboard: snelknoppen Back-ups en Database bijwerken.
 - **Database bijwerken via de browser** (`/admin/database`, alleen super_admin): voert openstaande migraties uit zonder SSH/CLI, met automatische back-up vooraf. De galerij-melding "Stijl-tags … nog niet actief" linkt hier naartoe.
 - CLI: `backup:create`, `backup:auto`, `backup:list`. Tests: `BackupServiceTest`. Documentatie: `docs/BACKUP.md`.
 
