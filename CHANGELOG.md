@@ -70,6 +70,7 @@ _Geen databasemigratie nodig._
 - **Automatische back-up dagelijks om 05:00** (tijd instelbaar), laatste 7 dagen bewaard. Triggers: webcron-URL met geheim token (`/cron/backup/{token}`), `php cli/console.php backup:auto`, en een lazy-trigger op het eerste bezoek na 05:00.
 - **Terugzetten per weekdag** (7 tegels voor de afgelopen week) of **via upload** (.zip of .sql), met `HERSTEL`-bevestiging en automatische "vóór herstel"-back-up.
 - Permissies `backup.manage` (admin + super_admin) en `backup.restore` (alleen super_admin); migratie `20261010_02_backup_permissions` + `database/sql/20261010_backup_permissions.sql`.
+- **Database bijwerken via de browser** (`/admin/database`, alleen super_admin): voert openstaande migraties uit zonder SSH/CLI, met automatische back-up vooraf. De galerij-melding "Stijl-tags … nog niet actief" linkt hier naartoe.
 - CLI: `backup:create`, `backup:auto`, `backup:list`. Tests: `BackupServiceTest`. Documentatie: `docs/BACKUP.md`.
 
 ### Security

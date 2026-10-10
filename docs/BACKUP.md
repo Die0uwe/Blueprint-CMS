@@ -60,7 +60,7 @@ php cli/console.php backup:list
 ```
 
 ## Eenmalig bij een bestaande installatie
-Permissies `backup.manage`/`backup.restore` toevoegen: plak `database/sql/20261010_backup_permissions.sql` in
+Log in als super_admin en ga naar **Admin → Database bijwerken** (`/admin/database`) → *Nu bijwerken*. Dat voert alle openstaande migraties uit (galerij-taxonomie + back-up-rechten), zonder SSH. Alternatief: plak `database/sql/20261010_backup_permissions.sql` in
 phpMyAdmin (of `php cli/console.php migrate`). super_admin werkt direct (wildcard).
 
 ## Grenzen

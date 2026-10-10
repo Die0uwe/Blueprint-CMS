@@ -203,6 +203,7 @@ return [
             'settings'           => 'Settings',
             'logs'               => 'Logs',
             'backup'             => 'Backups',
+            'database'           => 'Update database',
             'api_status'          => 'API overview',
             'api_settings'        => 'API settings',
             'marketplace'        => 'Marketplace',

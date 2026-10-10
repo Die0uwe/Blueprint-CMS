@@ -350,6 +350,10 @@ final class Router
         $this->post('/admin/gallery/ontdubbel',                       'CommunityFusion\Modules\Gallery\GalleryAdminController@dedupe',     $perm('gallery.manage'));
         $this->get('/admin/gallery/export.json',                      'CommunityFusion\Modules\Gallery\GalleryAdminController@exportJson', $perm('gallery.manage'));
 
+        // ── Database bijwerken via de browser (v1.36.0) — alleen super_admin ──
+        $this->get('/admin/database',            'CommunityFusion\Modules\System\DatabaseUpdateController@index', $perm('system.update'));
+        $this->post('/admin/database/bijwerken', 'CommunityFusion\Modules\System\DatabaseUpdateController@run',   $perm('system.update'));
+
         // ── Back-ups (v1.36.0) ──────────────────────────────────────
         $B = 'CommunityFusion\\Modules\\Backup\\BackupAdminController';
         $this->get('/admin/backup',                          "{$B}@index",           $perm('backup.manage'));

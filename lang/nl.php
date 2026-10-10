@@ -203,6 +203,7 @@ return [
             'settings'           => 'Instellingen',
             'logs'               => 'Logs',
             'backup'             => 'Back-ups',
+            'database'           => 'Database bijwerken',
             'api_status'          => 'API-overzicht',
             'api_settings'        => 'API-instellingen',
             'marketplace'        => 'Marketplace',

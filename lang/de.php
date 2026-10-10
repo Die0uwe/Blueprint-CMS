@@ -202,6 +202,7 @@ return [
             'settings'           => 'Einstellungen',
             'logs'               => 'Protokolle',
             'backup'             => 'Backups',
+            'database'           => 'Datenbank aktualisieren',
             'api_status'          => 'API-Übersicht',
             'api_settings'        => 'API-Einstellungen',
             'marketplace'        => 'Marktplatz',

@@ -40,8 +40,8 @@ $dedupeMsg   = ($flash ?? null) === 'ontdubbeld'
       <?php endif; ?>
       <?php if (!$taxonomy): ?>
         <div class="cf-alert cf-alert-error">
-          Stijl-tags en tags zijn nog niet actief: draai <code>php cli/console.php migrate</code> of plak
-          <code>database/sql/20261010_gallery_taxonomy.sql</code> in phpMyAdmin. De galerij werkt intussen gewoon door.
+          Stijl-tags en tags zijn nog niet actief. Geen SSH nodig: <a href="/admin/database"><strong>klik hier en kies "Nu bijwerken"</strong></a>
+          (alleen super_admin). Of plak <code>database/sql/20261010_gallery_taxonomy.sql</code> in phpMyAdmin. De galerij werkt intussen gewoon door.
         </div>
       <?php endif; ?>
       <?php if (!empty($duplicates)): ?>
