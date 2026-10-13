@@ -20,6 +20,18 @@ return [
         'language' => 'Language',
     ],
 
+    'footer' => [
+        'intro'     => 'Free and ad-free. A project by',
+        'together'  => 'in collaboration with',
+        'site'      => 'This site',
+        'about'     => 'About',
+        'free_site' => 'Free website of your own',
+        'corebot'   => 'CoreBot: Discord bot',
+        'sbwebui'   => 'SBWebUI: try your own AI',
+        'discord'   => 'Discord community',
+        'source'    => 'Source code on GitHub',
+        'free'      => 'All ScriptSpace sites and tools are free and will stay ad-free.',
+    ],
     'nav' => [
         'menu'      => 'Menu',
         'theme'     => 'Theme',

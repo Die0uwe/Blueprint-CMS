@@ -1003,6 +1003,25 @@ body.cf-lightbox-open { overflow: hidden; }
 .cf-footer-cell p{margin:0 0 .4rem}
 @media (max-width:768px){.cf-footer-grid{grid-template-columns:1fr}}
 
+/* Footer in ScriptSpace-stijl (1.36.1): regenbooglijn, gekleurde kolomkoppen, onderregel */
+#cf-footer{position:relative;border-top:0;padding:2.25rem 0 1.5rem;text-align:left;font-size:.92rem}
+#cf-footer>.cf-container{display:block}
+#cf-footer::before{content:"";position:absolute;left:0;right:0;top:0;height:2px;opacity:.6;
+  background:linear-gradient(90deg,#ff5d6c,#ff9f43,#ffd43b,#3ddc84,#4dabf7,#b197fc)}
+.cf-footer-default{grid-template-columns:1.6fr 1fr 1fr 1fr}
+.cf-footer-title{text-transform:uppercase;letter-spacing:.06em}
+.cf-footer-grid>.cf-footer-cell:nth-child(4n+2) .cf-footer-title{color:var(--link)}
+.cf-footer-grid>.cf-footer-cell:nth-child(4n+3) .cf-footer-title{color:var(--success)}
+.cf-footer-grid>.cf-footer-cell:nth-child(4n) .cf-footer-title{color:var(--gold)}
+.cf-footer-linklist a:hover{color:var(--link)}
+.cf-footer-logo{display:inline-flex;align-items:center;gap:.6rem;font-weight:700;font-size:1.05rem;color:var(--text);text-decoration:none}
+.cf-footer-logo img{width:34px;height:34px;border-radius:50%;object-fit:cover}
+.cf-footer-brand p{margin-top:.75rem;max-width:34ch;color:var(--muted)}
+.cf-footer-brand p a{color:var(--link)}
+.cf-footline{display:flex;flex-wrap:wrap;gap:.75rem 1.5rem;justify-content:space-between;margin-top:1.75rem;padding-top:1rem;border-top:1px solid var(--border);font-size:.85rem;color:var(--muted)}
+.cf-footline a{color:var(--muted)}.cf-footline a:hover{color:var(--link)}
+@media (max-width:768px){.cf-footer-default{grid-template-columns:1fr 1fr}.cf-footer-brand{grid-column:1/-1}}
+
 /* Galerij: play-badge op video-miniaturen + ingebouwde videospeler (cf-player.js) */
 .cf-gallery-item, .cf-block-gallery-thumb { position: relative; }
 .cf-gallery-play-badge {

@@ -21,6 +21,7 @@ Versienummering volgt [Semantic Versioning](https://semver.org/lang/nl/).
 ## [Unreleased]
 
 ### Added
+- Footer in ScriptSpace-stijl (zelfde opzet als CoreBot en scriptspace.nl): regenbooglijn, merkkolom met logo, kolommen "Deze site", "ScriptSpace" en "Over" met gekleurde koppen, en een onderregel met copyright, versie en "gratis en reclamevrij". Met cellen in de footer-grid-builder (thema-instellingen tab 4) vervangen die de kolommen; de onderregel blijft altijd staan. Teksten in nl/en/de (`footer.*`). Werkt in alle thema's, licht en donker, en op mobiel (2 kolommen).
 - Eigen CSS overschrijven: nieuwe template "HTML-pagina in thema-stijl" en blok-optie "Stijl: theme" leggen achtergrond, tekstkleur, links, kaarten, invoervelden en lettertype van het actieve thema over de eigen CSS van de HTML heen (volgt ook themawissel en donkere modus).
 - Pagina-editor: knoppen "Voorbeeld" en "Voorbeeld volledig scherm" tonen de code direct (HTML-pagina's ruw in afgeschermd kader, andere templates met site-stijl).
 - HTML-pagina's: knop "Volledig scherm" (Esc sluit; `#volledig` in de URL opent direct volledig) — de pagina vult het hele venster zonder menu en zijbalken.

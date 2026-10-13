@@ -20,6 +20,18 @@ return [
         'language' => 'Taal',
     ],
 
+    'footer' => [
+        'intro'     => 'Gratis en reclamevrij. Een project van',
+        'together'  => 'in samenwerking met',
+        'site'      => 'Deze site',
+        'about'     => 'Over',
+        'free_site' => 'Gratis eigen website',
+        'corebot'   => 'CoreBot: Discord-bot',
+        'sbwebui'   => 'SBWebUI: eigen AI testen',
+        'discord'   => 'Discord-community',
+        'source'    => 'Broncode op GitHub',
+        'free'      => 'Alle ScriptSpace-sites en -tools zijn gratis en blijven reclamevrij.',
+    ],
     'nav' => [
         'menu'      => 'Menu',
         'theme'     => 'Thema',

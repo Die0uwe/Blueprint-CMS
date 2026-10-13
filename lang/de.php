@@ -19,6 +19,18 @@ return [
         'language' => 'Sprache',
     ],
 
+    'footer' => [
+        'intro'     => 'Kostenlos und werbefrei. Ein Projekt von',
+        'together'  => 'in Zusammenarbeit mit',
+        'site'      => 'Diese Seite',
+        'about'     => 'Über',
+        'free_site' => 'Kostenlose eigene Website',
+        'corebot'   => 'CoreBot: Discord-Bot',
+        'sbwebui'   => 'SBWebUI: eigene KI testen',
+        'discord'   => 'Discord-Community',
+        'source'    => 'Quellcode auf GitHub',
+        'free'      => 'Alle ScriptSpace-Seiten und -Tools sind kostenlos und bleiben werbefrei.',
+    ],
     'nav' => [
         'menu'      => 'Menü',
         'theme'     => 'Design',

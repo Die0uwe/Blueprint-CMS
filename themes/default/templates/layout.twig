@@ -145,7 +145,9 @@
 
 </div>
 
-{# FOOTER #}
+{# FOOTER — standaard: merkkolom + drie linkkolommen in ScriptSpace-stijl. Met cellen
+   in de grid-builder (thema-instellingen tab 4) vervangen die de kolommen; de
+   onderregel (copyright + credit) blijft altijd staan en staat bewust niet in de admin. #}
 <footer id="cf-footer">
   <div class="cf-container">
     {% if layout_cfg is defined and layout_cfg.footer.cells %}
@@ -181,13 +183,46 @@
       {% endfor %}
     </div>
     {% endif %}
-    <p>© {{ "now"|date("Y") }} {{ settings.site_name|default('Blueprint CMS') }}</p>
+    <div class="cf-footer-grid cf-footer-default">
+      <section class="cf-footer-cell cf-footer-brand">
+        <a href="/" class="cf-footer-logo">
+          {% if theme_settings is defined and theme_settings.logo %}<img src="{{ theme_settings.logo }}" alt="" width="34" height="34">{% else %}<img src="{{ asset('img/logo-64.png') }}" alt="" width="34" height="34">{% endif %}
+          <span>{{ settings.site_name|default('Blueprint CMS') }}</span>
+        </a>
+        <p>{{ trans('footer.intro') }} <a href="https://www.dieouwe.nl/" rel="noopener">DieOuwe</a>, {{ trans('footer.together') }} <a href="https://scriptspace.nl/" rel="noopener">scriptspace.nl</a>.</p>
+      </section>
+      <nav class="cf-footer-cell" aria-label="{{ trans('footer.site') }}">
+        <h4 class="cf-footer-title">{{ trans('footer.site') }}</h4>
+        <ul class="cf-footer-linklist">
+          <li><a href="/news">{{ trans('nav.news') }}</a></li>
+          <li><a href="/forum">{{ trans('nav.forum') }}</a></li>
+          <li><a href="/downloads">{{ trans('nav.downloads') }}</a></li>
+          <li><a href="/galerij">{{ trans('nav.gallery') }}</a></li>
+        </ul>
+      </nav>
+      <nav class="cf-footer-cell" aria-label="ScriptSpace">
+        <h4 class="cf-footer-title">ScriptSpace</h4>
+        <ul class="cf-footer-linklist">
+          <li><a href="https://cms.scriptspace.nl/" rel="noopener">{{ trans('footer.free_site') }}</a></li>
+          <li><a href="https://www.corebot.info/" rel="noopener">{{ trans('footer.corebot') }}</a></li>
+          <li><a href="https://sbwebui.scriptspace.nl/" rel="noopener">{{ trans('footer.sbwebui') }}</a></li>
+          <li><a href="https://discord.com/invite/zz3UGV5H" rel="noopener">{{ trans('footer.discord') }}</a></li>
+        </ul>
+      </nav>
+      <nav class="cf-footer-cell" aria-label="{{ trans('footer.about') }}">
+        <h4 class="cf-footer-title">{{ trans('footer.about') }}</h4>
+        <ul class="cf-footer-linklist">
+          <li><a href="/contact">{{ trans('nav.contact') }}</a></li>
+          <li><a href="https://www.dieouwe.nl/" rel="noopener">DieOuwe</a></li>
+          <li><a href="https://github.com/Die0uwe/Blueprint-CMS" rel="noopener">{{ trans('footer.source') }}</a></li>
+        </ul>
+      </nav>
+    </div>
     {% endif %}
-    <p class="cf-footer-links">
-      <a href="https://www.dieouwe.nl">DieOuwe</a> ·
-      <a href="https://www.scriptspace.nl">ScriptSpace</a> ·
-      <a href="https://github.com/Die0uwe/Bluprint-CMS">GitHub</a>
-    </p>
+    <div class="cf-footline">
+      <span>© {{ "now"|date("Y") }} {{ settings.site_name|default('Blueprint CMS') }} · <a href="https://github.com/Die0uwe/Blueprint-CMS" rel="noopener">Blueprint CMS</a> {{ cms_version|default('') }}</span>
+      <span>{{ trans('footer.free') }}</span>
+    </div>
   </div>
 </footer>
 </div>{# /cf-page #}
