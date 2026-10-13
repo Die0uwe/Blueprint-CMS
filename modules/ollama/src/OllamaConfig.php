@@ -55,6 +55,8 @@ final class OllamaConfig
             fallbackKey:  $cfg['fallback_key'] ?? '',
             fallbackModel: preg_match('/^[A-Za-z0-9._:\/-]{1,100}$/', (string) ($cfg['fallback_model'] ?? '')) === 1 ? (string) $cfg['fallback_model'] : 'deepseek-chat',
             keepAlive:    preg_match('/^(-1|\d+[smh]?)$/', (string) ($cfg['keep_alive'] ?? '')) === 1 ? (string) $cfg['keep_alive'] : '',
+            cfAccessId:     (string) ($cfg['cf_access_id'] ?? ''),
+            cfAccessSecret: (string) ($cfg['cf_access_secret'] ?? ''),
         );
     }
 

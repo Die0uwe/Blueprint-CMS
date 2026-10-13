@@ -26,7 +26,7 @@ use CommunityFusion\Modules\AiStudio\Http\TransportException;
 final class OllamaProvider extends AbstractProvider
 {
     /**
-     * @param array{host?: string, default_model?: string, timeout?: int, open_webui_url?: string} $config
+     * @param array{host?: string, default_model?: string, timeout?: int, open_webui_url?: string, cf_access_id?: string, cf_access_secret?: string} $config
      * @param string $apiKey Bearer-key voor Open WebUI (optioneel)
      */
     public function __construct(
@@ -75,6 +75,13 @@ final class OllamaProvider extends AbstractProvider
             $target = $this->guard->check($url);
         } catch (SsrfException $e) {
             throw new ProviderException('Ollama: ' . $e->getMessage());
+        }
+        // Cloudflare Access: alleen als beide delen van het service token ingesteld zijn.
+        $id = (string) ($this->config['cf_access_id'] ?? '');
+        $secret = (string) ($this->config['cf_access_secret'] ?? '');
+        if ($id !== '' && $secret !== '') {
+            $headers['CF-Access-Client-Id'] = $id;
+            $headers['CF-Access-Client-Secret'] = $secret;
         }
         return new HttpRequest($method, $target['url'], $headers, $body, $timeout, true, $target['ip']);
     }

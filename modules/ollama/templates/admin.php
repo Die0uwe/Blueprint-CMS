@@ -155,6 +155,33 @@
 
             <div style="border-top:1px solid var(--border);padding-top:1rem;margin-top:1rem;">
               <p style="font-size:.82rem;font-weight:700;color:var(--muted);margin-bottom:.4rem;">
+                🔒 Cloudflare Access (optioneel)
+              </p>
+              <p style="font-size:.75rem;color:var(--muted);margin-bottom:.8rem;">
+                Staat je tunnel (Ollama of Open WebUI) achter Cloudflare Access, vul dan hier het service token in
+                (Zero Trust › Access › Service credentials). Het gaat alleen mee naar jouw eigen AI-adressen, nooit naar de reserve-AI.
+              </p>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+                <div class="cf-form-group">
+                  <label class="cf-label">Client ID</label>
+                  <input class="cf-input" type="text" name="cf_access_id" autocomplete="off" maxlength="200"
+                         value="<?= htmlspecialchars($settings['cf_access_id'] ?? '',ENT_QUOTES) ?>" placeholder="xxxxxxxx.access">
+                </div>
+                <div class="cf-form-group">
+                  <label class="cf-label">Client Secret</label>
+                  <input class="cf-input" type="password" name="cf_access_secret" autocomplete="new-password"
+                         placeholder="<?= !empty($cfSecretSet) ? '●●●● (ingesteld — leeg laten = ongewijzigd)' : 'geheim van het service token' ?>">
+                  <?php if (!empty($cfSecretSet)): ?>
+                    <label style="font-size:.75rem;color:var(--muted);display:flex;gap:.4rem;align-items:center;margin-top:.3rem;">
+                      <input type="checkbox" name="clear_cf_access_secret" value="1" style="width:auto;"> Geheim wissen
+                    </label>
+                  <?php endif; ?>
+                </div>
+              </div>
+            </div>
+
+            <div style="border-top:1px solid var(--border);padding-top:1rem;margin-top:1rem;">
+              <p style="font-size:.82rem;font-weight:700;color:var(--muted);margin-bottom:.4rem;">
                 ☁️ Reserve-AI: DeepSeek in de cloud (optioneel)
               </p>
               <p style="font-size:.75rem;color:var(--muted);margin-bottom:.8rem;">

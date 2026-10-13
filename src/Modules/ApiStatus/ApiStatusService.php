@@ -224,9 +224,12 @@ final class ApiStatusService
         if (!preg_match('#^https?://#i', $host)) {
             return [false, 'Host-URL moet met http:// of https:// beginnen'];
         }
-        $r = $this->request('GET', $host . '/api/tags');
+        $id = $this->setting($slug, 'cf_access_id');
+        $secret = $this->setting($slug, 'cf_access_secret');
+        $headers = $id !== '' && $secret !== '' ? ['CF-Access-Client-Id: ' . $id, 'CF-Access-Client-Secret: ' . $secret] : [];
+        $r = $this->request('GET', $host . '/api/tags', $headers);
         if ($r['status'] !== 200) {
-            return [false, $r['status'] === 0 ? 'Server niet bereikbaar' : 'HTTP ' . $r['status']];
+            return [false, $r['status'] === 0 ? 'Server niet bereikbaar' : 'HTTP ' . $r['status'] . (in_array($r['status'], [302, 401, 403], true) ? ' — Cloudflare Access? Vul het service token in bij Ollama AI' : '')];
         }
         $n = count(json_decode($r['body'], true)['models'] ?? []);
         return [true, "Bereikbaar — {$n} model(len)"];

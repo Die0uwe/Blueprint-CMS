@@ -320,6 +320,25 @@ final class ProvidersTest extends TestCase
     }
 
     #[Test]
+    public function testOllamaSendsCloudflareAccessTokenOnlyWhenComplete(): void
+    {
+        $t = FakeTransport::withChunks(self::openAiChunks(['ok']));
+        $p = new OllamaProvider($t, new SsrfGuard(fn (): array => ['203.0.113.7']),
+            ['open_webui_url' => 'https://ollama.example.nl', 'cf_access_id' => 'abc.access', 'cf_access_secret' => 'geheim123'], 'webui-key');
+        $this->collect($p);
+        $h = $t->requests[0]->headers;
+        self::assertSame('abc.access', $h['CF-Access-Client-Id']);
+        self::assertSame('geheim123', $h['CF-Access-Client-Secret']);
+        self::assertSame('Bearer webui-key', $h['Authorization'], 'De Open WebUI-sleutel blijft er gewoon bij.');
+
+        $t2 = FakeTransport::withChunks(self::openAiChunks(['ok']));
+        $p2 = new OllamaProvider($t2, new SsrfGuard(fn (): array => ['203.0.113.7']),
+            ['open_webui_url' => 'https://ollama.example.nl', 'cf_access_id' => 'abc.access', 'cf_access_secret' => '']);
+        $this->collect($p2);
+        self::assertArrayNotHasKey('CF-Access-Client-Id', $t2->requests[0]->headers, 'Half token: niets meesturen.');
+    }
+
+    #[Test]
     public function testOllamaRefusesMetadataAndNonHttpHostsBeforeAnyRequest(): void
     {
         $guard = new SsrfGuard(fn (): array => ['93.184.216.34']);

@@ -168,7 +168,7 @@ final class ProviderRegistry
     }
 
     /**
-     * @return array{host: string, default_model: string, timeout: int, open_webui_url: string}
+     * @return array{host: string, default_model: string, timeout: int, open_webui_url: string, cf_access_id: string, cf_access_secret: string}
      */
     private function ollamaConfig(): array
     {
@@ -178,6 +178,9 @@ final class ProviderRegistry
             'default_model' => $this->defaultModel('ollama'),
             'timeout' => $timeout > 0 ? $timeout : 60,
             'open_webui_url' => $this->settings->get('ollama', 'open_webui_url'),
+            // Cloudflare Access service token van de Ollama-module (alleen voor de eigen tunnel)
+            'cf_access_id' => $this->settings->get('ollama', 'cf_access_id'),
+            'cf_access_secret' => $this->settings->get('ollama', 'cf_access_secret'),
         ];
     }
 }

@@ -39,7 +39,22 @@ final class OllamaClient
         private readonly string       $fallbackUrl   = '',
         private readonly string       $fallbackKey   = '',
         private readonly string       $fallbackModel = 'deepseek-chat',
+        private readonly string       $cfAccessId     = '',
+        private readonly string       $cfAccessSecret = '',
     ) {}
+
+    /**
+     * Cloudflare Access service token voor de eigen tunnel (Ollama en Open WebUI).
+     * Gaat nooit mee naar de reserve-AI in de cloud.
+     *
+     * @return list<string>
+     */
+    private function accessHeaders(): array
+    {
+        return $this->cfAccessId !== '' && $this->cfAccessSecret !== ''
+            ? ['CF-Access-Client-Id: ' . $this->cfAccessId, 'CF-Access-Client-Secret: ' . $this->cfAccessSecret]
+            : [];
+    }
 
     // ─── GENERATE (enkelvoudige prompt) ───────────────────────────────────
 
@@ -211,7 +226,7 @@ final class OllamaClient
             if ($this->usesOpenWebUi()) {
                 return $this->probe(rtrim($this->openWebUiUrl, '/') . '/api/models', $this->webUiHeaders())['status'] === 200;
             }
-            return $this->probe(rtrim($this->host, '/') . '/api/tags')['status'] === 200;
+            return $this->probe(rtrim($this->host, '/') . '/api/tags', $this->accessHeaders())['status'] === 200;
         } catch (\Throwable) {
             return false;
         }
@@ -230,7 +245,7 @@ final class OllamaClient
         $base  = $web ? rtrim($this->openWebUiUrl, '/') : rtrim($this->host, '/');
         $url   = $base . ($web ? '/api/models' : '/api/tags');
 
-        $p = $this->probe($url, $web ? $this->webUiHeaders() : []);
+        $p = $this->probe($url, $web ? $this->webUiHeaders() : $this->accessHeaders());
         if ($p['status'] !== 200) {
             $steps[] = ['ok' => false, 'label' => 'Verbinding met ' . $base, 'hint' => self::hintForStatus($p['status'], $p['error'], $web)];
             return $res;
@@ -376,13 +391,13 @@ final class OllamaClient
 
     private function isDirectReachable(): bool
     {
-        return $this->probe(rtrim($this->host, '/') . '/api/tags')['status'] === 200;
+        return $this->probe(rtrim($this->host, '/') . '/api/tags', $this->accessHeaders())['status'] === 200;
     }
 
     /** @return list<string> */
     private function webUiHeaders(): array
     {
-        return $this->openWebUiKey !== '' ? ['Authorization: Bearer ' . $this->openWebUiKey] : [];
+        return array_merge($this->openWebUiKey !== '' ? ['Authorization: Bearer ' . $this->openWebUiKey] : [], $this->accessHeaders());
     }
 
     /** @param array<string, mixed> $options */
@@ -497,7 +512,7 @@ PROMPT;
             CURLOPT_TIMEOUT        => $this->timeout,
             CURLOPT_CONNECTTIMEOUT => 8,
             CURLOPT_POSTFIELDS     => json_encode($data, JSON_UNESCAPED_UNICODE),
-            CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
+            CURLOPT_HTTPHEADER     => array_merge(['Content-Type: application/json'], $this->accessHeaders()),
         ]);
 
         $body   = curl_exec($ch);
@@ -528,7 +543,7 @@ PROMPT;
 
     private function get(string $path): array
     {
-        return $this->getJson(rtrim($this->host, '/') . $path);
+        return $this->getJson(rtrim($this->host, '/') . $path, $this->accessHeaders());
     }
 
     /** @param list<string> $headers */

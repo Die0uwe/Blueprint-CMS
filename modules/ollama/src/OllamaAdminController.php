@@ -23,7 +23,8 @@ final class OllamaAdminController
         $settings  = OllamaConfig::load($this->db);
         $keySet    = ($settings['open_webui_key'] ?? '') !== '';
         $fbKeySet  = ($settings['fallback_key'] ?? '') !== '';
-        unset($settings['open_webui_key'], $settings['fallback_key']);   // nooit naar de view
+        $cfSecretSet = ($settings['cf_access_secret'] ?? '') !== '';
+        unset($settings['open_webui_key'], $settings['fallback_key'], $settings['cf_access_secret']);   // nooit naar de view
 
         $client    = OllamaConfig::client(OllamaConfig::load($this->db));
         $available = $client->isAvailable();
@@ -65,6 +66,18 @@ final class OllamaAdminController
             OllamaConfig::set($this->db, 'open_webui_key', '', 'encrypted');
         } elseif ($key !== '') {
             OllamaConfig::set($this->db, 'open_webui_key', $key, 'encrypted');
+        }
+
+        // Cloudflare Access service token: ID gewoon, geheim versleuteld (leeg = ongewijzigd, vinkje = wissen).
+        $cid = trim((string) $request->input('cf_access_id', ''));
+        if ($cid === '' || preg_match('/^[A-Za-z0-9._-]{1,200}$/', $cid) === 1) {
+            OllamaConfig::set($this->db, 'cf_access_id', $cid);
+        }
+        $cs = trim((string) $request->input('cf_access_secret', ''));
+        if ((string) $request->input('clear_cf_access_secret', '') === '1') {
+            OllamaConfig::set($this->db, 'cf_access_secret', '', 'encrypted');
+        } elseif ($cs !== '' && preg_match('/^[A-Za-z0-9._-]{1,200}$/', $cs) === 1) {
+            OllamaConfig::set($this->db, 'cf_access_secret', $cs, 'encrypted');
         }
 
         // Reserve-AI (DeepSeek in de cloud): alleen https; sleutel net als hierboven.
