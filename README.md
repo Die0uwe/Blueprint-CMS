@@ -16,7 +16,7 @@ GPL-3.0-or-later
 [![PHP](https://img.shields.io/badge/PHP-8.3%2B-777BB4?style=flat-square&logo=php)](https://php.net)
 [![MariaDB](https://img.shields.io/badge/MariaDB-10.11%2B-003545?style=flat-square&logo=mariadb)](https://mariadb.org)
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.32.0-brightgreen?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-1.36.0-brightgreen?style=flat-square)](CHANGELOG.md)
 [![CI](https://img.shields.io/github/actions/workflow/status/Die0uwe/bluprint-cms/ci.yml?branch=main&style=flat-square&label=CI)](.github/workflows/ci.yml)
 
 *Geïnspireerd door PHP-Fusion · Down Under Fusion · ImpressCMS*
@@ -225,6 +225,21 @@ en zijn in v1.9.0 verwijderd. Zie `docs/wave-0-gap-analysis.md` voor de volledig
 > PHPStan level 8 en PHPCS PSR-12 op elke push — zie de CI-badge bovenaan voor de actuele status.
 
 ---
+
+## 🆕 Nieuw op main (na v1.36.0, nog geen release)
+
+- **Footer in ScriptSpace-stijl**: regenbooglijn, merkkolom met logo, kolommen *Deze site*, *ScriptSpace* en *Over*, en een onderregel met copyright en versie. Eigen kolommen zet je via de footer-builder in de thema-instellingen; de onderregel blijft altijd staan. Teksten in nl/en/de (`footer.*`).
+- HTML-pagina's in thema-stijl, voorbeeldknoppen in de pagina-editor, volledig scherm voor HTML-pagina's. Zie `CHANGELOG.md` → *Unreleased*.
+
+## 🆕 Nieuw in v1.36.0
+
+- **Back-ups** (`/admin/backup`): database + uploads in één zip, automatisch dagelijks om 05:00 (7 dagen bewaard), terugzetten per weekdag of via upload. Zie [docs/BACKUP.md](docs/BACKUP.md).
+- **Database bijwerken via de browser** (`/admin/database`, alleen super_admin), met automatische back-up vooraf.
+- Admin-zijbalk met in-/uitklapbare secties; galerij-beheer met inklapbare hoofdcategorieën.
+
+## 🆕 Nieuw in v1.35.0
+
+- **Galerij-taxonomie**: vijf hoofdcategorieën, subalbums, stijl-tags en vrije tags, duplicaten samenvoegen, JSON-export. Zie [docs/GALLERY-TAXONOMIE.md](docs/GALLERY-TAXONOMIE.md).
 
 ## 🆕 Nieuw in v1.34.0
 
